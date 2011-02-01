@@ -1,0 +1,16 @@
+Source: python-geohash
+Section: python
+Priority: extra
+Maintainer: Muharem Hrnjadovic <mh@foldr3.com>
+Build-Depends: debhelper (>= 7.0.50~), python-support, python (>=2.5), python-dev
+Standards-Version: 3.9.1
+Homepage: http://code.google.com/p/python-geohash/
+#Vcs-Git: git://git.debian.org/collab-maint/python-geohash.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/python-geohash.git;a=summary
+
+Package: python-geohash
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: string representations of 2-dimensional geometric coordinates
+ Geohash is a string representation of two dimensional geometric coordinates.
+ This technique is well described at http://en.wikipedia.org/wiki/Geohash
