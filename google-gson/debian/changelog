@@ -1,3 +1,15 @@
+gson (1.6-3) maverick; urgency=low
+
+  * Another fix (debian/rules).
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 03 Feb 2011 14:38:50 +0100
+
+gson (1.6-2) maverick; urgency=low
+
+  * Fix the debian/rules file so the source actually gets built :P
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 03 Feb 2011 14:07:30 +0100
+
 gson (1.6-1) natty; urgency=low
 
   * Initial packaging release.
