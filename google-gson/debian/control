@@ -1,10 +1,10 @@
 Source: gson
-Section: libs
+Section: java
 Priority: optional
-Maintainer: Muharem Hrnjadovic <Muharem Hrnjadovic <mh@foldr3.com>>
+Maintainer: Muharem Hrnjadovic <mh@foldr3.com>
 Build-Depends: debhelper (>> 7), javahelper (>= 0.32) 
 Build-Depends-Indep: default-jdk
-Standards-Version: 3.8.3
+Standards-Version: 3.9.1
 Homepage: http://code.google.com/p/google-gson/
 
 Package: libgson-java
