@@ -1,0 +1,17 @@
+Source: gson
+Section: java
+Priority: optional
+Maintainer: Muharem Hrnjadovic <Muharem Hrnjadovic <mh@foldr3.com>>
+Build-Depends: debhelper (>> 7), javahelper (>= 0.32) 
+Build-Depends-Indep: openjdk-6-jdk
+Standards-Version: 3.8.3
+Homepage: http://code.google.com/p/google-gson/
+
+Package: libgson-java
+Architecture: all
+Depends: ${java:Depends}, ${misc:Depends}
+Description: Convert Java Objects to JSON and vice versa
+ Gson is a Java library that can be used to convert Java Objects into
+ their JSON representation. It can also be used to convert a JSON string
+ to an equivalent Java object. Gson can work with arbitrary Java objects
+ including pre-existing objects that you do not have source-code of.

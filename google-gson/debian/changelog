@@ -1,0 +1,5 @@
+gson (1.6-1) natty; urgency=low
+
+  * Initial packaging release.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 03 Feb 2011 12:11:02 +0100
