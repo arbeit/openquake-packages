@@ -1,3 +1,15 @@
+jredis (2.0-3) maverick; urgency=low
+
+  * Force the inclusion of the source tarball into the changes file.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 04 Feb 2011 15:23:52 +0100
+
+jredis (2.0-2) maverick; urgency=low
+
+  * Added libcommons-logging-java build dependency.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 04 Feb 2011 15:13:38 +0100
+
 jredis (2.0-1) maverick; urgency=low
 
   * Initial release.
