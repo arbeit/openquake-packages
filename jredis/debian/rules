@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+
+export JAVA_HOME=/usr/lib/jvm/default-java
+export CLASSPATH=/usr/share/java/commons-logging.jar
+
+# Put depended upon jars in here
+# export CLASSPATH=
+
+%:
+	dh --with javahelper $@
+

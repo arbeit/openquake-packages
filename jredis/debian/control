@@ -1,0 +1,14 @@
+Source: jredis
+Section: java
+Priority: optional
+Maintainer: Muharem Hrnjadovic <mh@foldr3.com>
+Build-Depends: debhelper (>> 7), javahelper (>= 0.32)
+Build-Depends-Indep: default-jdk
+Standards-Version: 3.9.1
+Homepage: http://code.google.com/p/jredis/
+
+Package: libjredis-java
+Architecture: all
+Depends: ${java:Depends}, ${misc:Depends}
+Description: Short Description
+ Long Description
