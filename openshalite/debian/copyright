@@ -1,0 +1,29 @@
+This package was Debianised by Muharem Hrnjadovic <mh@foldr3.com> on
+Fri Feb  4 16:03:04 CET 2011
+
+This package was downloaded from https://github.com/gem/OpenSHA
+
+Copyright:
+    Copyright (c) 2011 OpenSHA.org and the University of Southern
+    California (USC). This copyright applies to the OpenSHA codebase as
+    a whole, or any individual distributed application. The individual
+    contributions of government employees, which may be identified on a
+    per-file basis using Subversion (SVN) (see developer site), are in
+    the public domain.
+
+License:
+   The software is licensed under the Apache License, Version 2.0 (the
+   "License"); you may not use this file except in compliance with the
+   License.  You may obtain a copy of the License at
+ 
+         http://www.apache.org/licenses/LICENSE-2.0
+ 
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+On Debian GNU/Linux and Ubuntu systems, the complete text of the Apache 2.0
+License can be found in the /usr/share/common-licenses/Apache-2.0 file.
+The same license applies to the Debian packaging.

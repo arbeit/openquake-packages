@@ -1,0 +1,11 @@
+openshalite (1.0-2) natty; urgency=low
+
+  * Revised the package description.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 04 Feb 2011 17:30:19 +0100
+
+openshalite (1.0-1) natty; urgency=low
+
+  * Initial release.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 04 Feb 2011 16:03:04 +0100
