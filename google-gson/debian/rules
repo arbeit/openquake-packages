@@ -2,45 +2,9 @@
 
 export JAVA_HOME=/usr/lib/jvm/default-java
 
-build: build-stamp
-build-stamp:
-	dh_testdir
-	jh_build gson.jar src
-	touch $@
+# Put depended upon jars in here
+# export CLASSPATH=
 
-clean:
-	dh_testdir
-	dh_testroot
-	jh_build --clean
-	dh_clean
-	rm -f build-stamp gson.jar
+%:
+	dh --with javahelper $@
 
-install: build
-	dh_testdir
-	dh_testroot
-	dh_prep
-	dh_installdirs
-
-binary-arch: build install
-	# Java packages are arch: all, nothing to do here
-
-binary-indep: build install
-	# Create the package here
-	dh_testdir
-	dh_testroot
-	dh_prep
-	dh_install -i
-	jh_installjavadoc -i
-	dh_installdocs -i
-	dh_installchangelogs -i
-	jh_installlibs -i
-	jh_depends -i
-	dh_compress -i
-	dh_fixperms -i
-	dh_installdeb -i
-	dh_gencontrol -i
-	dh_md5sums -i
-	dh_builddeb -i
-
-binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install
