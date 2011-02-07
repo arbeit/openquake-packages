@@ -1,0 +1,9 @@
+#!/usr/bin/make -f
+
+export JAVA_HOME=/usr/lib/jvm/default-java
+
+# Put depended upon jars in here
+export CLASSPATH=/usr/share/java/openshalite.jar:/usr/share/java/gson.jar:/usr/share/java/jredis.jar:/usr/share/java/dom4j.jar:/usr/share/java/commons-math.jar:/usr/share/java/commons-logging.jar:/usr/share/java/commons-configuration.jar:/usr/share/java/commons-io.jar:/usr/share/java/commons-collections.jar:/usr/share/java/commons-lang.jar
+
+%:
+	dh --with javahelper $@

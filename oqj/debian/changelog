@@ -1,0 +1,5 @@
+oqj (1.0-1) natty; urgency=low
+
+  * OpenQuake java library, initial release.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 07 Feb 2011 14:24:13 +0100
