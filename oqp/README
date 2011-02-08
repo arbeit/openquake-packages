@@ -1,0 +1,5 @@
+Please note that the celeryconfig.py file needs to be revised to reflect
+your python-celery setup parameters.
+
+See also http://openquake.org/documentation/installation/manual-installation/
+for more information.
