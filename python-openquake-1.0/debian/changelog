@@ -1,3 +1,9 @@
+python-openquake (1.0-2) natty; urgency=low
+
+  * install bin/openquake in /usr/local/bin
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 08 Feb 2011 20:30:23 +0100
+
 python-openquake (1.0-1) natty; urgency=low
 
   * Initial release
