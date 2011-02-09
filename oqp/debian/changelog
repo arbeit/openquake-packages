@@ -1,3 +1,9 @@
+oqp (1.0-3) natty; urgency=low
+
+  * Add postinst script with rabbitmq configuration for python-celery
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 09 Feb 2011 10:11:20 +0100
+
 oqp (1.0-2) natty; urgency=low
 
   * Added all the dependencies needed by OpenQuake.
