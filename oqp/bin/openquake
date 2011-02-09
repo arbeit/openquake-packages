@@ -23,13 +23,6 @@ Expects to compute:
 import os
 import sys
 
-# this is a hack so that it is easier to test these scripts,
-# it will add the proper directories to the path so that 
-# this script can be run from a checkout
-if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                  'openquake')):
-    sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-    
 from fabric.api import env, local, run
 from multiprocessing import Process
 
@@ -37,6 +30,15 @@ from openquake import flags
 from openquake import logs
 
 from openquake import job
+from openquake.job import Job
+from openquake.output import geotiff
+from openquake.parser import exposure
+from openquake.parser import vulnerability
+
+from openquake.hazard import job as hazjob
+from openquake.hazard import opensha
+from openquake.risk import job as riskjob
+from openquake.risk.job import probabilistic
 
 FLAGS = flags.FLAGS
 
