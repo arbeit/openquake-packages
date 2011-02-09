@@ -1,8 +1,14 @@
+python-openquake (1.0-3) natty; urgency=low
+
+  * Restored orig.tar.gz
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 08 Feb 2011 22:12:52 +0100
+
 python-openquake (1.0-2) natty; urgency=low
 
-  * install bin/openquake in /usr/local/bin
+  * Cleaned up package.
 
- -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 08 Feb 2011 20:30:23 +0100
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 08 Feb 2011 21:58:12 +0100
 
 python-openquake (1.0-1) natty; urgency=low
 
