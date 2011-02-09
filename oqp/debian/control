@@ -1,16 +1,16 @@
-Source: python-openquake
+Source: oqp
 Section: python
 Priority: extra
 Maintainer: Muharem Hrnjadovic <mh@foldr3.com>
 Build-Depends: debhelper (>= 7.0.50~), python-support, python (>=2.6), python-setuptools
 Standards-Version: 3.9.1
 Homepage: http://openquake.org/
-#Vcs-Git: git://git.debian.org/collab-maint/python-openquake.git
-#Vcs-Browser: http://git.debian.org/?p=collab-maint/python-openquake.git;a=summary
+#Vcs-Git: git://git.debian.org/collab-maint/oqp.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/oqp.git;a=summary
 
-Package: python-openquake
+Package: oqp
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, fabric, python-celery, python-gdal, python-geohash, python-gflags, python-jpype, python-lxml, python-matplotlib, python-numpy, python-paramiko, python-redis, python-scipy, python-shapely
+Depends: ${shlibs:Depends}, ${misc:Depends}, fabric, python-celery, python-gdal, python-geohash, python-gflags, python-jpype, python-lxml, python-matplotlib, python-numpy, python-paramiko, python-redis, python-scipy, python-shapely, rabbitmq-server, redis-server
 Description: computes hazard, risk and socio-economic impact of earthquakes
  OpenQuake is an open source application that allows users to compute
  seismic hazard, seismic risk and socio-economic impact of earthquakes
