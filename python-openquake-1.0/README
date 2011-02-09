@@ -1,0 +1,6 @@
+OpenQuake is an open source application that allows users to
+compute seismic hazard, seismic risk and socio-economic
+impact of earthquakes on a global scale.
+
+Please note: you will need to edit the celeryconfig.py file
+in order to make it work with you python-celery setup.

@@ -1,4 +1,11 @@
+import os
 from setuptools import setup, find_packages
+
+
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
+
 setup(
     name = "openquake",
     version = "1.0",
@@ -9,5 +16,11 @@ setup(
     license = "LGPL3",
     keywords = "earthquake seismic hazard risk",
     url = "http://openquake.org/",
+    long_description=read('README'),
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Topic :: Utilities",
+    ],
     packages = find_packages(),
+    scripts = ['openquake'],
 )
