@@ -10,7 +10,7 @@ Homepage: http://openquake.org/
 
 Package: oqp
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, fabric, python-celery, python-gdal, python-geohash, python-gflags, python-jpype, python-lxml, python-matplotlib, python-numpy, python-paramiko, python-redis, python-scipy, python-shapely, rabbitmq-server, redis-server
+Depends: ${shlibs:Depends}, ${misc:Depends}, fabric, python (>=2.6), python-celery, python-gdal, python-geohash, python-gflags, python-jpype, python-lxml, python-matplotlib, python-numpy, python-paramiko, python-redis, python-scipy, python-shapely, rabbitmq-server, redis-server
 Description: computes hazard, risk and socio-economic impact of earthquakes
  OpenQuake is an open source application that allows users to compute
  seismic hazard, seismic risk and socio-economic impact of earthquakes
