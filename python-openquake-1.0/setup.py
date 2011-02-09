@@ -22,5 +22,9 @@ setup(
         "Topic :: Utilities",
     ],
     packages = find_packages(),
+    package_data = {
+        # If any package contains *.txt or *.rst files, include them:
+        '': ['*.gem', '*.xml'],
+    },
     scripts = ['bin/openquake'],
 )
