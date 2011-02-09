@@ -22,5 +22,5 @@ setup(
         "Topic :: Utilities",
     ],
     packages = find_packages(),
-    scripts = ['openquake'],
+    scripts = ['bin/openquake'],
 )
