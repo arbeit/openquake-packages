@@ -52,21 +52,12 @@ def jclass(class_key):
 def jvm(max_mem=4000):
     """Return the jpype module, after guaranteeing the JVM is running and 
     the classpath has been loaded properly."""
-    jarpaths = (os.path.abspath(
-                    os.path.join(os.path.dirname(__file__), "../lib")),
-                os.path.abspath(
-                    os.path.join(os.path.dirname(__file__), "../dist")))
-    # TODO(JMC): Make sure these directories exist
-    # LOG.debug("Jarpath is %s", jarpaths)
     if not jpype.isJVMStarted():
         LOG.debug("Default JVM path is %s" % jpype.getDefaultJVMPath())
         jpype.startJVM(jpype.getDefaultJVMPath(), 
-            "-Djava.ext.dirs=%s:%s" % jarpaths, 
-        #"-Dnet.spy.log.LoggerImpl=net.spy.memcached.compat.log.Log4JLogger",
-            # "-Dlog4j.debug",
+            "-Djava.ext.dirs=/usr/share/java",
             "-Dlog4j.configuration=log4j.properties",
             "-Dlog4j.rootLogger=%s, A1" % (FLAGS.debug.upper()),
-            # "-Dlog4j.rootLogger=DEBUG, A1",
             "-Xmx%sM" % max_mem)
         
         if FLAGS.capture_java_debug:
