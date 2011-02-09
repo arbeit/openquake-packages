@@ -1,3 +1,9 @@
+oqp (1.0-2) natty; urgency=low
+
+  * Added all the dependencies needed by OpenQuake.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 09 Feb 2011 09:35:53 +0100
+
 oqp (1.0-1) natty; urgency=low
 
   * Initial release
