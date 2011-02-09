@@ -19,8 +19,16 @@ set -e
 
 
 # create rabbitmq configuration for python-celery
-rabbitmqctl add_user celeryuser celery
-rabbitmqctl add_vhost celeryvhost
+celeryuser_count=`sudo rabbitmqctl list_users | grep celeryuser | wc -l`
+if [ $celeryuser_count -eq 0 ];
+then
+    rabbitmqctl add_user celeryuser celery
+fi;
+celeryvhost_count=`sudo rabbitmqctl list_vhosts | grep celeryvhost | wc -l`
+if [ $celeryvhost_count -eq 0 ];
+then
+    rabbitmqctl add_vhost celeryvhost
+fi;
 rabbitmqctl set_permissions -p celeryvhost celeryuser ".*" ".*" ".*"
 
 # dh_installdeb will replace this with shell code automatically
