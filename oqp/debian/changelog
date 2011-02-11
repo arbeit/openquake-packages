@@ -1,3 +1,17 @@
+oqp (1.0-7) natty; urgency=low
+
+  * Make it possible to configure the maximum memory the JVM should use via
+    an environment variable (OQ_JVM_MAXMEM).
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 11 Feb 2011 17:10:16 +0100
+
+oqp (1.0-6) natty; urgency=low
+
+  *  Fix openquake script so it leaves sys.path alone and pre-imports the
+     various job mixin classes.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 09 Feb 2011 15:02:56 +0100
+
 oqp (1.0-5) natty; urgency=low
 
   * make debian/postinst more robust by checking for an existing
