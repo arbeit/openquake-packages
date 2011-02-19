@@ -1,3 +1,9 @@
+oqp (1.1-1) natty; urgency=low
+
+  * Upstream OpenQuake python sources from the sprint that ended 16-Feb-2011
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Sat, 19 Feb 2011 13:56:06 +0100
+
 oqp (1.0-7) natty; urgency=low
 
   * Make it possible to configure the maximum memory the JVM should use via

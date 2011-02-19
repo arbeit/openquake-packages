@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Top-level managers for computation classes.
+The risk stuff using the classical psha based approach is not
+currently implemented. The logic of this class needs to be
+moved into one (or more) mixins.
 """
 
 from openquake import logs
@@ -24,7 +26,7 @@ class ClassicalPSHABasedLossRatioCalculator(object):
         self.block_id = block_id
 
         self.vuln_curves = \
-                vulnerability.load_vuln_curves_from_kvs(self.job_id)
+                vulnerability.load_vuln_model_from_kvs(self.job_id)
 
         # self.vuln_curves is a dict of {string: Curve}
         LOGGER.debug("ProbabilisticLossRatioCalculator init: vuln curves are")
