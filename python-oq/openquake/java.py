@@ -9,37 +9,54 @@ import jpype
 
 from openquake.logs import LOG
 from openquake import flags
-FLAGS = flags.FLAGS
 
+
+FLAGS = flags.FLAGS
 flags.DEFINE_boolean('capture_java_debug', True, 
     "Pipe Java stderr and stdout to python stderr and stdout")
 
+
 JAVA_CLASSES = {
-    'LogicTreeProcessor' : "org.gem.engine.LogicTreeProcessor",
-    'KVS' : "org.gem.engine.hazard.redis.Cache",
-    'JsonSerializer' : "org.gem.JsonSerializer",
-    "EventSetGen" : "org.gem.calc.StochasticEventSetGenerator",
-    "Random" : "java.util.Random",
-    "GEM1ERF" : "org.gem.engine.hazard.GEM1ERF",
-    "HazardCalculator" : "org.gem.calc.HazardCalculator",
-    "Properties" : "java.util.Properties",
-    "CalculatorConfigHelper" : "org.gem.engine.CalculatorConfigHelper",
-    "Configuration" : "org.apache.commons.configuration.Configuration",
-    "ConfigurationConverter" : 
+    'LogicTreeProcessor': "org.gem.engine.LogicTreeProcessor",
+    'KVS': "org.gem.engine.hazard.redis.Cache",
+    'JsonSerializer': "org.gem.JsonSerializer",
+    "EventSetGen": "org.gem.calc.StochasticEventSetGenerator",
+    "Random": "java.util.Random",
+    "GEM1ERF": "org.gem.engine.hazard.GEM1ERF",
+    "HazardCalculator": "org.gem.calc.HazardCalculator",
+    "Properties": "java.util.Properties",
+    "CalculatorConfigHelper": "org.gem.engine.CalculatorConfigHelper",
+    "Configuration": "org.apache.commons.configuration.Configuration",
+    "ConfigurationConverter":
         "org.apache.commons.configuration.ConfigurationConverter",
-    "ArbitrarilyDiscretizedFunc" : 
+    "ArbitrarilyDiscretizedFunc":
         "org.opensha.commons.data.function.ArbitrarilyDiscretizedFunc",
-    "ArrayList" : "java.util.ArrayList",
-    "GmpeLogicTreeData" : "org.gem.engine.GmpeLogicTreeData",
-    "AttenuationRelationship" : "org.opensha.sha.imr.AttenuationRelationship",
-    "EqkRupForecastAPI" : "org.opensha.sha.earthquake.EqkRupForecastAPI",
-    "DoubleParameter" : "org.opensha.commons.param.DoubleParameter",
-    "StringParameter" : "org.opensha.commons.param.StringParameter",
-    "ParameterAPI" : "org.opensha.commons.param.ParameterAPI",
-    "DiscretizedFuncAPI" : 
+    "ArrayList": "java.util.ArrayList",
+    "GmpeLogicTreeData": "org.gem.engine.GmpeLogicTreeData",
+    "AttenuationRelationship": "org.opensha.sha.imr.AttenuationRelationship",
+    "EqkRupForecastAPI": "org.opensha.sha.earthquake.EqkRupForecastAPI",
+    "DoubleParameter": "org.opensha.commons.param.DoubleParameter",
+    "StringParameter": "org.opensha.commons.param.StringParameter",
+    "ParameterAPI": "org.opensha.commons.param.ParameterAPI",
+    "DiscretizedFuncAPI":
         "org.opensha.commons.data.function.DiscretizedFuncAPI",
-    "ProbabilityMassFunctionCalc" : "org.gem.calc.ProbabilityMassFunctionCalc",
+    "ProbabilityMassFunctionCalc": "org.gem.calc.ProbabilityMassFunctionCalc",
+    "Location": "org.opensha.commons.geo.Location",
+    "Site": "org.opensha.commons.data.Site",
+    "HashMap": "java.util.HashMap",
+    "RuptureReader": "org.gem.engine.hazard.parsers.RuptureReader",
+    "GMPEDeserializer":
+        "org.gem.ScalarIntensityMeasureRelationshipApiDeserializer",
+    "JsonPrimitive": "com.google.gson.JsonPrimitive",
+    "GMFCalculator": "org.gem.calc.GroundMotionFieldCalculator",
+    "SourceModelReader": "org.gem.engine.hazard.parsers.SourceModelReader",
+    "StirlingGriddedSurface":
+        "org.opensha.sha.faultSurface.StirlingGriddedSurface",
+    "ApproxEvenlyGriddedSurface":
+        "org.opensha.sha.faultSurface.ApproxEvenlyGriddedSurface",
+    "LocationListFormatter": "org.gem.LocationListFormatter",
 }
+
 
 logging.getLogger('jpype').setLevel(logging.ERROR)
 

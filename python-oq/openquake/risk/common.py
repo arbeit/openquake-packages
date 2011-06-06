@@ -1,12 +1,31 @@
 # -*- coding: utf-8 -*-
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
+# Copyright (c) 2010-2011, GEM Foundation.
+#
+# OpenQuake is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License version 3
+# only, as published by the Free Software Foundation.
+#
+# OpenQuake is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License version 3 for more details
+# (a copy is included in the LICENSE file that accompanied this code).
+#
+# You should have received a copy of the GNU Lesser General Public License
+# version 3 along with OpenQuake.  If not, see
+# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+
+
+
+
 """
 This module defines functions that can be applied to loss ratio
 or loss curves.
 """
 
-from numpy import mean  # pylint: disable=E1101, E0611
+from numpy import mean
 
 from openquake import shapes
 
@@ -14,24 +33,31 @@ from openquake import shapes
 def compute_conditional_loss(curve, probability):
     """Return the loss (or loss ratio) corresponding to the given
     PoE (Probability of Exceendance).
-    
-    Return zero if the probability if out of bounds.
+
+    Return the max loss (or loss ratio) if the given PoE is smaller
+    than the lowest PoE defined.
+
+    Return zero if the given PoE is greater than the
+    highest PoE defined.
     """
 
     if curve.ordinate_out_of_bounds(probability):
-        return 0.0
+        if probability < curve.y_values[-1]:
+            return curve.x_values[-1]
+        else:
+            return 0.0
 
     return curve.abscissa_for(probability)
 
 
 def compute_loss_curve(loss_ratio_curve, asset):
     """Compute the loss curve for the given asset value.
-    
+
     A loss curve is obtained from a loss ratio curve by
     multiplying each X value (loss ratio) for the given asset.
     """
 
-    if not asset: 
+    if not asset:
         return shapes.EMPTY_CURVE
 
     return loss_ratio_curve.rescale_abscissae(asset)
@@ -66,7 +92,8 @@ def compute_mean_loss(curve):
     """Compute the mean loss (or loss ratio) for the given curve."""
 
     mid_curve = _compute_mid_po(_compute_mid_mean_pe(curve))
-    return sum(i*j for i, j in zip(mid_curve.abscissae, mid_curve.ordinates))
+    return sum(i * j for i, j in zip(
+            mid_curve.abscissae, mid_curve.ordinates))
 
 
 def loop(elements, func, *args):
@@ -81,5 +108,5 @@ def collect(iterator):
 
     for element in iterator:
         data.append(element)
-    
+
     return data
