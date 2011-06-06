@@ -55,4 +55,4 @@ __version__ = (
     0,  # major
     3,  # minor
     9,  # sprint number
-    0)  # release date (seconds since the "Epoch"), do *not* set in master!
+    1307357694)  # release date (seconds since the "Epoch")
