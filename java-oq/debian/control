@@ -9,6 +9,6 @@ Homepage: http://openquake.org/
 
 Package: java-oq
 Architecture: all
-Depends: ${java:Depends}, ${misc:Depends}, default-jdk
+Depends: ${java:Depends}, ${misc:Depends}
 Description: The OpenQuake java library
  The OpenQuake java library
