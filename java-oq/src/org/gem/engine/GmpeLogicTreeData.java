@@ -50,9 +50,9 @@ public class GmpeLogicTreeData {
 
     private final ParameterChangeWarningListener warningListener = null;
 
-    private final BufferedReader bufferedReader;
+    private BufferedReader bufferedReader;
 
-    private final HashMap<TectonicRegionType, LogicTree<ScalarIntensityMeasureRelationshipAPI>> gmpeLogicTreeHashMap;
+    private HashMap<TectonicRegionType, LogicTree<ScalarIntensityMeasureRelationshipAPI>> gmpeLogicTreeHashMap;
 
     private static final String packageName =
             "org.opensha.sha.imr.attenRelImpl.";
@@ -85,6 +85,11 @@ public class GmpeLogicTreeData {
                 new HashMap<TectonicRegionType, LogicTree<ScalarIntensityMeasureRelationshipAPI>>();
     }
 
+    public GmpeLogicTreeData ()
+    {
+        
+    }
+    
     /**
      * Reads logic tree data and instantiates {@link LogicTree} objects for each
      * {@link TectonicRegionType}. Each {@link LogicTree} contains
@@ -229,22 +234,9 @@ public class GmpeLogicTreeData {
             double period, double damping, String truncType, double truncLevel,
             String stdType, double vs30, AttenuationRelationship ar) {
         String gmpeName = ar.getClass().getCanonicalName();
-        if (ar.getParameter(ComponentParam.NAME).isAllowed(component)) {
-            ar.getParameter(ComponentParam.NAME).setValue(component);
-        } else {
-            String msg =
-                    "The chosen component: "
-                            + component
-                            + " is not supported by "
-                            + gmpeName
-                            + "\n"
-                            + "The supported components are the following:\n"
-                            + ar.getParameter(ComponentParam.NAME)
-                                    .getConstraint() + "\n"
-                            + "Check your input file!\n" + "Execution stopped.";
-            logger.error(msg);
-            throw new IllegalArgumentException(msg);
-        }
+
+        ar.setComponentParameter(component, intensityMeasureType);
+        
         if (ar.getSupportedIntensityMeasuresList().containsParameter(
                 intensityMeasureType)) {
             ar.setIntensityMeasure(intensityMeasureType);
