@@ -1,3 +1,9 @@
+openshalite (1.1-1) natty; urgency=low
+
+  * Source code refresh
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 07 Jun 2011 14:27:54 +0200
+
 openshalite (1.0-4) natty; urgency=low
 
   * Revised debian/rules so that the 2 required text files are added

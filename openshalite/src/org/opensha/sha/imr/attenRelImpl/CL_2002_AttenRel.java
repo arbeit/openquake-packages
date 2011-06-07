@@ -23,17 +23,11 @@ import org.opensha.sha.imr.param.PropagationEffectParams.DistanceRupParameter;
  * <p>
  * 
  * <b>Description:</b> This implements the Attenuation Relationship published by
- * Bakun, W. H. and C. M. Wentworth (1997). Estimating earthquake location and
- * magnitude from seismic intensity data. Bull. Seism. Soc. Am. 87, 1502-1521
- * The equation returns the mean MMI ("Intensity mercalli_modified_intensity")
- * predicted by the equation. The Formula is: Immi = 3.67 + 1.17 magnitude -
- * 3.19 log(epicentralDistance)
+ * 
  * 
  * Verification tables have been provided by Damiano Monelli as an Excel
  * spreadsheet.
  * 
- * Note: In case of this equation the standard deviation is not provided and
- * therefore the method getStandardDeviation() returns 0.
  * 
  * Supported Intensity-Measure Parameters:
  * <p>
@@ -52,40 +46,40 @@ import org.opensha.sha.imr.param.PropagationEffectParams.DistanceRupParameter;
  * 
  * <p>
  * Verification - This model has been tested against: Verification table
- * implemented in the JUnit test BW_1997_AttenRelTest.
+ * implemented in the JUnit test Chandler_Lam2002_stable_continental_test.
  * 
  * </p>
  * 
  * 
  * @author Roland Siegert, Damiano Monelli
- * @created September, 2010
+ * @created November, 2010
  * @version 0.1
  */
-public class BW_1997_AttenRel extends AttenuationRelationship implements
+public class CL_2002_AttenRel extends
+        AttenuationRelationship implements
         ScalarIntensityMeasureRelationshipAPI, NamedObjectAPI,
         ParameterChangeListener {
-    private final double standardDeviation = 0.0d;
+    private final double totalStandardDeviation = 0.7d;
     private static final Double DISTANCE_EPI_WARN_MIN = 0.0;
-    private static final Double DISTANCE_EPI_WARN_MAX = 500.0;
-    private static final Double MAG_WARN_MIN = 4.4;
-    private static final Double MAG_WARN_MAX = 6.9;
-
-    // By now the calculator does not observe parameter changes.
-    // So this is a UI listener that is only introduced for consistency.
-    private ParameterChangeWarningListener warningListener = null;
+    private static final Double DISTANCE_EPI_WARN_MAX = 300.0;
+    private static final Double MAG_WARN_MIN = 3.3;
+    private static final Double MAG_WARN_MAX = 8.0;
     // epicentral distance - never read just defined to comply with the
     // "analogous" implemented classes ("parameterChange()"). -> refactor!
     double rEpi;
     // Rupture magnitude - never read just defined to comply with the
     // "analogous" implemented classes ("parameterChange()"). -> refactor!
     private double mag;
-    // Standard Dev type - never read just defined to comply with the
-    // "analogous" implemented classes ("parameterChange()"). -> refactor!
+    // stdDevType - is only set by the ParameterChangeListener like in the
+    // "analogous" implemented IPE classes ("parameterChange()"). -> refactor!
     private String stdDevType;
-    // See above: unused UI stuff
+    // By now the calculator does not observe parameter changes.
+    // So this is a UI listener that is only introduced for consistency.
+    private ParameterChangeWarningListener warningListener = null;
+    // also unused UI stuff
     private boolean parameterChange;
 
-    public BW_1997_AttenRel(ParameterChangeWarningListener wl) {
+    public CL_2002_AttenRel(ParameterChangeWarningListener wl) {
         super();
         this.warningListener = wl;
         initSupportedIntensityMeasureParams();
@@ -106,8 +100,7 @@ public class BW_1997_AttenRel extends AttenuationRelationship implements
          * IntensityMeasureRelationship. -> It is save to use it here.
          * Suggestion for an OpenSha refactoring: TODO: Avoid uncontrolled
          * access by the subclasses. Set these members private in the super
-         * class and provide access via getters and setters and let the lazy
-         * init!.
+         * class and provide access via setters and getters with lazy init.
          */
         getSupportedIntensityMeasuresList().clear();
         // supportedIMParams.clear();
@@ -123,8 +116,7 @@ public class BW_1997_AttenRel extends AttenuationRelationship implements
          * IntensityMeasureRelationship. -> It is save to use it here.
          * Suggestion for an OpenSha refactoring: TODO: Avoid uncontrolled
          * access by the subclasses. Set these members private in the super
-         * class and provide access via getters and setters and let the lazy
-         * init!.
+         * class and provide access via setters and getters with lazy init.
          */
         getEqkRuptureParamsList().clear();
         // eqkRuptureParams.clear();
@@ -165,24 +157,33 @@ public class BW_1997_AttenRel extends AttenuationRelationship implements
     protected void initOtherParams() {
         super.initOtherParams();
         stdDevTypeParam = createStdDevTypeParam();
-        // StringConstraint stdDevTypeConstraint = new StringConstraint();
-        // stdDevTypeConstraint.addString(StdDevTypeParam.STD_DEV_TYPE_NONE);
-        // stdDevTypeConstraint.setNonEditable();
-        // stdDevTypeParam = new StdDevTypeParam(stdDevTypeConstraint);
         otherParams.addParameter(stdDevTypeParam);
+    }
+
+    /**
+     * Adds the parameter change listeners. This allows to listen to when-ever
+     * the parameter is changed.
+     * 
+     */
+    @Override
+    protected void initParameterEventListeners() {
+        distanceEpicentralParameter.addParameterChangeListener(this);
+        magParam.addParameterChangeListener(this);
+        stdDevTypeParam.addParameterChangeListener(this);
     }
 
     private StdDevTypeParam createStdDevTypeParam() {
         StringConstraint stdDevTypeConstraint = new StringConstraint();
         stdDevTypeConstraint.addString(StdDevTypeParam.STD_DEV_TYPE_NONE);
+        stdDevTypeConstraint.addString(StdDevTypeParam.STD_DEV_TYPE_TOTAL);
         stdDevTypeConstraint.setNonEditable();
         /*
-         * Note: This results in an error, becaus the constructor sets different
-         * default value: StdDevTypeParam stdDev = new
-         * StdDevTypeParam(stdDevTypeConstraint);
+         * Note: Using the single argument constructor results in an error,
+         * because the constructor sets a different default value:
+         * StdDevTypeParam stdDev = new StdDevTypeParam(stdDevTypeConstraint);
          */
         return new StdDevTypeParam(stdDevTypeConstraint,
-                StdDevTypeParam.STD_DEV_TYPE_NONE);
+                StdDevTypeParam.STD_DEV_TYPE_TOTAL);
     }
 
     @Override
@@ -238,14 +239,15 @@ public class BW_1997_AttenRel extends AttenuationRelationship implements
         distanceEpicentralParameter.setValueAsDefault();
         mmiParam.setValueAsDefault();
         /*
-         * Lazy init. This method (setParamDefaults()) is public. The init
-         * method for stdDevTypeParam is called in the constructor though...
+         * This call (getStdDevTypeParam()) initialises stdDevTypeParam. This
+         * method (setParamDefaults()) is public. The init method for
+         * stdDevTypeParam is called in the constructor though...
          */
         getStdDevTypeParam().setValueAsDefault();
     }
 
     /**
-     * Method to be implemented of Listeners of ParameterChangeEvents.
+     * Method to be implemented by listeners of ParameterChangeEvents.
      */
     @Override
     public void parameterChange(ParameterChangeEvent event) {
@@ -253,6 +255,8 @@ public class BW_1997_AttenRel extends AttenuationRelationship implements
         Object val = event.getNewValue();
         parameterChange = true;
         if (pName.equals(DistanceRupParameter.NAME)) {
+            rEpi = ((Double) val).doubleValue();
+        } else if (pName.equals(DistanceEpicentralParameter.NAME)) {
             rEpi = ((Double) val).doubleValue();
         } else if (pName.equals(MagParam.NAME)) {
             mag = ((Double) val).doubleValue();
@@ -262,32 +266,93 @@ public class BW_1997_AttenRel extends AttenuationRelationship implements
     }
 
     /**
-     * Name of equation: Bakun and Wentworth (1997) [Subduction zones] Formula:
-     * Immi = 3.67 + 1.17 magnitude - 3.19 log(epicentralDistance)
+     * Name of equation: Chandler and Lam (2002) [stable continental region]<br>
+     * <br>
+     * Formula:<br>
+     * dist < 45 km: I_mmi = -0.8919 + 1.4798*magnitude -
+     * 0.0193*log((dist+dist_0)/dist_0) - 0.0354*dist<br>
+     * <br>
+     * 
+     * 45 km < dist < 75 km:<br>
+     * I_mmi = -0.8919 + 1.4798*magnitude - 0.0193*log((dist+dist_0)/dist_0) -
+     * 0.0354*dist + 0.0193(dist-45)<br>
+     * <br>
+     * 
+     * dist > 75 km: I_mmi = -0.8919 + 1.4798*magnitude -
+     * 0.0193*log((dist+dist_0)/dist_0) - 0.0354*dist + 0.0193(dist-45) +
+     * 0.0085(dist-75)<br>
+     * <br>
+     * 
+     * magnitude_w:<br>
+     * 3.3 <= magnitude_w <= 8 <br>
+     * <br>
+     * 
+     * distance:<br>
+     * dist is the epicentral distance:<br>
+     * dist < 300 km <br>
+     * dist_0 = (10^(0.74*magnitude-3.55))/2 <br>
+     * <br>
+     * 
+     * standard deviation sigma ~0.7<br>
+     * 
      * 
      * @param magnitude
+     *            3.3 <= magnitude <= 8
      * @param epicentralDistance
+     *            distance from the epicenter, less or equal to 300 km
      * @return mean MMI predicted by the equation
      *         ("Intensity mercalli_modified_intensity")
      */
     public double getMean(double magnitude, double epicentralDistance) {
-        double result = 0.0;
-        final float offset = 3.67f;
-        final float coefficient1 = 1.17f;
-        final float coefficient2 = 3.19f;
-        // I_mmi = 3.67 + 1.17 magnitude - 3.19 log(epicentralDistance)
-        result =
+        // these boundaries could be passed in as parameters. Though the formula
+        // is so elaborate that this seems unnecessary.
+        int epicentralDistanceBoundary1 = 45;
+        int epicentralDistanceBoundary2 = 75;
+        // coefficients for all distance ranges, also less than 45 km
+        final double offset = -0.8919;
+        final double coefficient1 = 1.4798;
+        final double coefficient2 = 0.1311;
+        final double coefficient3 = 0.0364;
+        // coefficients for distance range between 45 and 75 km
+        final double coefficient4DistanceFrom45To75 = 0.0193;
+        // coefficients for distance range greater than 75 km
+        final double coefficient5DistanceGreater75 = 0.0085;
+        final double dist0 = Math.pow(10, (0.74 * magnitude - 3.55)) / 2;
+        double result =
                 offset + coefficient1 * magnitude - coefficient2
-                        * Math.log10(epicentralDistance);
+                        * Math.log((epicentralDistance + dist0) / dist0)
+                        - coefficient3 * epicentralDistance;
+        if (epicentralDistance >= epicentralDistanceBoundary1) {
+            // + 0.0193(dist-45)
+            result +=
+                    coefficient4DistanceFrom45To75
+                            * (epicentralDistance - epicentralDistanceBoundary1);
+            if (epicentralDistance >= epicentralDistanceBoundary2) {
+                // + 0.0085(dist-75)
+                result +=
+                        coefficient5DistanceGreater75
+                                * (epicentralDistance - epicentralDistanceBoundary2);
+            }
+        }
         return result;
     } // getMean()
 
     /**
+     * TODO: Refactor this: "stdDevType" is set by parameterChange(). But if
+     * this method is called before a ParameterChangeEvent was ever fired, this
+     * will cause an Exception.
+     * 
      * @return The standard deviation value
      */
     @Override
     public double getStdDev() {
-        return standardDeviation;
+        double stdDev = Double.NaN;
+        if (stdDevType.equals(StdDevTypeParam.STD_DEV_TYPE_NONE)) {
+            stdDev = 0.0;
+        } else if (stdDevType.equals(StdDevTypeParam.STD_DEV_TYPE_TOTAL)) {
+            stdDev = totalStandardDeviation;
+        }
+        return stdDev;
     } // getStdDev()
 
     private StdDevTypeParam getStdDevTypeParam() {
@@ -295,6 +360,6 @@ public class BW_1997_AttenRel extends AttenuationRelationship implements
             stdDevTypeParam = createStdDevTypeParam();
         }
         return stdDevTypeParam;
-    }
+    } // getStdDevTypeParam
 
-} // class BW_1997_AttenRel()
+} // class Chandler_Lam2002_stable_continental
