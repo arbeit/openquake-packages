@@ -1,0 +1,17 @@
+python-geoalchemy (0.5.0-3) natty; urgency=low
+
+  * Corrected web site information.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 07 Jun 2011 09:46:01 +0200
+
+python-geoalchemy (0.5.0-2) natty; urgency=low
+
+  * Minor license corrections.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 07 Jun 2011 09:34:51 +0200
+
+python-geoalchemy (0.5.0-1) natty; urgency=low
+
+  * GeoAlchemy, GIS Support for SQLAlchemy
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 07 Jun 2011 09:15:50 +0200

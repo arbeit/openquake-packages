@@ -1,0 +1,17 @@
+Source: python-geoalchemy
+Section: python
+Priority: extra
+Maintainer: Muharem Hrnjadovic <mh@foldr3.com>
+Build-Depends: debhelper (>= 7.0.50~), python-support, python (>=2.6), python-setuptools
+Standards-Version: 3.9.1
+Homepage: http://geoalchemy.org/
+#Vcs-Git: git://git.debian.org/collab-maint/oqp.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/oqp.git;a=summary
+
+Package: python-geoalchemy
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, python (>=2.6), python-sqlalchemy (>=0.6.1)
+Description: GeoAlchemy, GIS Support for SQLAlchemy (http://www.sqlalchemy.org)
+ GeoAlchemy is an extension of SQLAlchemy. It provides support for Geospatial
+ data types at the ORM layer using SQLAlchemy. It aims to support spatial
+ operations and relations specified by the Open Geospatial Consortium (OGC).
