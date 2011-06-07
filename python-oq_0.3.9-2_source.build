@@ -1,0 +1,41 @@
+ dpkg-buildpackage -rfakeroot -d -us -uc -S
+dpkg-buildpackage: export CFLAGS from dpkg-buildflags (origin: vendor): -g -O2
+dpkg-buildpackage: export CPPFLAGS from dpkg-buildflags (origin: vendor): 
+dpkg-buildpackage: export CXXFLAGS from dpkg-buildflags (origin: vendor): -g -O2
+dpkg-buildpackage: export FFLAGS from dpkg-buildflags (origin: vendor): -g -O2
+dpkg-buildpackage: export LDFLAGS from dpkg-buildflags (origin: vendor): -Wl,-Bsymbolic-functions
+dpkg-buildpackage: source package python-oq
+dpkg-buildpackage: source version 0.3.9-2
+dpkg-buildpackage: source changed by Muharem Hrnjadovic <mh@foldr3.com>
+ dpkg-source --before-build python-oq
+ fakeroot debian/rules clean
+dh clean 
+   dh_testdir
+   dh_auto_clean
+running clean
+'build/lib.linux-x86_64-2.6' does not exist -- can't clean it
+'build/bdist.linux-x86_64' does not exist -- can't clean it
+'build/scripts-2.6' does not exist -- can't clean it
+running clean
+'build/lib.linux-x86_64-2.7' does not exist -- can't clean it
+'build/bdist.linux-x86_64' does not exist -- can't clean it
+'build/scripts-2.7' does not exist -- can't clean it
+   dh_clean
+ dpkg-source -b python-oq
+dpkg-source: warning: source directory 'python-oq' is not <sourcepackage>-<upstreamversion> 'python-oq-0.3.9'
+dpkg-source: info: using source format `1.0'
+dpkg-source: info: building python-oq in python-oq_0.3.9-2.tar.gz
+dpkg-source: info: building python-oq in python-oq_0.3.9-2.dsc
+ dpkg-genchanges -S >../python-oq_0.3.9-2_source.changes
+dpkg-genchanges: including full source code in upload
+ dpkg-source --after-build python-oq
+dpkg-buildpackage: source only upload: Debian-native package
+Now running lintian...
+W: python-oq source: native-package-with-dash-version
+Finished running lintian.
+Now signing changes and any dsc files...
+ signfile python-oq_0.3.9-2.dsc Muharem Hrnjadovic <mh@foldr3.com>
+
+ signfile python-oq_0.3.9-2_source.changes Muharem Hrnjadovic <mh@foldr3.com>
+
+Successfully signed dsc and changes files
