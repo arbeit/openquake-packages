@@ -22,10 +22,11 @@ Wrapper around the OpenSHA-lite java library.
 
 import math
 import os
-import random
+import multiprocessing
 import numpy
+import random
 
-from db.alchemy.db_utils import Session
+from db.alchemy.db_utils import get_uiapi_writer_session
 
 from openquake import java
 from openquake import kvs
@@ -176,7 +177,7 @@ class ClassicalMixin(BasePSHAMixin):
         """How many `celery` tasks should be used for the calculations?"""
         value = self.params.get("HAZARD_TASKS")
         value = value.strip() if value else None
-        return 1 if value is None else int(value)
+        return 2 * multiprocessing.cpu_count() if value is None else int(value)
 
     def do_curves(self, sites, serializer=None,
                   the_task=tasks.compute_hazard_curve):
@@ -876,7 +877,7 @@ def create_hazardmap_writer(params, nrml_path):
         job_db_key = params.get("OPENQUAKE_JOB_ID")
         assert job_db_key, "No job db key in the configuration parameters"
         job_db_key = int(job_db_key)
-        session = Session.get()
+        session = get_uiapi_writer_session()
         return hazard_output.HazardMapDBWriter(session, nrml_path, job_db_key)
 
 
