@@ -1,3 +1,10 @@
+python-oq (0.3.9-5) natty; urgency=low
+
+  * The number of celery tasks is based on the number of CPUs/cores
+    (when the HAZARD_TASKS parameter is not set).
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 09 Jun 2011 15:15:54 +0200
+
 python-oq (0.3.9-4) natty; urgency=low
 
   * Create /usr/openquake in postinst

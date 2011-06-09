@@ -1,3 +1,9 @@
+java-oq (0.3.9-5) natty; urgency=low
+
+  * Fix error running under locales using the comma as decimal separator
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 09 Jun 2011 15:00:39 +0200
+
 java-oq (0.3.9-4) natty; urgency=low
 
   * Minor fix in the debian subdir.

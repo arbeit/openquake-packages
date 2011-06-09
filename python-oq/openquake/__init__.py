@@ -55,4 +55,4 @@ __version__ = (
     0,  # major
     3,  # minor
     9,  # sprint number
-    1307357694)  # release date (seconds since the "Epoch")
+    1307625125)  # release date (seconds since the "Epoch")
