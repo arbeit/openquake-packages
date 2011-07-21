@@ -57,10 +57,8 @@ from fabric.api import env, local, run
 from multiprocessing import Process
 
 from openquake import flags
-from openquake import logs
 from openquake import __version__
 
-from openquake import job
 from openquake.utils import version as utils_version
 
 FLAGS = flags.FLAGS
@@ -101,6 +99,7 @@ if __name__ == '__main__':
         print flags.get_flags_help()
         sys.exit(1)
 
+    from openquake import logs
     logs.init_logs()
 
     # Collect inputs
@@ -115,4 +114,5 @@ if __name__ == '__main__':
     # Generate output
 
     register_mixins()
+    from openquake import job
     job.run_job(FLAGS.config_file, FLAGS.output_type)
