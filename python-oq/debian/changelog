@@ -1,3 +1,11 @@
+python-oq (0.3.9-6) natty; urgency=low
+
+  * The rabbitmq-server and redis-server packages should be merely recommended
+    since we may want to install the openquake package on worker machines but
+    deploy the two daemons in question elsewhere.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 14 Jun 2011 20:12:50 +0200
+
 python-oq (0.3.9-5) natty; urgency=low
 
   * The number of celery tasks is based on the number of CPUs/cores
