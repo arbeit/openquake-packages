@@ -71,7 +71,7 @@ public class LogicTreeProcessor {
             throws ConfigurationException {
         config = new PropertiesConfiguration();
         ((PropertiesConfiguration) config).load(calcConfigFile);
-        System.out.println(config);
+        logger.info(config);
         hasPath = true;
     }
 
@@ -266,7 +266,7 @@ public class LogicTreeProcessor {
         // sample first branching level to get the starting source model
         int branchNumber = lt.sampleBranchingLevel(0, rn);
         LogicTreeBranch branch =
-                lt.getBranchingLevel(0).getBranch(branchNumber - 1);
+                lt.getBranchingLevelAt(0).getBranch(branchNumber - 1);
         if (branch.getNameInputFile() != null) {
             String sourceName = null;
             if (hasPath) { // job from file
@@ -296,14 +296,14 @@ public class LogicTreeProcessor {
         // loop over sources
         // for each source, loop over remaining branching levels and apply
         // uncertainties
-        int numBranchingLevels = lt.getBranchingLevelsList().size();
+        int numBranchingLevels = lt.getBranchingLevels().size();
         int sourceIndex = 0;
         for (GEMSourceData src : srcList) {
             for (int i = 1; i < numBranchingLevels; i++) {
                 // sample the current branching level
                 branchNumber = lt.sampleBranchingLevel(i, rn);
                 // get the sampled branch
-                branch = lt.getBranchingLevel(i).getBranch(branchNumber - 1);
+                branch = lt.getBranchingLevelAt(i).getBranch(branchNumber - 1);
                 if (branch.getRule() != null) {
                     // at the moment we apply rules to all source
                     // typologies. In
@@ -634,7 +634,7 @@ public class LogicTreeProcessor {
         mMax = Math.round(mMax / deltaM) * deltaM;
         // move back to bin center
         mMax = mMax - deltaM / 2;
-        // System.out.println("New mMax: "+mMax);
+        // logger.info("New mMax: "+mMax);
 
         if (mMax - mMin >= deltaM) {
 
@@ -658,10 +658,10 @@ public class LogicTreeProcessor {
                             + sourceName
                             + " give maximum magnitude smaller than minimum magnitude!\n"
                             + "Check your input. Execution stopped.");
-            // System.out.println("Uncertaintiy value: " + deltaMmax +
+            // logger.info("Uncertaintiy value: " + deltaMmax +
             // " on maximum magnitude for source: " + sourceName
             // + " give maximum magnitude smaller than minimum magnitude!");
-            // System.out.println("Check your input. Execution stopped.");
+            // logger.info("Check your input. Execution stopped.");
             return null;
         }
 
@@ -704,10 +704,10 @@ public class LogicTreeProcessor {
                             + " give b value smaller than 0!\n"
                             + "Check your input. Execution stopped!";
             logger.info(msg);
-            // System.out.println("Uncertaintiy value: " + deltaB +
+            // logger.info("Uncertaintiy value: " + deltaB +
             // " on b value for source: " + sourceName
             // + " give b value smaller than 0!");
-            // System.out.println("Check your input. Execution stopped!");
+            // logger.info("Check your input. Execution stopped!");
             throw new IllegalArgumentException(msg);
         }
     } // applybGrRelative()
@@ -860,7 +860,7 @@ public class LogicTreeProcessor {
             LogicTree<ScalarIntensityMeasureRelationshipAPI> ltGMPE =
                     listLtGMPE.get(trt);
 
-            ltGMPE.printGemLogicTreeStructure();
+            ltGMPE.toString();
 
             // sample the first branching level
             int branch = ltGMPE.sampleBranchingLevel(0, rn);

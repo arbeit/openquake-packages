@@ -1,3 +1,9 @@
+java-oq (0.4.1-1) natty; urgency=low
+
+  * OpenQuake 0.4.1 release
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 21 Jul 2011 09:23:39 +0200
+
 java-oq (0.3.9-5) natty; urgency=low
 
   * Fix error running under locales using the comma as decimal separator
