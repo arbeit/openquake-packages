@@ -92,8 +92,7 @@ class OqParams(Base):
     job_type = sa.Column(sa.Enum("classical", "event_based", "deterministic",
                                  native_enum=False),
                          nullable=False, default="classical")
-    upload_id = sa.Column(sa.Integer, sa.ForeignKey("uiapi.upload.id"),
-                          nullable=False)
+    upload_id = sa.Column(sa.Integer, sa.ForeignKey("uiapi.upload.id"))
     upload = relationship("Upload")
     region_grid_spacing = sa.Column(sa.Float, nullable=False)
     min_magnitude = sa.Column(sa.Float)
@@ -195,17 +194,133 @@ class HazardMapData(Base):
             self.id, self.value))
 
 
-class LossMapData(Base):
-    __tablename__ = "loss_map_data"
+class HazardCurveData(Base):
+    __tablename__ = "hazard_curve_data"
     __table_args__ = {"schema": "uiapi"}
 
     id = sa.Column(sa.Integer, primary_key=True)
     output_id = sa.Column(sa.Integer, sa.ForeignKey("uiapi.output.id"),
                           nullable=False)
-    output = relationship("Output", backref="lossmapdata_set")
-    location = ga.GeometryColumn(ga.Point(2), nullable=False)
-    value = sa.Column(sa.Float, nullable=False)
+    output = relationship("Output", backref="hazardcurvedata_set")
+    end_branch_label = sa.Column(sa.String)
+    statistic_type = sa.Column(
+        sa.Enum("mean", "median", "quantile", native_enum=False))
+    quantile = sa.Column(sa.Float)
 
     def __repr__(self):
-        return(":loss_map_data: %s, %s" % (
-            self.id, self.value))
+        return(":hazard_curve_data: %s, %s" % (
+            self.id, self.statistic_type or self.end_branch_label))
+
+
+class HazardCurveNodeData(Base):
+    __tablename__ = "hazard_curve_node_data"
+    __table_args__ = {"schema": "uiapi"}
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    hazard_curve_data_id = sa.Column(
+        sa.Integer, sa.ForeignKey("uiapi.hazard_curve_data.id"),
+        nullable=False)
+    hazard_curve_data = relationship("HazardCurveData",
+                                     backref="hazardcurvenodedata_set")
+    poes = sa.Column(postgresql.ARRAY(sa.Float), nullable=False,
+                     doc="Probabilities of exceedence")
+    location = ga.GeometryColumn(ga.Point(2), nullable=False)
+
+    def __repr__(self):
+        return(":hazard_curve_node_data: %s, %s" % (
+            self.id, self.poes))
+
+
+class GMFData(Base):
+    __tablename__ = "gmf_data"
+    __table_args__ = {"schema": "uiapi"}
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    output_id = sa.Column(sa.Integer, sa.ForeignKey("uiapi.output.id"),
+                          nullable=False)
+    output = relationship("Output", backref="gmfdata_set")
+    location = ga.GeometryColumn(ga.Point(2), nullable=False)
+    ground_motion = sa.Column(sa.Float)
+
+    def __repr__(self):
+        return(":hgmf_data: %s, %s, %s" % (
+            self.id, self.location, self.ground_motion))
+
+
+class LossMap(Base):
+    __tablename__ = "loss_map"
+    __table_args__ = {"schema": "uiapi"}
+
+    id = sa.Column(sa.Integer, primary_key=True)
+
+    output_id = sa.Column(sa.Integer, sa.ForeignKey("uiapi.output.id"),
+                          nullable=False)
+    output = relationship("Output", backref="lossmap_set")
+
+    deterministic = sa.Column(sa.Boolean, nullable=False)
+    loss_map_ref = sa.Column(sa.String, nullable=True)
+    end_branch_label = sa.Column(sa.String, nullable=True)
+    category = sa.Column(sa.String, nullable=True)
+    unit = sa.Column(sa.String, nullable=True)
+    poe = sa.Column(sa.Float, nullable=True)
+
+    def __repr__(self):
+        return(":loss_map: %s" % self.id)
+
+
+class LossMapData(Base):
+    __tablename__ = "loss_map_data"
+    __table_args__ = {"schema": "uiapi"}
+
+    id = sa.Column(sa.Integer, primary_key=True)
+
+    loss_map_id = sa.Column(sa.Integer,
+                            sa.ForeignKey("uiapi.loss_map.id"),
+                            nullable=False)
+    loss_map = relationship("LossMap",
+                            backref="lossmapdata_set")
+
+    asset_ref = sa.Column(sa.String, nullable=False)
+    location = ga.GeometryColumn(ga.Point(2), nullable=False)
+    value = sa.Column(sa.Float, nullable=False)
+    std_dev = sa.Column(sa.Float, nullable=False, default=0.0)
+
+    def __repr__(self):
+        return(":loss_map_data: %s" % self.id)
+
+
+class LossCurve(Base):
+    __tablename__ = "loss_curve"
+    __table_args__ = {"schema": "uiapi"}
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    output_id = sa.Column(sa.Integer, sa.ForeignKey("uiapi.output.id"),
+                          nullable=False)
+    output = relationship("Output", backref="losscurve_set")
+
+    end_branch_label = sa.Column(sa.String)
+    category = sa.Column(sa.String)
+    unit = sa.Column(sa.String)
+
+    def __repr__(self):
+        return ":loss_curve: %s" % self.id
+
+
+class LossCurveData(Base):
+    __tablename__ = "loss_curve_data"
+    __table_args__ = {"schema": "uiapi"}
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    loss_curve_id = sa.Column(sa.Integer,
+                              sa.ForeignKey("uiapi.loss_curve.id"),
+                              nullable=False)
+    loss_curve = relationship("LossCurve", backref="losscurvedata_set")
+
+    location = ga.GeometryColumn(ga.Point(2), nullable=False)
+    asset_ref = sa.Column(sa.String, nullable=False)
+    losses = sa.Column(postgresql.ARRAY(sa.Float), nullable=False)
+    poes = sa.Column(postgresql.ARRAY(sa.Float), nullable=False,
+                     doc="Probabilities of exceedence")
+
+    def __repr__(self):
+        return(":loss_curve_data: %s" % self.id)

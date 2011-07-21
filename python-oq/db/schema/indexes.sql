@@ -64,5 +64,11 @@ CREATE INDEX uiapi_upload_owner_id_idx on uiapi.upload(owner_id);
 
 -- uiapi indexes on foreign keys
 CREATE INDEX uiapi_hazard_map_data_output_id_idx on uiapi.hazard_map_data(output_id);
+CREATE INDEX uiapi_hazard_curve_data_output_id_idx on uiapi.hazard_curve_data(output_id);
+CREATE INDEX uiapi_hazard_curve_node_data_hazard_curve_data_id_idx on uiapi.hazard_curve_node_data(hazard_curve_data_id);
+CREATE INDEX uiapi_gmf_data_output_id_idx on uiapi.gmf_data(output_id);
 CREATE INDEX uiapi_oq_params_upload_id_idx on uiapi.oq_params(upload_id);
-CREATE INDEX uiapi_loss_map_data_output_id_idx on uiapi.loss_map_data(output_id);
+CREATE INDEX uiapi_loss_map_output_id_idx on uiapi.loss_map(output_id);
+CREATE INDEX uiapi_loss_map_data_loss_map_id_idx on uiapi.loss_map_data(loss_map_id);
+CREATE INDEX uiapi_loss_curve_output_id_idx on uiapi.loss_curve(output_id);
+CREATE INDEX uiapi_loss_curve_data_loss_curve_id_idx on uiapi.loss_curve_data(loss_curve_id);

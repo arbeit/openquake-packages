@@ -563,7 +563,7 @@ CREATE TABLE uiapi.oq_params (
     id SERIAL PRIMARY KEY,
     job_type VARCHAR NOT NULL CONSTRAINT job_type_value
         CHECK(job_type IN ('classical', 'event_based', 'deterministic')),
-    upload_id INTEGER NOT NULL,
+    upload_id INTEGER,
     region_grid_spacing float NOT NULL,
     min_magnitude float CONSTRAINT min_magnitude_set
         CHECK(
@@ -640,11 +640,12 @@ CREATE TABLE uiapi.output (
     -- Output type, one of:
     --      hazard_curve
     --      hazard_map
+    --      gmf
     --      loss_curve
     --      loss_map
     output_type VARCHAR NOT NULL CONSTRAINT output_type_value
         CHECK(output_type IN ('unknown', 'hazard_curve', 'hazard_map',
-            'loss_curve', 'loss_map')),
+            'gmf', 'loss_curve', 'loss_map')),
     -- Number of bytes in file
     size INTEGER NOT NULL DEFAULT 0,
     -- The full path of the shapefile generated for a hazard or loss map
@@ -669,14 +670,106 @@ SELECT AddGeometryColumn('uiapi', 'hazard_map_data', 'location', 4326, 'POINT', 
 ALTER TABLE uiapi.hazard_map_data ALTER COLUMN location SET NOT NULL;
 
 
--- Loss map data.
-CREATE TABLE uiapi.loss_map_data (
+-- Hazard curve data.
+CREATE TABLE uiapi.hazard_curve_data (
     id SERIAL PRIMARY KEY,
     output_id INTEGER NOT NULL,
-    value float NOT NULL
+    -- Realization reference string
+    end_branch_label VARCHAR CONSTRAINT end_branch_label_value
+        CHECK(
+            ((end_branch_label IS NULL) AND (statistic_type IS NOT NULL))
+            OR ((end_branch_label IS NOT NULL) AND (statistic_type IS NULL))),
+    -- Statistic type, one of:
+    --      mean
+    --      median
+    --      quantile
+    statistic_type VARCHAR CONSTRAINT statistic_type_value
+        CHECK(statistic_type IS NULL OR
+              statistic_type IN ('mean', 'median', 'quantile')),
+    -- Quantile value (only for "quantile" statistics)
+    quantile float CONSTRAINT quantile_value
+        CHECK(
+            ((statistic_type = 'quantile') AND (quantile IS NOT NULL))
+            OR (((statistic_type <> 'quantile') AND (quantile IS NULL))))
+) TABLESPACE uiapi_ts;
+
+
+-- Hazard curve node data.
+CREATE TABLE uiapi.hazard_curve_node_data (
+    id SERIAL PRIMARY KEY,
+    hazard_curve_data_id INTEGER NOT NULL,
+    -- Probabilities of exceedence
+    poes float[] NOT NULL
+) TABLESPACE uiapi_ts;
+SELECT AddGeometryColumn('uiapi', 'hazard_curve_node_data', 'location', 4326, 'POINT', 2);
+ALTER TABLE uiapi.hazard_curve_node_data ALTER COLUMN location SET NOT NULL;
+
+
+-- GMF data.
+CREATE TABLE uiapi.gmf_data (
+    id SERIAL PRIMARY KEY,
+    output_id INTEGER NOT NULL,
+    -- Ground motion value
+    ground_motion float NOT NULL
+) TABLESPACE uiapi_ts;
+SELECT AddGeometryColumn('uiapi', 'gmf_data', 'location', 4326, 'POINT', 2);
+ALTER TABLE uiapi.gmf_data ALTER COLUMN location SET NOT NULL;
+
+
+-- Loss map data.
+
+CREATE TABLE uiapi.loss_map (
+    id SERIAL PRIMARY KEY,
+    output_id INTEGER NOT NULL, -- FK to output.id
+    deterministic BOOLEAN NOT NULL,
+    loss_map_ref VARCHAR,
+    end_branch_label VARCHAR,
+    category VARCHAR,
+    unit VARCHAR, -- e.g. USD, EUR
+    -- poe is significant only for non-deterministic calculations
+    poe float CONSTRAINT valid_poe
+        CHECK ((NOT deterministic AND (poe >= 0.0) AND (poe <= 1.0))
+               OR (deterministic AND poe IS NULL))
+) TABLESPACE uiapi_ts;
+
+CREATE TABLE uiapi.loss_map_data (
+    id SERIAL PRIMARY KEY,
+    loss_map_id INTEGER NOT NULL, -- FK to loss_map.id
+    asset_ref VARCHAR NOT NULL,
+    value float NOT NULL,
+    -- for non-deterministic calculations std_dev is 0
+    std_dev float NOT NULL DEFAULT 0.0
 ) TABLESPACE uiapi_ts;
 SELECT AddGeometryColumn('uiapi', 'loss_map_data', 'location', 4326, 'POINT', 2);
 ALTER TABLE uiapi.loss_map_data ALTER COLUMN location SET NOT NULL;
+
+
+-- Loss curve.
+CREATE TABLE uiapi.loss_curve (
+    id SERIAL PRIMARY KEY,
+    output_id INTEGER NOT NULL,
+
+    end_branch_label VARCHAR,
+    category VARCHAR,
+    unit VARCHAR -- e.g. EUR, USD
+) TABLESPACE uiapi_ts;
+
+
+-- Loss curve data. Holds the asset, its position and value plus the calculated
+-- curve.
+CREATE TABLE uiapi.loss_curve_data (
+    id SERIAL PRIMARY KEY,
+    loss_curve_id INTEGER NOT NULL,
+
+    asset_ref VARCHAR NOT NULL,
+    losses float[] NOT NULL CONSTRAINT non_negative_losses
+        CHECK (0 <= ALL(losses)),
+    -- Probabilities of exceedence
+    poes float[] NOT NULL
+) TABLESPACE uiapi_ts;
+SELECT AddGeometryColumn('uiapi', 'loss_curve_data', 'location', 4326, 'POINT',
+                         2);
+ALTER TABLE uiapi.loss_curve_data ALTER COLUMN location SET NOT NULL;
 
 
 ------------------------------------------------------------------------
@@ -820,9 +913,33 @@ ALTER TABLE uiapi.hazard_map_data
 ADD CONSTRAINT uiapi_hazard_map_data_output_fk
 FOREIGN KEY (output_id) REFERENCES uiapi.output(id) ON DELETE CASCADE;
 
-ALTER TABLE uiapi.loss_map_data
-ADD CONSTRAINT uiapi_loss_map_data_output_fk
+ALTER TABLE uiapi.hazard_curve_data
+ADD CONSTRAINT uiapi_hazard_curve_data_output_fk
 FOREIGN KEY (output_id) REFERENCES uiapi.output(id) ON DELETE CASCADE;
+
+ALTER TABLE uiapi.hazard_curve_node_data
+ADD CONSTRAINT uiapi_hazard_curve_node_data_output_fk
+FOREIGN KEY (hazard_curve_data_id) REFERENCES uiapi.hazard_curve_data(id) ON DELETE CASCADE;
+
+ALTER TABLE uiapi.gmf_data
+ADD CONSTRAINT uiapi_gmf_data_output_fk
+FOREIGN KEY (output_id) REFERENCES uiapi.output(id) ON DELETE CASCADE;
+
+ALTER TABLE uiapi.loss_map
+ADD CONSTRAINT uiapi_loss_map_output_fk
+FOREIGN KEY (output_id) REFERENCES uiapi.output(id) ON DELETE CASCADE;
+
+ALTER TABLE uiapi.loss_curve
+ADD CONSTRAINT uiapi_loss_curve_output_fk
+FOREIGN KEY (output_id) REFERENCES uiapi.output(id) ON DELETE CASCADE;
+
+ALTER TABLE uiapi.loss_curve_data
+ADD CONSTRAINT uiapi_loss_curve_data_loss_curve_fk
+FOREIGN KEY (loss_curve_id) REFERENCES uiapi.loss_curve(id) ON DELETE CASCADE;
+
+ALTER TABLE uiapi.loss_map_data
+ADD CONSTRAINT uiapi_loss_map_data_loss_map_fk
+FOREIGN KEY (loss_map_id) REFERENCES uiapi.loss_map(id) ON DELETE CASCADE;
 
 CREATE TRIGGER eqcat_magnitude_before_insert_update_trig
 BEFORE INSERT OR UPDATE ON eqcat.magnitude
