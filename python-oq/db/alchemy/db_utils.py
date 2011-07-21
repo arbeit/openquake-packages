@@ -87,9 +87,8 @@ def get_pshai_writer_session():
 
 def get_uiapi_writer_session():
     """Return a database session for the `oq_uiapi_writer` user."""
-    assert os.environ.get("OQ_DB_UIAPI_WRITER"), \
-        "OQ_DB_UIAPI_WRITER environment variable not set."
-    return SessionCache().get(os.environ.get("OQ_DB_UIAPI_WRITER"),
+    return SessionCache().get(os.environ.get("OQ_DB_UIAPI_WRITER",
+                                             "oq_uiapi_writer"),
                               os.environ.get("OQ_DB_UIAPI_WRITER_PWD"))
 
 
