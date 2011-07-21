@@ -53,9 +53,6 @@ Available Risk Analysis
 import os
 import sys
 
-import oqpath
-oqpath.set_oq_path()
-
 from fabric.api import env, local, run
 from multiprocessing import Process
 
