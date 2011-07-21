@@ -33,13 +33,13 @@ from openquake import kvs
 from openquake import logs
 from openquake import settings
 from openquake import shapes
+from openquake import xml
 
 from openquake.hazard import classical_psha
 from openquake.hazard import job
 from openquake.hazard import tasks
 from openquake.job.mixins import Mixin
 from openquake.kvs import tokens
-from openquake.output import geotiff, cpt
 from openquake.output import hazard as hazard_output
 from openquake.utils import tasks as utils_tasks
 
@@ -68,8 +68,30 @@ def preload(fn):
                 settings.KVS_PORT)
         self.calc = java.jclass("LogicTreeProcessor")(
                 self.cache, self.key)
+        java.jvm().java.lang.System.setProperty("openquake.nrml.schema",
+                                                xml.nrml_schema_file())
         return fn(self, *args, **kwargs)
     return preloader
+
+
+def unwrap_validation_error(jpype, runtime_exception, path=None):
+    """Unwraps the nested exception of a runtime exception.  Throws
+    either a XMLValidationError or the original Java exception"""
+    ex = runtime_exception.__javaobject__
+
+    if type(ex) is jpype.JPackage('org').gem.engine.XMLValidationError:
+        raise xml.XMLValidationError(ex.getCause().getMessage(),
+                                     path or ex.getFileName())
+
+    if type(ex) is jpype.JPackage('org').gem.engine.XMLMismatchError:
+        raise xml.XMLMismatchError(path or ex.getFileName(), ex.getActualTag(),
+                                   ex.getExpectedTag())
+
+    if ex.getCause() and type(ex.getCause()) is \
+            jpype.JPackage('org').dom4j.DocumentException:
+        raise xml.XMLValidationError(ex.getCause().getMessage(), path)
+
+    raise runtime_exception
 
 
 class BasePSHAMixin(Mixin):
@@ -84,14 +106,25 @@ class BasePSHAMixin(Mixin):
         LOG.info("Storing source model from job config")
         key = kvs.generate_product_key(self.id, kvs.tokens.SOURCE_MODEL_TOKEN)
         print "source model key is", key
-        self.calc.sampleAndSaveERFTree(self.cache, key, seed)
+        jpype = java.jvm()
+        try:
+            self.calc.sampleAndSaveERFTree(self.cache, key, seed)
+        except jpype.JavaException, ex:
+            unwrap_validation_error(
+                jpype, ex,
+                self.params.get("SOURCE_MODEL_LOGIC_TREE_FILE_PATH"))
 
     def store_gmpe_map(self, seed):
         """Generates a hash of tectonic regions and GMPEs, using the logic tree
         specified in the job config file."""
         key = kvs.generate_product_key(self.id, kvs.tokens.GMPE_TOKEN)
         print "GMPE map key is", key
-        self.calc.sampleAndSaveGMPETree(self.cache, key, seed)
+        jpype = java.jvm()
+        try:
+            self.calc.sampleAndSaveGMPETree(self.cache, key, seed)
+        except jpype.JavaException, ex:
+            unwrap_validation_error(
+                jpype, ex, self.params.get("GMPE_LOGIC_TREE_FILE_PATH"))
 
     def generate_erf(self):
         """Generate the Earthquake Rupture Forecast from the currently stored
@@ -363,23 +396,25 @@ class ClassicalMixin(BasePSHAMixin):
         """
         site_list = self.sites_for_region()
         results = self.do_curves(
-            site_list, serializer=self.write_hazardcurve_file)
-        self.do_means(site_list, curve_serializer=self.write_hazardcurve_file,
-                      map_serializer=self.write_hazardmap_file)
+            site_list, serializer=self.serialize_hazardcurve)
+        self.do_means(site_list, curve_serializer=self.serialize_hazardcurve,
+                      map_serializer=self.serialize_hazardmap)
         self.do_quantiles(
-            site_list, curve_serializer=self.write_hazardcurve_file,
-            map_serializer=self.write_hazardmap_file)
+            site_list, curve_serializer=self.serialize_hazardcurve,
+            map_serializer=self.serialize_hazardmap)
 
         return results
 
-    def write_hazardcurve_file(self, curve_keys):
-        """Generate a NRML file with hazard curves for a collection of
-        hazard curves from KVS, identified through their KVS keys.
+    def serialize_hazardcurve(self, curve_keys):
+        """
+        Takes a collection of hazard curves from the KVS,
+        identified by their KVS keys, and either writes an NRML hazard
+        curve file or creates a DB output record for the hazard curve.
 
         curve_keys is a list of KVS keys of the hazard curves to be
         serialized.
 
-        The hazard curve file can be written
+        The hazard curve data can be written
         (1) for a set of hazard curves belonging to the same realization
             (= endBranchLabel) and a set of sites.
         (2) for a mean hazard curve at a set of sites
@@ -398,7 +433,7 @@ class ClassicalMixin(BasePSHAMixin):
         elif _is_quantile_hazard_curve_key(curve_keys[0]):
 
             # get quantile value from KVS key
-            quantile_value = tokens.quantile_value_from_hazard_curve_key(
+            quantile_value = tokens.quantile_from_haz_curve_key(
                 curve_keys[0])
             hc_attrib_update = {'statistics': 'quantile',
                                 'quantileValue': quantile_value}
@@ -407,7 +442,7 @@ class ClassicalMixin(BasePSHAMixin):
 
         elif _is_realization_hazard_curve_key(curve_keys[0]):
             realization_reference_str = \
-                tokens.realization_value_from_hazard_curve_key(curve_keys[0])
+                tokens.realization_from_haz_curve_key(curve_keys[0])
             hc_attrib_update = {'endBranchLabel': realization_reference_str}
             filename_part = realization_reference_str
             curve_mode = 'realization'
@@ -428,7 +463,7 @@ class ClassicalMixin(BasePSHAMixin):
             "%s hazard curves: %s" % (curve_mode, len(curve_keys), nrml_file))
         LOG.debug("IML: %s" % iml_list)
 
-        xmlwriter = hazard_output.HazardCurveXMLWriter(nrml_path)
+        curve_writer = create_hazardcurve_writer(self.params, nrml_path)
         hc_data = []
 
         for hc_key in curve_keys:
@@ -443,7 +478,7 @@ class ClassicalMixin(BasePSHAMixin):
                                 "quantile mode"
                     raise RuntimeError(error_msg)
 
-                elif tokens.quantile_value_from_hazard_curve_key(hc_key) != \
+                elif tokens.quantile_from_haz_curve_key(hc_key) != \
                     quantile_value:
                     error_msg = "quantile value must be the same for all "\
                                 "hazard curves in an instance file"
@@ -454,7 +489,7 @@ class ClassicalMixin(BasePSHAMixin):
                     error_msg = "non-realization hazard curve key found in "\
                                 "realization mode"
                     raise RuntimeError(error_msg)
-                elif tokens.realization_value_from_hazard_curve_key(
+                elif tokens.realization_from_haz_curve_key(
                     hc_key) != realization_reference_str:
                     error_msg = "realization value must be the same for all "\
                                 "hazard curves in an instance file"
@@ -486,12 +521,14 @@ class ClassicalMixin(BasePSHAMixin):
             hc_attrib.update(hc_attrib_update)
             hc_data.append((site_obj, hc_attrib))
 
-        xmlwriter.serialize(hc_data)
+        curve_writer.serialize(hc_data)
         return nrml_path
 
-    def write_hazardmap_file(self, map_keys):
-        """Generate a NRML file with a hazard map for a collection of
-        hazard map nodes from KVS, identified through their KVS keys.
+    def serialize_hazardmap(self, map_keys):
+        """
+        Takes a collection of hazard map nodes from the KVS,
+        identified by their KVS keys, and either writes an NRML hazard
+        map file or creates a DB output record for the hazard map.
 
         map_keys is a list of KVS keys of the hazard map nodes to be
         serialized.
@@ -516,7 +553,7 @@ class ClassicalMixin(BasePSHAMixin):
         elif _is_quantile_hazmap_key(map_keys[0]):
 
             # get quantile value from KVS key
-            quantile_value = tokens.quantile_value_from_hazard_map_key(
+            quantile_value = tokens.quantile_from_haz_map_key(
                 map_keys[0])
             hm_attrib_update = {'statistics': 'quantile',
                                 'quantileValue': quantile_value}
@@ -559,7 +596,7 @@ class ClassicalMixin(BasePSHAMixin):
                                     "quantile mode"
                         raise RuntimeError(error_msg)
 
-                    elif tokens.quantile_value_from_hazard_map_key(hm_key) != \
+                    elif tokens.quantile_from_haz_map_key(hm_key) != \
                         quantile_value:
                         error_msg = "quantile value must be the same for all "\
                                     "hazard map nodes in an instance file"
@@ -581,63 +618,28 @@ class ClassicalMixin(BasePSHAMixin):
                 hm_attrib.update(hm_attrib_update)
                 hm_data.append((site_obj, hm_attrib))
 
-            hm_geotiff_name = '%s-%s-%s.tiff' % (
-                HAZARD_MAP_FILENAME_PREFIX, str(poe), filename_part)
-            geotiff_path = os.path.join(output_path, hm_geotiff_name)
-
-            self._write_hazard_map_geotiff(geotiff_path, hm_data)
             map_writer.serialize(hm_data)
 
             files.append(nrml_path)
-            files.append(geotiff_path)
 
         return files
-
-    def _write_hazard_map_geotiff(self, path, haz_map_data):
-        """
-        Write out a hazard map geotiff using the input hazard map data.
-
-        :param path: path to output file, including file name
-        :param haz_map_data: list of hazard map data to be serialized to the
-            geotiff
-        :type haz_map_data: list of tuples of (shapes.Site object, hazard map
-            data dict)
-        """
-        try:
-            cpt_path = os.path.join(
-                    self.params['BASE_PATH'], self.params['HAZARD_MAP_CPT'])
-            cpt_reader = cpt.CPTReader(cpt_path)
-            colormap = cpt_reader.get_colormap()
-        except (IOError, KeyError):
-            LOG.info(
-                "Unable to read hazard map CPT file from job config."
-                " Using default colormap.")
-            colormap = geotiff.HazardMapGeoTiffFile.DEFAULT_COLORMAP
-
-        iml_min_max = None
-        if 'HAZARD_MAP_IML_MIN' in self.params and \
-            'HAZARD_MAP_IML_MAX' in self.params:
-            iml_min_max = (
-                float(self.params['HAZARD_MAP_IML_MIN']),
-                float(self.params['HAZARD_MAP_IML_MAX']))
-        hm_writer = geotiff.HazardMapGeoTiffFile(
-            path, self.region.grid, colormap=colormap,
-            iml_min_max=iml_min_max, html_wrapper=True)
-
-        # write the hazard map and close the file
-        return hm_writer.serialize(haz_map_data)
 
     @preload
     def compute_hazard_curve(self, site_list, realization):
         """ Compute hazard curves, write them to KVS as JSON,
         and return a list of the KVS keys for each curve. """
         jsite_list = self.parameterize_sites(site_list)
-        hazard_curves = java.jclass("HazardCalculator").getHazardCurvesAsJson(
-            jsite_list,
-            self.generate_erf(),
-            self.generate_gmpe_map(),
-            self.get_iml_list(),
-            float(self.params['MAXIMUM_DISTANCE']))
+        jpype = java.jvm()
+        try:
+            calc = java.jclass("HazardCalculator")
+            hazard_curves = calc.getHazardCurvesAsJson(
+                jsite_list,
+                self.generate_erf(),
+                self.generate_gmpe_map(),
+                self.get_iml_list(),
+                float(self.params['MAXIMUM_DISTANCE']))
+        except jpype.JavaException, ex:
+            unwrap_validation_error(jpype, ex)
 
         # write the curves to the KVS and return a list of the keys
         kvs_client = kvs.get_client()
@@ -711,50 +713,37 @@ class EventBasedMixin(BasePSHAMixin):
                 print "Writing output for ses %s" % stochastic_set_key
                 ses = kvs.get_value_json_decoded(stochastic_set_key)
                 if ses:
-                    results.extend(self.write_gmf_files(ses))
+                    results.extend(self.serialize_gmf(ses))
         return results
 
-    def write_gmf_files(self, ses):
-        """Generate a GeoTiff file and a NRML file for each GMF."""
-        image_grid = self.region.grid
+    def serialize_gmf(self, ses):
+        """
+        Write each GMF to an NRML file or to DB depending on job configuration.
+        """
         iml_list = [float(param)
                     for param
                     in self.params['INTENSITY_MEASURE_LEVELS'].split(",")]
 
-        LOG.debug("Generating GMF image, grid is %s col by %s rows" % (
-                image_grid.columns, image_grid.rows))
         LOG.debug("IML: %s" % (iml_list))
         files = []
         for event_set in ses:
             for rupture in ses[event_set]:
 
-                # NOTE(fab): we have to explicitly convert the JSON-decoded
-                # tokens from Unicode to string, otherwise the path will not
-                # be accepted by the GeoTiffFile constructor
                 common_path = os.path.join(self.base_path, self['OUTPUT_DIR'],
                         "gmf-%s-%s" % (str(event_set.replace("!", "_")),
                                        str(rupture.replace("!", "_"))))
-                tiff_path = "%s.tiff" % common_path
                 nrml_path = "%s.xml" % common_path
-                gwriter = geotiff.GMFGeoTiffFile(tiff_path, image_grid,
-                    init_value=0.0, iml_list=iml_list,
-                    discrete=True)
-                xmlwriter = hazard_output.GMFXMLWriter(nrml_path)
+                gmf_writer = create_gmf_writer(self.params, nrml_path)
                 gmf_data = {}
                 for site_key in ses[event_set][rupture]:
                     site = ses[event_set][rupture][site_key]
                     site_obj = shapes.Site(site['lon'], site['lat'])
-                    point = image_grid.point_at(site_obj)
-                    gwriter.write((point.row, point.column),
-                        math.exp(float(site['mag'])))
                     gmf_data[site_obj] = \
                         {'groundMotion': math.exp(float(site['mag']))}
 
-                gwriter.close()
-                xmlwriter.serialize(gmf_data)
-                files.append(tiff_path)
-                files.append(gwriter.html_path)
+                gmf_writer.serialize(gmf_data)
                 files.append(nrml_path)
+
         return files
 
     @preload
@@ -781,27 +770,27 @@ def gmf_id(history_idx, realization_idx, rupture_idx):
 
 
 def _is_realization_hazard_curve_key(kvs_key):
-    return (tokens.extract_product_type_from_kvs_key(kvs_key) == \
+    return (tokens.product_type_from_kvs_key(kvs_key) == \
                 tokens.HAZARD_CURVE_KEY_TOKEN)
 
 
 def _is_mean_hazard_curve_key(kvs_key):
-    return (tokens.extract_product_type_from_kvs_key(kvs_key) == \
+    return (tokens.product_type_from_kvs_key(kvs_key) == \
                 tokens.MEAN_HAZARD_CURVE_KEY_TOKEN)
 
 
 def _is_quantile_hazard_curve_key(kvs_key):
-    return (tokens.extract_product_type_from_kvs_key(kvs_key) == \
+    return (tokens.product_type_from_kvs_key(kvs_key) == \
                 tokens.QUANTILE_HAZARD_CURVE_KEY_TOKEN)
 
 
 def _is_mean_hazmap_key(kvs_key):
-    return (tokens.extract_product_type_from_kvs_key(kvs_key) == \
+    return (tokens.product_type_from_kvs_key(kvs_key) == \
                 tokens.MEAN_HAZARD_MAP_KEY_TOKEN)
 
 
 def _is_quantile_hazmap_key(kvs_key):
-    return (tokens.extract_product_type_from_kvs_key(kvs_key) == \
+    return (tokens.product_type_from_kvs_key(kvs_key) == \
                 tokens.QUANTILE_HAZARD_MAP_KEY_TOKEN)
 
 
@@ -840,7 +829,7 @@ def _collect_curve_keys_per_quantile(keys):
     quantile_values = {}
     while len(keys) > 0:
         quantile_key = keys.pop()
-        curr_qv = tokens.quantile_value_from_hazard_curve_key(
+        curr_qv = tokens.quantile_from_haz_curve_key(
             quantile_key)
         if curr_qv not in quantile_values:
             quantile_values[curr_qv] = []
@@ -852,12 +841,40 @@ def _collect_map_keys_per_quantile(keys):
     quantile_values = {}
     while len(keys) > 0:
         quantile_key = keys.pop()
-        curr_qv = tokens.quantile_value_from_hazard_map_key(
+        curr_qv = tokens.quantile_from_haz_map_key(
             quantile_key)
         if curr_qv not in quantile_values:
             quantile_values[curr_qv] = []
         quantile_values[curr_qv].append(quantile_key)
     return quantile_values
+
+
+def _create_writer(params, nrml_path, create_xml_writer, create_db_writer):
+    """Common code for the functions below"""
+    db_flag = params["SERIALIZE_RESULTS_TO_DB"]
+    if db_flag.lower() == "false":
+        return create_xml_writer(nrml_path)
+    else:
+        job_db_key = params.get("OPENQUAKE_JOB_ID")
+        assert job_db_key, "No job db key in the configuration parameters"
+        job_db_key = int(job_db_key)
+        session = get_uiapi_writer_session()
+        return create_db_writer(session, nrml_path, job_db_key)
+
+
+def create_hazardcurve_writer(params, nrml_path):
+    """Create a hazard curve writer observing the settings in the config file.
+
+    :param dict params: the settings from the OpenQuake engine configuration
+        file.
+    :param str nrml_path: the full path of the XML/NRML representation of the
+        hazard curve.
+    :returns: an :py:class:`output.hazard.HazardCurveXMLWriter` or an
+        :py:class:`output.hazard.HazardCurveDBWriter` instance.
+    """
+    return _create_writer(params, nrml_path,
+                          hazard_output.HazardCurveXMLWriter,
+                          hazard_output.HazardCurveDBWriter)
 
 
 def create_hazardmap_writer(params, nrml_path):
@@ -870,15 +887,24 @@ def create_hazardmap_writer(params, nrml_path):
     :returns: an :py:class:`output.hazard.HazardMapXMLWriter` or an
         :py:class:`output.hazard.HazardMapDBWriter` instance.
     """
-    db_flag = params.get("SERIALIZE_MAPS_TO_DB")
-    if not db_flag or db_flag.lower() == "false":
-        return hazard_output.HazardMapXMLWriter(nrml_path)
-    else:
-        job_db_key = params.get("OPENQUAKE_JOB_ID")
-        assert job_db_key, "No job db key in the configuration parameters"
-        job_db_key = int(job_db_key)
-        session = get_uiapi_writer_session()
-        return hazard_output.HazardMapDBWriter(session, nrml_path, job_db_key)
+    return _create_writer(params, nrml_path,
+                          hazard_output.HazardMapXMLWriter,
+                          hazard_output.HazardMapDBWriter)
+
+
+def create_gmf_writer(params, nrml_path):
+    """Create a GMF writer using the settings in the config file.
+
+    :param dict params: the settings from the OpenQuake engine configuration
+        file.
+    :param str nrml_path: the full path of the XML/NRML representation of the
+        ground motion field.
+    :returns: an :py:class:`output.hazard.GMFXMLWriter` or an
+        :py:class:`output.hazard.GMFDBWriter` instance.
+    """
+    return _create_writer(params, nrml_path,
+                          hazard_output.GMFXMLWriter,
+                          hazard_output.GMFDBWriter)
 
 
 job.HazJobMixin.register("Event Based", EventBasedMixin, order=0)

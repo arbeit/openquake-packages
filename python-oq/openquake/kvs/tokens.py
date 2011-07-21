@@ -20,6 +20,11 @@
 
 import openquake.kvs
 
+from openquake import logs
+
+
+LOG = logs.LOG
+
 # hazard tokens
 SOURCE_MODEL_TOKEN = 'sources'
 GMPE_TOKEN = 'gmpe'
@@ -150,9 +155,9 @@ def quantile_hazard_map_key(job_id, site, poe, quantile):
                                       str(quantile)])
 
 
-def quantile_value_from_hazard_curve_key(kvs_key):
+def quantile_from_haz_curve_key(kvs_key):
     """Extract quantile value from a KVS key for a quantile hazard curve."""
-    if extract_product_type_from_kvs_key(kvs_key) == \
+    if product_type_from_kvs_key(kvs_key) == \
         QUANTILE_HAZARD_CURVE_KEY_TOKEN:
         (_part_before, _sep, quantile_str) = kvs_key.rpartition(
             openquake.kvs.KVS_KEY_SEPARATOR)
@@ -161,9 +166,9 @@ def quantile_value_from_hazard_curve_key(kvs_key):
         return None
 
 
-def quantile_value_from_hazard_map_key(kvs_key):
+def quantile_from_haz_map_key(kvs_key):
     """Extract quantile value from a KVS key for a quantile hazard map node."""
-    if extract_product_type_from_kvs_key(kvs_key) == \
+    if product_type_from_kvs_key(kvs_key) == \
         QUANTILE_HAZARD_MAP_KEY_TOKEN:
         (_part_before, _sep, quantile_str) = kvs_key.rpartition(
             openquake.kvs.KVS_KEY_SEPARATOR)
@@ -176,7 +181,7 @@ def poe_value_from_hazard_map_key(kvs_key):
     """Extract PoE value (as float) from a KVS key for a hazard map.
     """
 
-    if extract_product_type_from_kvs_key(kvs_key) in (
+    if product_type_from_kvs_key(kvs_key) in (
         MEAN_HAZARD_MAP_KEY_TOKEN, QUANTILE_HAZARD_MAP_KEY_TOKEN):
 
         # the PoE is the fourth component of the key, after product
@@ -195,10 +200,10 @@ def hazard_curve_key(job_id, realization_num, site):
                                        site.hash()])
 
 
-def realization_value_from_hazard_curve_key(kvs_key):
+def realization_from_haz_curve_key(kvs_key):
     """Extract realization value (as string) from a KVS key
     for a hazard curve."""
-    if extract_product_type_from_kvs_key(kvs_key) == HAZARD_CURVE_KEY_TOKEN:
+    if product_type_from_kvs_key(kvs_key) == HAZARD_CURVE_KEY_TOKEN:
 
         # the realization is the third component of the key, after product
         # token and job ID
@@ -207,8 +212,18 @@ def realization_value_from_hazard_curve_key(kvs_key):
         return None
 
 
-def extract_product_type_from_kvs_key(kvs_key):
-    (product_type, sep, part_after) = kvs_key.partition(
+def product_type_from_kvs_key(kvs_key):
+    """
+    Given a KVS key, extract the type of product from the key.
+    For example, given a key for a mean hazard map, the string
+    'mean_hazard_map' will be returned.
+
+    :param kvs_key: kvs product key
+    :type kvs_key: str
+
+    :returns: product type portion of the key
+    """
+    (product_type, _sep, _part_after) = kvs_key.partition(
         openquake.kvs.KVS_KEY_SEPARATOR)
     return product_type
 
@@ -235,3 +250,54 @@ def ground_motion_values_key(job_id, point):
 
     return openquake.kvs.generate_key(
         [job_id, GMFS_KEY_TOKEN, point.column, point.row])
+
+
+NEXT_JOB_ID = 'NEXT_JOB_ID'
+CURRENT_JOBS = 'CURRENT_JOBS'
+JOB_KEY_FMT = '::JOB::%s::'
+
+
+def alloc_job_key():
+    """
+    The KVS used by the OpenQuake engine maintains a 'NEXT_JOB_ID' key whose
+    value is an integer.
+
+    When this function is called, the value of this key will be used to
+    generate a unique job id; the value will be subsequently incremented.
+
+    :returns: a (presumably) unique string in the follwing format:
+        ::JOB::<id>::, where <id> is the value of the 'NEXT_JOB_ID' key
+
+        This is not guaranteed to be free of collisions, but is safe as long as
+        developers reserve this string formatting pattern for this purpose
+        only.
+
+        NOTE(LB): I wanted to use UUIDs, but millions of keys at 36 bytes per
+        key consumes a lot more storage space in the KVS.
+    """
+    client = openquake.kvs.get_client()
+
+    job_key = JOB_KEY_FMT % client.incr(NEXT_JOB_ID)
+
+    # Add this key to set of current jobs.
+    # This set can be queried to perform garbage collection.
+    duplicate = not client.sadd(CURRENT_JOBS, job_key)
+    # We need to make this returns True, otherwise there is a duplication;
+    # this is bad.
+    if duplicate:
+        msg = "Cannot allocate job key '%s': this key already exists in " \
+            "'CURRENT_JOBS'. This is probably a bug." % job_key
+        LOG.error(msg)
+        raise RuntimeError(msg)
+
+    return job_key
+
+
+def current_jobs():
+    """
+    Get all current job keys, sorted in ascending order.
+
+    :returns: list of job keys (as strings), or an empty list if there are no
+        current jobs
+    """
+    return sorted(list(openquake.kvs.get_client().smembers(CURRENT_JOBS)))

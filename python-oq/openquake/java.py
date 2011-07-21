@@ -1,3 +1,20 @@
+# Copyright (c) 2010-2011, GEM Foundation.
+#
+# OpenQuake is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License version 3
+# only, as published by the Free Software Foundation.
+#
+# OpenQuake is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License version 3 for more details
+# (a copy is included in the LICENSE file that accompanied this code).
+#
+# You should have received a copy of the GNU Lesser General Public License
+# version 3 along with OpenQuake.  If not, see
+# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+
+
 """Wrapper around our use of jpype.
 Includes classpath arguments, and heap size."""
 
@@ -9,12 +26,16 @@ import jpype
 
 from openquake.logs import LOG
 from openquake import flags
-
-
 FLAGS = flags.FLAGS
-flags.DEFINE_boolean('capture_java_debug', True, 
-    "Pipe Java stderr and stdout to python stderr and stdout")
 
+# Settings this flag to true pipes Java stderr and stdout to python stderr and
+# stdout and has a noticeable effect only when python stderr and stdout are
+# redefined.  This happens when running inside celery, where sys.stdout and
+# sys.stderr are redefined to be an instance of celery.log.LoggingProxy.  Then
+# every line printed by java to stdout will be prefixed by a timestamp and some
+# information about the worker.
+flags.DEFINE_boolean('capture_java_debug', True,
+    "Pipe Java stderr and stdout to python stderr and stdout")
 
 JAVA_CLASSES = {
     'LogicTreeProcessor': "org.gem.engine.LogicTreeProcessor",
@@ -57,7 +78,6 @@ JAVA_CLASSES = {
     "LocationListFormatter": "org.gem.LocationListFormatter",
 }
 
-
 logging.getLogger('jpype').setLevel(logging.ERROR)
 
 
@@ -67,30 +87,70 @@ def jclass(class_key):
     return jpype.JClass(JAVA_CLASSES[class_key])
 
 
+def _set_java_log_level(level):
+    """Sets the log level of the java logger.
+
+    :param level: a string, one of the logging levels defined in
+    :file:`logs.py`
+    """
+
+    if level == 'CRITICAL':
+        level = 'FATAL'
+
+    root_logger = jpype.JClass("org.apache.log4j.Logger").getRootLogger()
+    jlevel = jpype.JClass("org.apache.log4j.Level").toLevel(level)
+    root_logger.setLevel(jlevel)
+
+
+def _setup_java_capture(out, err):
+    """
+    Pipes the java System.out and System.error into python files.
+
+    :param out: python file-like object (must implement the write method)
+    :param err: python file-like objectt (must implement the write method)
+    """
+    mystream = jpype.JProxy("org.gem.IPythonPipe", inst=out)
+    errstream = jpype.JProxy("org.gem.IPythonPipe", inst=err)
+    outputstream = jpype.JClass("org.gem.PythonOutputStream")()
+    err_stream = jpype.JClass("org.gem.PythonOutputStream")()
+    outputstream.setPythonStdout(mystream)
+    err_stream.setPythonStdout(errstream)
+
+    ps = jpype.JClass("java.io.PrintStream")
+    jpype.java.lang.System.setOut(ps(outputstream))
+    jpype.java.lang.System.setErr(ps(err_stream))
+
+
 def jvm(max_mem=None):
-    """Return the jpype module, after guaranteeing the JVM is running and 
+    """Return the jpype module, after guaranteeing the JVM is running and
     the classpath has been loaded properly."""
+    jarpaths = (os.path.abspath(
+                    os.path.join(os.path.dirname(__file__), "../dist")),
+                '/usr/share/java')
+    log4j_properties_path = os.path.abspath(
+                                os.path.join(os.path.dirname(__file__),
+                                "../log4j.properties"))
     if not jpype.isJVMStarted():
         max_mem = get_jvm_max_mem(max_mem)
         LOG.debug("Default JVM path is %s" % jpype.getDefaultJVMPath())
-        jpype.startJVM(jpype.getDefaultJVMPath(), 
-            "-Djava.ext.dirs=/usr/share/java",
-            "-Dlog4j.configuration=log4j.properties",
-            "-Dlog4j.rootLogger=%s, A1" % (FLAGS.debug.upper()),
+        jpype.startJVM(jpype.getDefaultJVMPath(),
+            "-Djava.ext.dirs=%s:%s" % jarpaths,
+            # force the default Xerces parser configuration, otherwise
+            # some random system-installed JAR might override it
+            "-Dorg.apache.xerces.xni.parser.XMLParserConfiguration="\
+                           "org.apache.xerces.parsers.XIncludeAwareParserConfiguration",
+            # "-Dlog4j.debug", # turn on log4j internal debugging
+            "-Dlog4j.configuration=file://%s" % log4j_properties_path,
             "-Xmx%sM" % max_mem)
-        
+
+        # override the log level set in log4j configuration file this can't be
+        # done on the JVM command line (i.e. -Dlog4j.rootLogger= is not
+        # supported by log4j)
+        _set_java_log_level(FLAGS.debug.upper())
+
         if FLAGS.capture_java_debug:
-            mystream = jpype.JProxy("org.gem.IPythonPipe", inst=sys.stdout)
-            errstream = jpype.JProxy("org.gem.IPythonPipe", inst=sys.stderr)
-            outputstream = jpype.JClass("org.gem.PythonOutputStream")()
-            err_stream = jpype.JClass("org.gem.PythonOutputStream")()
-            outputstream.setPythonStdout(mystream)
-            err_stream.setPythonStdout(errstream)
-        
-            ps = jpype.JClass("java.io.PrintStream")
-            jpype.java.lang.System.setOut(ps(outputstream))
-            jpype.java.lang.System.setErr(ps(err_stream))
-        
+            _setup_java_capture(sys.stdout, sys.stderr)
+
     return jpype
 
 
