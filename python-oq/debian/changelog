@@ -1,3 +1,13 @@
+python-oq (0.4.1-1) natty; urgency=low
+
+  * OpenQuake 0.4.1 release
+  * add postgresql-8.4 as a recommended package (LP #810953)
+  * configure the OpenQuake database if postgres is installed (LP #810955)
+  * add dependencies (LP #813961)
+  * add the sticky bit to /usr/openquake (LP #810985)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 21 Jul 2011 11:48:36 +0200
+
 python-oq (0.3.9-6) natty; urgency=low
 
   * The rabbitmq-server and redis-server packages should be merely recommended
