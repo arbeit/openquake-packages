@@ -32,7 +32,7 @@ fi;
 rabbitmqctl set_permissions -p celeryvhost celeryuser ".*" ".*" ".*"
 
 mkdir -p /usr/openquake
-chmod 777 /usr/openquake
+chmod 1777 /usr/openquake
 cp /usr/share/pyshared/openquake/celeryconfig.py /usr/openquake
 chmod 666 /usr/openquake/celeryconfig.py
 

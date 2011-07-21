@@ -26,5 +26,5 @@ setup(
         # If any package contains *.txt or *.rst files, include them:
         '': ['*.gem', '*.xml'],
     },
-    scripts = ['bin/openquake'],
+    scripts = ["bin/openquake", "bin/create_oq_schema"],
 )
