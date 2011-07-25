@@ -24,7 +24,7 @@ setup(
     packages = find_packages(),
     package_data = {
         # If any package contains *.txt or *.rst files, include them:
-        '': ['*.gem', '*.xml'],
+        '': ['*.sql', '*.gem', '*.xml'],
     },
     scripts = ["bin/openquake", "bin/create_oq_schema"],
 )
