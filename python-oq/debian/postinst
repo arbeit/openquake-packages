@@ -28,8 +28,8 @@ celeryvhost_count=`sudo rabbitmqctl list_vhosts | grep celeryvhost | wc -l`
 if [ $celeryvhost_count -eq 0 ];
 then
     rabbitmqctl add_vhost celeryvhost
+    rabbitmqctl set_permissions -p celeryvhost celeryuser ".*" ".*" ".*"
 fi;
-rabbitmqctl set_permissions -p celeryvhost celeryuser ".*" ".*" ".*"
 
 mkdir -p /usr/openquake
 chmod 1777 /usr/openquake
@@ -45,9 +45,10 @@ if [ $? -eq 0 ]; then
         # No openquake db, we need to set it up.
         sudo -u postgres /usr/bin/create_oq_schema --yes --db-name=openquake --schema-path=/usr/share/pyshared/openquake/db/schema
         sudo -u postgres psql -c "ALTER ROLE oq_uiapi_writer WITH PASSWORD 'openquake'"
-        cp /etc/postgresql/8.4/main/pg_hba.conf /etc/postgresql/8.4/main/pg_hba.conf.orig
-        echo "local   openquake   oq_uiapi_writer                   md5" > /etc/postgresql/8.4/main/pg_hba.conf
-        cat /etc/postgresql/8.4/main/pg_hba.conf.orig | grep -v oq_ >> /etc/postgresql/8.4/main/pg_hba.conf
+        PG_ROOT=/etc/postgresql/8.4/main
+        cp $PG_ROOT/pg_hba.conf $PG_ROOT/pg_hba.conf.orig
+        echo "local   openquake   oq_uiapi_writer                   md5" > $PG_ROOT/pg_hba.conf
+        cat $PG_ROOT/pg_hba.conf.orig | grep -v oq_ >> $PG_ROOT/pg_hba.conf
     fi
 fi
 # dh_installdeb will replace this with shell code automatically
