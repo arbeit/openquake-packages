@@ -1,3 +1,9 @@
+python-oq (0.4.1-6) natty; urgency=low
+
+  * Move xml schemas to the openquake source code tree (LP #816375)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 26 Jul 2011 13:52:56 +0200
+
 python-oq (0.4.1-5) natty; urgency=low
 
   * Fix mistake in postinst (db init output in now redirected correctly)

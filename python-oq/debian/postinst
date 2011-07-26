@@ -43,16 +43,17 @@ if [ $? -eq 0 ]; then
     oq_db_found=`sudo -u postgres psql -l | grep -P '\bopenquake\b' | wc -l`
     if [ $oq_db_found -eq 0 ]; then
         # No openquake db, we need to set it up.
-        sudo -u postgres /usr/bin/create_oq_schema --yes --db-name=openquake --schema-path=/usr/share/pyshared/openquake/db/schema > /var/log/openquake-db-installation 2>&1
-        sudo -u postgres psql -c "ALTER ROLE oq_uiapi_writer WITH PASSWORD 'openquake'"
-        num_of_errors=`grep -i error /var/log/openquake-db-installation | wc -l`
+        LOGFILE=/var/log/openquake-db-installation
+        sudo -u postgres /usr/bin/create_oq_schema --yes --db-name=openquake --schema-path=/usr/share/pyshared/openquake/db/schema > $LOGFILE 2>&1
+        sudo -u postgres psql -c "ALTER ROLE oq_uiapi_writer WITH PASSWORD 'openquake'" >> $LOGFILE 2>&1
+        num_of_errors=`grep -i error $LOGFILE | wc -l`
         if [ $num_of_errors -gt 0 ]; then
             echo "Failed to initialise the openquake database"
             echo "Please file a bug here:"
             echo "    https://bugs.launchpad.net/openquake/+filebug"
             echo "and attach this file to it:"
-            echo "    /var/log/openquake-db-installation"
-            sudo -u postgres psql -c "DROP DATABASE openquake"
+            echo "    $LOGFILE"
+            sudo -u postgres psql -c "DROP DATABASE openquake" >/dev/null 2>&1
             exit 1
         fi
         PG_ROOT=/etc/postgresql/8.4/main

@@ -139,7 +139,7 @@ class XMLMismatchError(Exception):
 def nrml_schema_file():
     """Returns the absolute path to the NRML schema file"""
     # TODO needs to be adjusted for the packaged version
-    return os.path.join(os.path.abspath(os.path.dirname(__file__)), '..',
+    return os.path.join(os.path.abspath(os.path.dirname(__file__)),
                         'docs', 'schema', NRML_SCHEMA_FILE)
 
 
