@@ -44,7 +44,17 @@ if [ $? -eq 0 ]; then
     if [ $oq_db_found -eq 0 ]; then
         # No openquake db, we need to set it up.
         sudo -u postgres /usr/bin/create_oq_schema --yes --db-name=openquake --schema-path=/usr/share/pyshared/openquake/db/schema
-        sudo -u postgres psql -c "ALTER ROLE oq_uiapi_writer WITH PASSWORD 'openquake'"
+        sudo -u postgres psql -c "ALTER ROLE oq_uiapi_writer WITH PASSWORD 'openquake'" > /var/log/openquake-db-installation 2>&1
+        num_of_errors=`grep -i error /var/log/openquake-db-installation | wc -l`
+        if [ $num_of_errors -gt 0 ]; then
+            echo "Failed to initialise the openquake database"
+            echo "Please file a bug here:"
+            echo "    https://bugs.launchpad.net/openquake/+filebug"
+            echo "and attach this file to it:"
+            echo "    /var/log/openquake-db-installation"
+            sudo -u postgres psql -c "DROP DATABASE openquake"
+            exit 1
+        fi
         PG_ROOT=/etc/postgresql/8.4/main
         cp $PG_ROOT/pg_hba.conf $PG_ROOT/pg_hba.conf.orig
         echo "local   openquake   oq_uiapi_writer                   md5" > $PG_ROOT/pg_hba.conf

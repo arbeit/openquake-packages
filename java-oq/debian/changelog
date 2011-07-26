@@ -1,3 +1,15 @@
+java-oq (0.4.1-4) natty; urgency=low
+
+  * the postgres dependencies have been moved back to the python-oq package
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 26 Jul 2011 11:26:19 +0200
+
+java-oq (0.4.1-3) natty; urgency=low
+
+  *  missed the postgresql-8.4-postgis dependency
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 26 Jul 2011 08:11:49 +0200
+
 java-oq (0.4.1-2) natty; urgency=low
 
   * move postgres dependency here
