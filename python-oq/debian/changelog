@@ -1,3 +1,9 @@
+python-oq (0.4.1-9) natty; urgency=low
+
+  * postgresql reload after pg_hba.conf modification was missing
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 26 Jul 2011 15:28:52 +0200
+
 python-oq (0.4.1-8) natty; urgency=low
 
   * log4j.properties needs to live in the openquake source code tree

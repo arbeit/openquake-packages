@@ -60,6 +60,7 @@ if [ $? -eq 0 ]; then
         cp $PG_ROOT/pg_hba.conf $PG_ROOT/pg_hba.conf.orig
         echo "local   openquake   oq_uiapi_writer                   md5" > $PG_ROOT/pg_hba.conf
         cat $PG_ROOT/pg_hba.conf.orig | grep -v oq_ >> $PG_ROOT/pg_hba.conf
+        /etc/init.d/postgresql reload
     fi
 fi
 # dh_installdeb will replace this with shell code automatically
