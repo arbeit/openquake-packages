@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name = "openquake",
-    version = "0.3.9",
+    version = "0.4.1",
     author = "The OpenQuake team",
     author_email = "info@openquake.org",
     description = ("Computes hazard, risk and socio-economic impact of "
@@ -22,9 +22,6 @@ setup(
         "Topic :: Utilities",
     ],
     packages = find_packages(),
-    package_data = {
-        # If any package contains *.txt or *.rst files, include them:
-        '': ['*.sql', '*.gem', '*.xml'],
-    },
+    include_package_data=True,
     scripts = ["bin/openquake", "bin/create_oq_schema"],
 )

@@ -1,3 +1,10 @@
+python-oq (0.4.1-2) natty; urgency=low
+
+  * get_uiapi_writer_session() has defaults (LP #815912)
+  * moved the db-rooted source code tree under openquake (LP #816232)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 26 Jul 2011 06:35:03 +0200
+
 python-oq (0.4.1-1) natty; urgency=low
 
   * OpenQuake 0.4.1 release
