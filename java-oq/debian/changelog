@@ -1,3 +1,9 @@
+java-oq (0.4.1-2) natty; urgency=low
+
+  * move postgres dependency here
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 26 Jul 2011 07:21:27 +0200
+
 java-oq (0.4.1-1) natty; urgency=low
 
   * OpenQuake 0.4.1 release

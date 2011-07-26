@@ -1,3 +1,10 @@
+python-oq (0.4.1-3) natty; urgency=low
+
+  * when invoked from postinst the sudo commands in the create_oq_schema
+    script break it (since the latter is run by the postgres user)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 26 Jul 2011 07:58:31 +0200
+
 python-oq (0.4.1-2) natty; urgency=low
 
   * get_uiapi_writer_session() has defaults (LP #815912)

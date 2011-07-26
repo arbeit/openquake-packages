@@ -10,5 +10,6 @@ Homepage: http://openquake.org/
 Package: java-oq
 Architecture: all
 Depends: ${java:Depends}, ${misc:Depends}
+Recommends: postgresql-8.4, postgresql-client
 Description: The OpenQuake java library
  The OpenQuake java library

@@ -11,7 +11,7 @@ Homepage: http://openquake.org/
 Package: python-oq
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, python (>=2.6), fabric, libgson-java, libjredis-java, libopenshalite-java, python-celery, python-gdal, python-geohash, python-gflags, python-jpype, python-lxml, python-matplotlib, python-numpy, python-paramiko, python-redis, python-scipy, python-shapely, python-guppy, python-geoalchemy, python-psycopg2, java-oq (>=0.4.1)
-Recommends: rabbitmq-server, redis-server, postgresql-8.4, postgresql-client
+Recommends: rabbitmq-server, redis-server
 Description: computes hazard, risk and socio-economic impact of earthquakes
  OpenQuake is an open source application that allows users to compute
  seismic hazard, seismic risk and socio-economic impact of earthquakes
