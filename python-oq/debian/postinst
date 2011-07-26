@@ -43,8 +43,8 @@ if [ $? -eq 0 ]; then
     oq_db_found=`sudo -u postgres psql -l | grep -P '\bopenquake\b' | wc -l`
     if [ $oq_db_found -eq 0 ]; then
         # No openquake db, we need to set it up.
-        sudo -u postgres /usr/bin/create_oq_schema --yes --db-name=openquake --schema-path=/usr/share/pyshared/openquake/db/schema
-        sudo -u postgres psql -c "ALTER ROLE oq_uiapi_writer WITH PASSWORD 'openquake'" > /var/log/openquake-db-installation 2>&1
+        sudo -u postgres /usr/bin/create_oq_schema --yes --db-name=openquake --schema-path=/usr/share/pyshared/openquake/db/schema > /var/log/openquake-db-installation 2>&1
+        sudo -u postgres psql -c "ALTER ROLE oq_uiapi_writer WITH PASSWORD 'openquake'"
         num_of_errors=`grep -i error /var/log/openquake-db-installation | wc -l`
         if [ $num_of_errors -gt 0 ]; then
             echo "Failed to initialise the openquake database"

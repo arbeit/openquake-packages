@@ -1,3 +1,9 @@
+python-oq (0.4.1-5) natty; urgency=low
+
+  * Fix mistake in postinst (db init output in now redirected correctly)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 26 Jul 2011 12:16:20 +0200
+
 python-oq (0.4.1-4) natty; urgency=low
 
   * database initialisation is now checked for errors
