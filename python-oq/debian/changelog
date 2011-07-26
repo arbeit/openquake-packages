@@ -1,3 +1,10 @@
+python-oq (0.4.1-8) natty; urgency=low
+
+  * log4j.properties needs to live in the openquake source code tree
+    (LP #816397)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 26 Jul 2011 14:52:20 +0200
+
 python-oq (0.4.1-7) natty; urgency=low
 
   * Fix obsolete celeryconfig.py file.

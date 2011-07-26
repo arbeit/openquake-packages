@@ -1,2 +1,3 @@
 recursive-include openquake *.sql
 recursive-include openquake *.xsd
+recursive-include openquake *.properties
