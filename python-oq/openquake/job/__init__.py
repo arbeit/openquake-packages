@@ -36,8 +36,8 @@ from openquake.job.mixins import Mixin
 from openquake.parser import exposure
 from openquake.kvs.tokens import alloc_job_key
 
-from db.alchemy.models import OqJob, OqUser, OqParams
-from db.alchemy.db_utils import get_uiapi_writer_session
+from openquake.db.alchemy.models import OqJob, OqUser, OqParams
+from openquake.db.alchemy.db_utils import get_uiapi_writer_session
 import geoalchemy as ga
 
 RE_INCLUDE = re.compile(r'^(.*)_INCLUDE')

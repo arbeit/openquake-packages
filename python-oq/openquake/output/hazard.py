@@ -45,8 +45,9 @@ import logging
 from lxml import etree
 from os.path import basename
 
-from db.alchemy.models import HazardMapData, HazardCurveData, \
-    HazardCurveNodeData, GMFData, OqJob, Output
+from openquake.db.alchemy.models import (
+    HazardMapData, HazardCurveData, HazardCurveNodeData, GMFData, OqJob,
+    Output)
 
 from openquake import shapes
 from openquake import writer

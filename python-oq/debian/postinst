@@ -42,8 +42,12 @@ if [ $? -eq 0 ]; then
     # postgres is installed, is the openquake db in place?
     oq_db_found=`sudo -u postgres psql -l | grep -P '\bopenquake\b' | wc -l`
     if [ $oq_db_found -eq 0 ]; then
-        # No openquake db, we need to set one up.
+        # No openquake db, we need to set it up.
         sudo -u postgres /usr/bin/create_oq_schema --yes --db-name=openquake --schema-path=/usr/share/pyshared/openquake/db/schema
+        sudo -u postgres psql -c "ALTER ROLE oq_uiapi_writer WITH PASSWORD 'openquake'"
+        cp /etc/postgresql/8.4/main/pg_hba.conf /etc/postgresql/8.4/main/pg_hba.conf.orig
+        echo "local   openquake   oq_uiapi_writer                   md5" > /etc/postgresql/8.4/main/pg_hba.conf
+        cat /etc/postgresql/8.4/main/pg_hba.conf.orig | grep -v oq_ >> /etc/postgresql/8.4/main/pg_hba.conf
     fi
 fi
 # dh_installdeb will replace this with shell code automatically

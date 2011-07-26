@@ -87,9 +87,9 @@ def get_pshai_writer_session():
 
 def get_uiapi_writer_session():
     """Return a database session for the `oq_uiapi_writer` user."""
-    return SessionCache().get(os.environ.get("OQ_DB_UIAPI_WRITER",
-                                             "oq_uiapi_writer"),
-                              os.environ.get("OQ_DB_UIAPI_WRITER_PWD"))
+    return SessionCache().get(
+        os.environ.get("OQ_DB_UIAPI_WRITER", "oq_uiapi_writer"),
+        os.environ.get("OQ_DB_UIAPI_WRITER_PWD", "openquake"))
 
 
 def get_eqcat_etl_session():
