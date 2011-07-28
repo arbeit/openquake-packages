@@ -23,5 +23,6 @@ setup(
     ],
     packages = find_packages(),
     include_package_data=True,
-    scripts = ["bin/openquake", "bin/create_oq_schema, bin/do_oq_cache_gc.py"],
+    scripts = ["bin/openquake", "bin/create_oq_schema",
+               "bin/do_oq_cache_gc.py"],
 )
