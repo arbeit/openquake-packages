@@ -1,3 +1,9 @@
+python-oq (0.4.1-11) natty; urgency=low
+
+  * Add the cache garbage collector script (LP #817541)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 28 Jul 2011 16:56:33 +0200
+
 python-oq (0.4.1-10) natty; urgency=low
 
   * The name of the default db should be 'openquake'

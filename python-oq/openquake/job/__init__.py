@@ -340,7 +340,7 @@ class Job(object):
             LOG.critical(msg)
             raise RuntimeError(msg)
 
-        gc_cmd = ['python', 'bin/cache_gc.py', '--job=%s' % job_number]
+        gc_cmd = ["do_oq_cache_gc.py", "--job=%s" % job_number]
 
         # run KVS garbage collection aynchronously
         # stdout goes to /dev/null to silence any output from the GC
