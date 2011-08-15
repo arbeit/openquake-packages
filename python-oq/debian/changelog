@@ -1,3 +1,10 @@
+python-oq (0.4.1-12) natty; urgency=low
+
+  * Better error detection for schema creation output (LP #819710)
+  * Remove unneeded python-guppy dependency (LP #826487)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 15 Aug 2011 03:16:43 +0200
+
 python-oq (0.4.1-11) natty; urgency=low
 
   * Add the cache garbage collector script (LP #817541)
