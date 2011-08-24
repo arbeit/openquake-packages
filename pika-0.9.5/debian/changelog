@@ -1,0 +1,5 @@
+python-pika (0.9.5-1) unstable; urgency=low
+
+  * Initial release
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 24 Aug 2011 10:32:33 +0200

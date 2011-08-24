@@ -1,0 +1,19 @@
+Source: python-pika
+Section: python
+Priority: optional
+Maintainer: Muharem Hrnjadovic <mh@foldr3.com>
+Build-Depends: debhelper (>= 7.0.50~), python (>=2.6), python-setuptools
+Standards-Version: 3.9.2
+Homepage: http://pika.github.com/
+#Vcs-Git: git://git.debian.org/collab-maint/python-pika.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/python-pika.git;a=summary
+
+Package: python-pika
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Python AMQP client library
+ Pika is a pure-Python implementation of the AMQP 0-9-1 protocol that tries to
+ stay fairly independent of the underlying network support library.
+ .
+ Pika was developed primarily for use with RabbitMQ, but should also work with
+ other AMQP 0-9-1 brokers.
