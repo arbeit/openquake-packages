@@ -10,7 +10,7 @@ Homepage: http://github.com/ask/kombu/
 
 Package: python-kombu
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}, python-amqlip (>= 1.0), python-anyjson (>= 0.3.1)
+Depends: ${shlibs:Depends}, ${misc:Depends}, python-amqplib (>= 1.0), python-anyjson (>= 0.3.1)
 Description: AMQP Messaging Framework for Python
  The aim of Kombu is to make messaging in Python as easy as possible by
  providing an idiomatic high-level interface for the AMQP protocol, and
