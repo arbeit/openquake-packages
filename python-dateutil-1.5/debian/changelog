@@ -1,0 +1,23 @@
+python-dateutil (1.5-4) natty; urgency=low
+
+  * Fixing build failure (LP #834797)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 26 Aug 2011 17:12:39 +0200
+
+python-dateutil (1.5-3) natty; urgency=low
+
+  * Include the orig tar ball in upload.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 26 Aug 2011 07:02:45 +0200
+
+python-dateutil (1.5-2) natty; urgency=low
+
+  * Fixed changelog.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 26 Aug 2011 06:56:51 +0200
+
+python-dateutil (1.5-1) unstable; urgency=low
+
+  * Initial release
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 26 Aug 2011 06:46:11 +0200
