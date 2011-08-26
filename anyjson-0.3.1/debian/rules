@@ -1,0 +1,22 @@
+#!/usr/bin/make -f
+
+PYVERS :=  $(shell pyversions -r)
+
+%:
+	dh $@ --with python2
+
+override_dh_auto_build:
+	set -e; \
+	for py in $(PYVERS) ; do \
+		$$py setup.py build; \
+	done
+
+override_dh_auto_clean:
+	rm -rf build
+
+override_dh_auto_install:
+	set -e; \
+	for py in $(PYVERS); do \
+		$$py setup.py install --skip-build --root debian/python-anyjson \
+		                      --install-layout deb; \
+	done

@@ -1,0 +1,44 @@
+python-anyjson (0.3.1-2) natty; urgency=low
+
+  * backporting this to natty.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 25 Aug 2011 14:25:38 +0200
+
+python-anyjson (0.3.1-1) unstable; urgency=low
+
+  * New upstream version (Closes: #620959).
+    - Drop python-cjson from Depends.
+  * Set PMPT as maintainer and myself as uploader.
+  * Switch to dh_python2.
+  * Switch to source format 3.0 (quilt).
+  * Use DEP5 for copyright file.
+  * Clean up after build.
+  * Streamline packaging code with wrap-and-sort.
+  * Extend regex in d/watch.
+  * Bumped Standards-Version to 3.9.2 (no change necessary).
+  * Set X-P-V to >= 2.4.
+  * Recommend either python (>= 2.6) or python-simplejson.
+  * Build for python3.
+  * Clean build directory.
+
+ -- Fladischer Michael <FladischerMichael@fladi.at>  Wed, 06 Jul 2011 16:33:28 +0200
+
+python-anyjson (0.2.3-1) unstable; urgency=low
+
+  * New upstream release
+  * Added dependencies on python json modules (Closes: #570648, #569824)
+  * Updated Stanards version, no changes needed
+
+ -- David Watson <david@bashton.com>  Thu, 18 Mar 2010 21:38:27 +0000
+
+python-anyjson (0.2.2-2) unstable; urgency=low
+
+  * Improve the long description (Closes: #554467).
+
+ -- David Watson <david@bashton.com>  Fri, 06 Nov 2009 09:24:13 +0000
+
+python-anyjson (0.2.2-1) unstable; urgency=low
+
+  * Initial release (Closes: #551886)
+
+ -- David Watson <david@bashton.com>  Wed, 21 Oct 2009 14:25:29 +0100

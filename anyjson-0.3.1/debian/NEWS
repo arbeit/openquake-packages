@@ -1,0 +1,7 @@
+python-anyjson (0.3.1-1) unstable; urgency=low
+
+  cjson has been moved to the lowest priority of the JSON
+  implementations. This has happened due to several encoding/decoding
+  bugs and the vanishing performance gap to other implementations.
+
+ -- Fladischer Michael <FladischerMichael@fladi.at>  Fri, 15 Apr 2011 16:29:44 +0200
