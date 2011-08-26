@@ -14,14 +14,5 @@
 	dh $@ 
 
 override_dh_installdocs:
-	install -g 0 -o 0 -d debian/python-kombu/usr/share/doc/python-kombu
-	cp -a FAQ debian/python-kombu/usr/share/doc/python-kombu
-	cp -a README debian/python-kombu/usr/share/doc/python-kombu
-	cp -a README.rst debian/python-kombu/usr/share/doc/python-kombu
-	cp -a TODO debian/python-kombu/usr/share/doc/python-kombu
-	cp -a examples debian/python-kombu/usr/share/doc/python-kombu
-	(export PYTHONPATH="`pwd`:."; cd docs ; make html; cd ..; cp -a docs/.build/html debian/python-kombu/usr/share/doc/python-kombu)
-	chown -R 0:0 debian/python-kombu/usr/share/doc
-	chmod -R go=rX debian/python-kombu/usr/share/doc
-	chmod -R u\+rw debian/python-kombu/usr/share/doc
-	install -g 0 -o 0 -m 644 -p debian/copyright debian/python-kombu/usr/share/doc/python-kombu/copyright
+	(export PYTHONPATH="`pwd`:."; cd docs ; make html)
+	dh_installdocs

@@ -1,3 +1,9 @@
+python-kombu (1.2.1-3) natty; urgency=low
+
+  * Better (less invasive) override_dh_installdocs target.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 26 Aug 2011 06:20:21 +0200
+
 python-kombu (1.2.1-2) natty; urgency=low
 
   * The kombu examples and docs in html format are now included.
