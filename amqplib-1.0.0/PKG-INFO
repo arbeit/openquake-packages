@@ -1,0 +1,12 @@
+Metadata-Version: 1.0
+Name: amqplib
+Version: 1.0.0
+Summary: AMQP Client Library
+Home-page: http://code.google.com/p/py-amqplib/
+Author: Barry Pederson
+Author-email: bp@barryp.org
+License: LGPL
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
