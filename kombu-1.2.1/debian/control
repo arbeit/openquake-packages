@@ -1,0 +1,17 @@
+Source: python-kombu
+Section: python
+Priority: extra
+Maintainer: Muharem Hrnjadovic <mh@foldr3.com>
+Build-Depends: debhelper (>= 7.0.50~), python (>=2.6), python-setuptools, python-sphinx
+Standards-Version: 3.9.2
+Homepage: http://github.com/ask/kombu/
+#Vcs-Git: git://git.debian.org/collab-maint/kombu.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/kombu.git;a=summary
+
+Package: python-kombu
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, python-amqlip (>= 1.0), python-anyjson (>= 0.3.1)
+Description: AMQP Messaging Framework for Python
+ The aim of Kombu is to make messaging in Python as easy as possible by
+ providing an idiomatic high-level interface for the AMQP protocol, and
+ also provide proven and tested solutions to common messaging problems.
