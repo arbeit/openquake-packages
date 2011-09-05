@@ -1,3 +1,9 @@
+java-oq (0.4.3-1) natty; urgency=low
+
+  * Upstream release
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 05 Sep 2011 17:21:14 +0200
+
 java-oq (0.4.1-4) natty; urgency=low
 
   * the postgres dependencies have been moved back to the python-oq package
