@@ -1,0 +1,49 @@
+--- a/bin/cache_gc.py
++++ b/bin/cache_gc.py
+@@ -31,9 +31,6 @@
+ import getopt
+ import sys
+ 
+-import oqpath
+-oqpath.set_oq_path()
+-
+ from openquake import job
+ from openquake import kvs
+ from openquake import logs
+--- a/bin/load_eq_catalog
++++ b/bin/load_eq_catalog
+@@ -24,10 +24,6 @@
+ 
+ import sys
+ 
+-import oqpath
+-oqpath.set_oq_path()
+-
+-from openquake.utils import db
+ from openquake.utils.db import loader as db_loader
+ 
+ from openquake import flags
+--- a/bin/openquake
++++ b/bin/openquake
+@@ -57,9 +57,6 @@
+ except ImportError:
+     sys.path.append('/usr/openquake')
+ 
+-import oqpath
+-oqpath.set_oq_path()
+-
+ from openquake import flags
+ from openquake import logs
+ from openquake import __version__
+--- a/bin/openquake_supervisor
++++ b/bin/openquake_supervisor
+@@ -26,9 +26,6 @@
+ import signal
+ import sys
+ 
+-import oqpath
+-oqpath.set_oq_path()
+-
+ try:
+     # setproctitle is optional external dependency
+     # apt-get installl python-setproctitle or
