@@ -1,3 +1,15 @@
+python-oq (0.4.3-2) natty; urgency=low
+
+  * Make db error detection smarter (LP: #819710)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 05 Sep 2011 21:23:22 +0200
+
+python-oq (0.4.3-1) natty; urgency=low
+
+  * Upstream release (LP: #839424)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 05 Sep 2011 18:13:42 +0200
+
 python-oq (0.4.1-12) natty; urgency=low
 
   * Better error detection for schema creation output (LP #819710)

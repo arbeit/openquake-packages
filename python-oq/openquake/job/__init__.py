@@ -18,70 +18,104 @@
 
 """A single hazard/risk job."""
 
-import hashlib
+import multiprocessing
 import os
 import re
 import subprocess
 import urlparse
 
 from ConfigParser import ConfigParser, RawConfigParser
+from datetime import datetime
+from django.db import transaction
+from django.contrib.gis.db import models
+from django.contrib.gis.geos import GEOSGeometry
 
 from openquake import flags
+from openquake import java
 from openquake import kvs
+from openquake import logs
+from openquake import OPENQUAKE_ROOT
 from openquake import shapes
-from openquake.logs import LOG
-from openquake.job import config as conf
+from openquake.db.models import (
+    OqJob, OqParams, OqUser, JobStats, FloatArrayField)
+from openquake.supervising import supervisor
 from openquake.job.handlers import resolve_handler
+from openquake.job import config as conf
 from openquake.job.mixins import Mixin
-from openquake.parser import exposure
-from openquake.kvs.tokens import alloc_job_key
-
-from openquake.db.alchemy.models import OqJob, OqUser, OqParams
-from openquake.db.alchemy.db_utils import get_uiapi_writer_session
-import geoalchemy as ga
+from openquake.job.params import PARAMS, CALCULATION_MODE, ENUM_MAP
+from openquake.kvs import mark_job_as_current
+from openquake.logs import LOG
+from openquake.utils import config as oq_config
 
 RE_INCLUDE = re.compile(r'^(.*)_INCLUDE')
-SITES_PER_BLOCK = 100
 
 FLAGS = flags.FLAGS
 flags.DEFINE_boolean('include_defaults', True, "Include default configs")
 
-# TODO unify with utils/oqrunner/config_writer.py
-CALCULATION_MODE = {
-    'Classical': 'classical',
-    'Deterministic': 'deterministic',
-    'Event Based': 'event_based',
-}
+REVERSE_ENUM_MAP = dict((v, k) for k, v in ENUM_MAP.iteritems())
 
-ENUM_MAP = {
-    'Average Horizontal': 'average',
-    'Average Horizontal (GMRotI50)': 'gmroti50',
-    'PGA': 'pga',
-    'SA': 'sa',
-    'PGV': 'pgv',
-    'PGD': 'pgd',
-    'None': 'none',
-    '1 Sided': 'onesided',
-    '2 Sided': 'twosided',
-}
+
+def spawn_job_supervisor(job_id, pid):
+    """
+    Spawn a supervisor process as configured in openquake.cfg.
+
+    :param int job_id: the id of the job to be supervised
+    :param int pid: the process id of the job to be supervised
+    :return: the id of the supervisor process or None if no supervisor was
+             configured
+    :rtype: int or None
+    """
+    exe = oq_config.get('supervisor', 'exe')
+
+    if exe:
+        if oq_config.get('logging', 'backend') != 'amqp':
+            LOG.warn('If you want to run supervised jobs it\'s better '
+                     'to set [logging] backend=amqp in openquake.cfg')
+
+        if not os.path.isabs(exe):
+            exe = os.path.join(OPENQUAKE_ROOT, exe)
+
+        cmd = [exe, str(job_id), str(pid)]
+
+        supervisor_pid = subprocess.Popen(cmd, env=os.environ).pid
+
+        job = OqJob.objects.get(id=job_id)
+        job.supervisor_pid = supervisor_pid
+        job.job_pid = pid
+        job.save()
+
+        # Ensure the supervisor amqp queue exists
+        supervisor.bind_supervisor_queue(job_id)
+
+        return supervisor_pid
+    else:
+        LOG.warn('This job won\'t be supervised, '
+                 'because no supervisor is configured in openquake.cfg')
 
 
 def run_job(job_file, output_type):
-    """Given a job_file, run the job."""
+    """
+    Given a job_file, run the job.
+
+    :param job_file: the path of the configuration file for the job
+    :type job_file: string
+    :param output_type: the desired format for the results, one of 'db', 'xml'
+    :type output_type: string
+    """
 
     a_job = Job.from_file(job_file, output_type)
-    is_job_valid = a_job.is_valid()
+    a_job.set_status('running')
 
-    if is_job_valid[0]:
-        results = a_job.launch()
+    spawn_job_supervisor(a_job.job_id, os.getpid())
 
-        for filepath in results:
-            print filepath
+    try:
+        a_job.launch()
+    except Exception, ex:
+        LOG.critical("Job failed with exception: '%s'" % str(ex))
+        a_job.set_status('failed')
+        raise
     else:
-        LOG.critical("The job configuration is inconsistent:")
-
-        for error_message in is_job_valid[1]:
-            LOG.critical("   >>> %s" % error_message)
+        a_job.set_status('succeeded')
 
 
 def parse_config_file(config_file):
@@ -115,6 +149,56 @@ def parse_config_file(config_file):
     return sections, params
 
 
+def parse_config_files(config_file, default_configuration_files):
+    """
+    Loads the specified configuration file, using the files in
+    default_configuration_files to provide defaults.
+
+    :param config_file: configuration file
+    :param default_configuration_files: list of configuration files
+    :type default_configuration_files: list
+    """
+
+    config_file = os.path.abspath(config_file)
+    base_path = os.path.abspath(os.path.dirname(config_file))
+
+    params = {}
+    sections = []
+
+    for each_config_file in default_configuration_files + [config_file]:
+        new_sections, new_params = parse_config_file(each_config_file)
+        sections.extend(new_sections)
+        params.update(new_params)
+    params['BASE_PATH'] = base_path
+
+    return params, list(set(sections))
+
+
+def filter_configuration_parameters(params, sections):
+    """
+    Pre-process configuration parameters removing unknown ones.
+    """
+
+    job_type = CALCULATION_MODE[params['CALCULATION_MODE']]
+    new_params = dict()
+
+    for name, value in params.items():
+        try:
+            param = PARAMS[name]
+        except KeyError:
+            print 'Ignoring unknown parameter %r' % name
+            continue
+
+        if job_type not in param.modes:
+            print 'Ignoring', name, 'in', job_type, \
+                ', it\'s meaningful only in', ', '.join(param.modes)
+            continue
+
+        new_params[name] = value
+
+    return new_params, sections
+
+
 def guarantee_file(base_path, file_spec):
     """Resolves a file_spec (http, local relative or absolute path, git url,
     etc.) to an absolute path to a (possibly temporary) file."""
@@ -123,62 +207,75 @@ def guarantee_file(base_path, file_spec):
     return resolve_handler(url, base_path).get()
 
 
+@transaction.commit_on_success(using='job_init')
 def prepare_job(params):
     """
     Create a new OqJob and fill in the related OpParams entry.
 
     Returns the newly created job object.
     """
-    session = get_uiapi_writer_session()
+    oqp = OqParams(upload=None)
 
     # TODO specify the owner as a command line parameter
-    owner = session.query(OqUser).filter(OqUser.user_name == 'openquake').one()
-    oqp = OqParams(upload=None)
-    job = OqJob(owner=owner, path=None, oq_params=oqp,
-                job_type=CALCULATION_MODE[params['CALCULATION_MODE']])
+    owner = OqUser.objects.get(user_name='openquake')
 
-    # fill-in parameters
+    job = OqJob(
+        owner=owner, path=None,
+        job_type=CALCULATION_MODE[params['CALCULATION_MODE']])
+
     oqp.job_type = job.job_type
-    oqp.region_grid_spacing = float(params['REGION_GRID_SPACING'])
-    oqp.component = ENUM_MAP[params['COMPONENT']]
-    oqp.imt = ENUM_MAP[params['INTENSITY_MEASURE_TYPE']]
-    oqp.truncation_type = ENUM_MAP[params['GMPE_TRUNCATION_TYPE']]
-    oqp.truncation_level = float(params['TRUNCATION_LEVEL'])
-    oqp.reference_vs30_value = float(params['REFERENCE_VS30_VALUE'])
 
-    if oqp.imt == 'sa':
-        oqp.period = float(params.get('PERIOD', 0.0))
+    for name, param in PARAMS.items():
+        if job.job_type in param.modes and param.default is not None:
+            setattr(oqp, param.column, param.default)
 
-    if oqp.job_type != 'classical':
-        oqp.gm_correlated = (
-            params['GROUND_MOTION_CORRELATION'].lower() != 'false')
-    else:
-        oqp.imls = [float(v) for v in
-                        params['INTENSITY_MEASURE_LEVELS'].split(",")]
-        oqp.poes = [float(v) for v in
-                        params['POES_HAZARD_MAPS'].split(" ")]
+    number_re = re.compile('[^0-9.]+')
 
-    if oqp.job_type != 'deterministic':
-        oqp.investigation_time = float(params.get('INVESTIGATION_TIME', 0.0))
-        oqp.min_magnitude = float(params.get('MINIMUM_MAGNITUDE', 0.0))
-        oqp.realizations = int(params['NUMBER_OF_LOGIC_TREE_SAMPLES'])
+    for name, value in params.items():
+        param = PARAMS[name]
+        value = value.strip()
 
-    if oqp.job_type == 'event_based':
-        oqp.histories = int(params['NUMBER_OF_SEISMICITY_HISTORIES'])
+        if param.to_db is not None:
+            value = param.to_db(value)
+        elif param.type in (models.BooleanField, models.NullBooleanField):
+            value = value.lower() not in ('0', 'false')
+        elif param.type == models.PolygonField:
+            ewkt = shapes.polygon_ewkt_from_coords(value)
+            value = GEOSGeometry(ewkt)
+        elif param.type == models.MultiPointField:
+            ewkt = shapes.multipoint_ewkt_from_coords(value)
+            value = GEOSGeometry(ewkt)
+        elif param.type == FloatArrayField:
+            value = [float(v) for v in number_re.split(value) if len(v)]
+        elif param.type == None:
+            continue
 
-    # config lat/lon -> postgis -> lon/lat
-    coords = [float(v) for v in
-                  params['REGION_VERTEX'].split(",")]
-    vertices = ["%f %f" % (coords[i + 1], coords[i])
-                    for i in xrange(0, len(coords), 2)]
-    region = "SRID=4326;POLYGON((%s, %s))" % (", ".join(vertices), vertices[0])
-    oqp.region = ga.WKTSpatialElement(region)
+        setattr(oqp, param.column, value)
 
-    session.add(oqp)
-    session.add(job)
-    session.commit()
+    if oqp.imt != 'sa':
+        oqp.period = None
+        oqp.damping = None
+
+    oqp.save()
+    job.oq_params = oqp
+    job.save()
 
     return job
+
+
+def setup_job_logging(job_id):
+    """Make job id and process name available to the Java and Python loggers"""
+    process_name = multiprocessing.current_process().name
+
+    # Make the job_id available to the java logging context.
+    mdc = java.jclass('MDC')
+    mdc.put('job_id', job_id)
+    mdc.put('processName', process_name)
+
+    # make the job_id available to the Python logging context
+    logs.AMQPHandler.MDC['job_id'] = job_id
+    # this is only necessary for Python 2.6
+    logs.AMQPHandler.MDC['processName'] = process_name
 
 
 class Job(object):
@@ -208,45 +305,111 @@ class Job(object):
     def from_kvs(job_id):
         """Return the job in the underlying kvs system with the given id."""
 
-        params = kvs.get_value_json_decoded(kvs.generate_job_key(job_id))
-        job = Job(params, job_id=job_id)
+        logs.init_logs(
+            level=FLAGS.debug, log_type=oq_config.get("logging", "backend"))
+
+        params = kvs.get_value_json_decoded(
+            kvs.tokens.generate_job_key(job_id))
+        job = Job(params, job_id)
         return job
 
     @staticmethod
     def from_file(config_file, output_type):
-        """ Create a job from external configuration files. """
-        config_file = os.path.abspath(config_file)
-        LOG.debug("Loading Job from %s" % (config_file))
+        """
+        Create a job from external configuration files.
 
-        base_path = os.path.abspath(os.path.dirname(config_file))
-        params = {}
-        sections = []
-        for each_config_file in Job.default_configs() + [config_file]:
-            new_sections, new_params = parse_config_file(each_config_file)
-            sections.extend(new_sections)
-            params.update(new_params)
-        params['BASE_PATH'] = base_path
-        if output_type == 'db':
-            params['SERIALIZE_RESULTS_TO_DB'] = 'True'
-            if 'OPENQUAKE_JOB_ID' not in params:
-                params['OPENQUAKE_JOB_ID'] = str(prepare_job(params).id)
+        :param config_file: the external configuration file path
+        :param output_type: where to store results:
+            * 'db' database
+            * 'xml' XML files *plus* database
+        :param params: optional dictionary of default parameters, overridden by
+            the ones read from the config file
+        :type params: :py:class:`dict`
+        """
+
+        # output_type can be set, in addition to 'db' and 'xml', also to
+        # 'xml_without_db', which has the effect of serializing only to xml
+        # without requiring a database at all.
+        # This allows to run tests without requiring a database.
+        # This is not documented in the public interface because it is
+        # essentially a detail of our current tests and ci infrastructure.
+        assert output_type in ('db', 'xml', 'xml_without_db')
+
+        params, sections = parse_config_files(
+            config_file, Job.default_configs())
+        params, sections = filter_configuration_parameters(params, sections)
+
+        validator = conf.default_validators(sections, params)
+        is_valid, errors = validator.is_valid()
+
+        if not is_valid:
+            raise conf.ValidationException(errors)
+
+        if output_type == 'xml_without_db':
+            # we are running a test
+            job_id = 0
+            serialize_results_to = ['xml']
         else:
-            params['SERIALIZE_RESULTS_TO_DB'] = 'False'
-        job = Job(params, sections=sections, base_path=base_path)
-        job.config_file = config_file  # pylint: disable=W0201
+            # openquake-server creates the job record in advance and stores the
+            # job id in the config file
+            job_id = params.get('OPENQUAKE_JOB_ID')
+            if not job_id:
+                # create the database record for this job
+                job_id = prepare_job(params).id
+
+            if output_type == 'db':
+                serialize_results_to = ['db']
+            else:
+                serialize_results_to = ['db', 'xml']
+
+        base_path = params['BASE_PATH']
+
+        job = Job(params, job_id, sections=sections, base_path=base_path)
+        job.serialize_results_to = serialize_results_to
+
         return job
 
-    def __init__(self, params, job_id=None, sections=list(),
-        base_path=None):
-        if job_id is None:
-            self.job_id = alloc_job_key()
-        else:
-            self.job_id = job_id
+    @staticmethod
+    def get_status_from_db(job_id):
+        """
+        Get the status of the database record belonging to job ``job_id``.
+
+        :returns: one of strings 'pending', 'running', 'succeeded', 'failed'.
+        """
+        return OqJob.objects.get(id=job_id).status
+
+    @staticmethod
+    def is_job_completed(job_id):
+        """
+        Return ``True`` if the :meth:`current status <get_status_from_db>`
+        of the job ``job_id`` is either 'succeeded' or 'failed'. Returns
+        ``False`` otherwise.
+        """
+        status = Job.get_status_from_db(job_id)
+        return status == 'succeeded' or status == 'failed'
+
+    def __init__(self, params, job_id, sections=list(), base_path=None,
+            validator=None):
+        """
+        :param dict params: Dict of job config params.
+        :param int job_id: ID of the corresponding oq_job db record.
+        :param list sections: List of config file sections. Example::
+            ['HAZARD', 'RISK']
+        :param str base_path: base directory containing job input files
+        :param validator: validator(s) used to check the configuration file
+        """
+        self._job_id = job_id
+        mark_job_as_current(job_id)  # enables KVS gc
+
+        setup_job_logging(self.job_id)
+
         self.blocks_keys = []
-        self.partition = True
         self.params = params
         self.sections = list(set(sections))
+        self.serialize_results_to = []
         self.base_path = base_path
+        self.validator = validator
+
         if base_path:
             self.to_kvs()
 
@@ -255,40 +418,36 @@ class Job(object):
         and specified, false otherwise."""
         return name in self.params and self.params[name]
 
-    def is_valid(self):
-        """Return true if this job is valid and can be
-        processed, false otherwise.
-
-        :returns: the status of this job and the related error messages.
-        :rtype: when valid, a (True, []) tuple is returned. When invalid, a
-            (False, [ERROR_MESSAGE#1, ERROR_MESSAGE#2, ..., ERROR_MESSAGE#N])
-            tuple is returned
-        """
-
-        validators = conf.default_validators(self.sections, self.params)
-        return validators.is_valid()
-
     @property
-    def id(self):  # pylint: disable=C0103
+    def job_id(self):
         """Return the id of this job."""
-        return self.job_id
+        return self._job_id
 
     @property
     def key(self):
         """Returns the kvs key for this job."""
-        return kvs.generate_job_key(self.job_id)
+        return kvs.tokens.generate_job_key(self.job_id)
+
+    def set_status(self, status):
+        """
+        Set the status of the database record belonging to this job.
+
+        :param status: one of 'pending', 'running', 'succeeded', 'failed'
+        :type status: string
+        """
+        job = OqJob.objects.get(id=self.job_id)
+        job.status = status
+        job.save()
 
     @property
     def region(self):
         """Compute valid region with appropriate cell size from config file."""
         if not self.has('REGION_VERTEX'):
             return None
-        # REGION_VERTEX coordinates are defined in the order (lat, lon)
-        verts = [float(x) for x in self['REGION_VERTEX'].split(",")]
 
-        # Flips lon and lat, and builds a list of coord tuples
-        coords = zip(verts[1::2], verts[::2])
-        region = shapes.RegionConstraint.from_coordinates(coords)
+        region = shapes.RegionConstraint.from_coordinates(
+            self._extract_coords('REGION_VERTEX'))
+
         region.cell_size = float(self['REGION_GRID_SPACING'])
         return region
 
@@ -302,11 +461,12 @@ class Job(object):
         """ Based on the behaviour specified in the configuration, mix in the
         correct behaviour for the tasks and then execute them.
         """
+        self._record_initial_stats()
+
         output_dir = os.path.join(self.base_path, self['OUTPUT_DIR'])
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        results = []
-        self._partition()
+
         for (key, mixin) in Mixin.ordered_mixins():
             if key.upper() not in self.sections:
                 continue
@@ -315,88 +475,9 @@ class Job(object):
                 # The mixin defines a preload decorator to handle the needed
                 # data for the tasks and decorates _execute(). the mixin's
                 # _execute() method calls the expected tasks.
-                LOG.debug("Job %s Launching %s for %s" % (self.id, mixin, key))
-                results.extend(self.execute())
-
-        self.cleanup()
-
-        return results
-
-    def cleanup(self):
-        """
-        Perform any necessary cleanup steps after the job completes.
-
-        Currently, this method only clears KVS cache data for the job.
-        """
-        LOG.debug("Running KVS garbage collection for job %s" % self.job_id)
-
-        match = re.match(r'^::JOB::(\d+)::$', str(self.job_id))
-        if match:
-            job_number = match.group(1)
-        else:
-            # invalid job_id; something is horribly wrong
-            msg = "KVS garbage collection failed: job ID '%s' is invalid."
-            msg %= self.job_id
-            LOG.critical(msg)
-            raise RuntimeError(msg)
-
-        gc_cmd = ["do_oq_cache_gc.py", "--job=%s" % job_number]
-
-        # run KVS garbage collection aynchronously
-        # stdout goes to /dev/null to silence any output from the GC
-        subprocess.Popen(gc_cmd, env=os.environ, stdout=open('/dev/null', 'w'))
-
-    def _partition(self):
-        """Split the set of sites to compute in blocks and store
-        the in the underlying kvs system.
-        """
-
-        sites = []
-        self.blocks_keys = []
-        region_constraint = self.region
-
-        # we use the exposure, if specified,
-        # otherwise we use the input region
-        if self.has(conf.EXPOSURE):
-            sites = self._read_sites_from_exposure()
-            LOG.debug("Loaded %s assets from exposure portfolio." % len(sites))
-        elif self.region:
-            sites = self.region.sites
-        else:
-            raise Exception("I don't know how to get the sites!")
-        if self.partition:
-            block_count = 0
-            for block in BlockSplitter(sites, constraint=region_constraint):
-                self.blocks_keys.append(block.id)
-                block.to_kvs()
-                block_count += 1
-            LOG.debug("Job has partitioned %s sites into %s blocks" % (
-                    len(sites), block_count))
-        else:
-            block = Block(sites)
-            self.blocks_keys.append(block.id)
-            block.to_kvs()
-
-    def _read_sites_from_exposure(self):
-        """
-        Read the set of sites to compute from the exposure file specified
-        in the job definition.
-        """
-
-        sites = []
-        path = os.path.join(self.base_path, self[conf.EXPOSURE])
-        reader = exposure.ExposurePortfolioFile(path)
-        constraint = self.region
-        if not constraint:
-            constraint = AlwaysTrueConstraint()
-        else:
-            LOG.debug("Constraining exposure parsing to %s" %
-                constraint.polygon)
-
-        for asset_data in reader.filter(constraint):
-            sites.append(asset_data[0])
-
-        return sites
+                LOG.debug(
+                    "Job %s Launching %s for %s" % (self.job_id, mixin, key))
+                self.execute()
 
     def __getitem__(self, name):
         return self.params[name]
@@ -414,7 +495,7 @@ class Job(object):
             the file in production or a random job in dev.
         """
 
-        kvs_client = kvs.get_client(binary=False)
+        kvs_client = kvs.get_client()
         config = RawConfigParser()
 
         section = 'openquake'
@@ -432,7 +513,7 @@ class Job(object):
     def _slurp_files(self):
         """Read referenced files and write them into kvs, keyed on their
         sha1s."""
-        kvs_client = kvs.get_client(binary=False)
+        kvs_client = kvs.get_client()
         if self.base_path is None:
             LOG.debug("Can't slurp files without a base path, homie...")
             return
@@ -441,11 +522,9 @@ class Job(object):
                 path = os.path.join(self.base_path, val)
                 with open(path) as data_file:
                     LOG.debug("Slurping %s" % path)
-                    sha1 = hashlib.sha1(data_file.read()).hexdigest()
-                    data_file.seek(0)
-
-                    file_key = kvs.generate_key([self.job_id, sha1])
-                    kvs_client.set(file_key, data_file.read())
+                    blob = data_file.read()
+                    file_key = kvs.tokens.generate_blob_key(self.job_id, blob)
+                    kvs_client.set(file_key, blob)
                     self.params[key] = file_key
                     self.params[key + "_PATH"] = path
 
@@ -454,98 +533,82 @@ class Job(object):
         self._slurp_files()
         if write_cfg:
             self._write_super_config()
-        key = kvs.generate_job_key(self.job_id)
+        key = kvs.tokens.generate_job_key(self.job_id)
         kvs.set_value_json_encoded(key, self.params)
 
-    def sites_for_region(self):
+    def sites_to_compute(self):
+        """Return the sites used to trigger the computation on the
+        hazard subsystem.
+
+        If the SITES parameter is specified, the computation is triggered
+        only on the sites specified in that parameter, otherwise
+        the region is used."""
+
+        if self.has(conf.SITES):
+            sites = []
+            coords = self._extract_coords(conf.SITES)
+
+            for coord in coords:
+                sites.append(shapes.Site(coord[0], coord[1]))
+
+            return sites
+        else:
+            return self._sites_for_region()
+
+    def _extract_coords(self, config_param):
+        """Extract from a configuration parameter the list of coordinates."""
+        verts = [float(x) for x in self.params[config_param].split(",")]
+        return zip(verts[1::2], verts[::2])
+
+    def _sites_for_region(self):
         """Return the list of sites for the region at hand."""
-        verts = [float(x) for x in self.params['REGION_VERTEX'].split(",")]
-        coords = zip(verts[1::2], verts[::2])
-        region = shapes.Region.from_coordinates(coords)
+        region = shapes.Region.from_coordinates(
+            self._extract_coords('REGION_VERTEX'))
+
         region.cell_size = float(self.params['REGION_GRID_SPACING'])
         return [site for site in region]
 
+    def build_nrml_path(self, nrml_file):
+        """Return the complete output path for the given nrml_file"""
+        return os.path.join(self['BASE_PATH'], self['OUTPUT_DIR'], nrml_file)
 
-class AlwaysTrueConstraint():
-    """A stubbed constraint for block splitting."""
-    #pylint: disable=W0232,W0613,R0201
-    def match(self, point):
-        """ stub a match filter to always return true """
-        return True
+    def extract_values_from_config(self, param_name, separator=' ',
+                                   check_value=lambda _: True):
+        """Extract the set of valid values from the configuration file."""
 
+        def _acceptable(value):
+            """Return true if the value taken from the configuration
+            file is valid, false otherwise."""
+            try:
+                value = float(value)
+            except ValueError:
+                return False
+            else:
+                return check_value(value)
 
-class Block(object):
-    """A block is a collection of sites to compute."""
+        values = []
 
-    def __init__(self, sites, block_id=None):
-        self.sites = tuple(sites)
-        if not block_id:
-            block_id = kvs.generate_block_id()
-        self.block_id = block_id
+        if param_name in self.params:
+            raw_values = self.params[param_name].split(separator)
+            values = [float(x) for x in raw_values if _acceptable(x)]
 
-    def grid(self, region):
-        """Provides an iterator across the unique grid points within a region,
-         corresponding to the sites within this block."""
-        used_points = []
-        for site in self.sites:
-            point = region.grid.point_at(site)
-            if point not in used_points:
-                used_points.append(point)
-                yield point
-
-    def __eq__(self, other):
-        return self.sites == other.sites
-
-    @classmethod
-    def from_kvs(cls, block_id):
-        """Return the block in the underlying kvs system with the given id."""
-
-        raw_sites = kvs.get_value_json_decoded(block_id)
-
-        sites = []
-
-        for raw_site in raw_sites:
-            sites.append(shapes.Site(raw_site[0], raw_site[1]))
-
-        return Block(sites, block_id)
-
-    def to_kvs(self):
-        """Store this block into the underlying kvs system."""
-
-        raw_sites = []
-
-        for site in self.sites:
-            raw_sites.append(site.coords)
-
-        kvs.set_value_json_encoded(self.id, raw_sites)
+        return values
 
     @property
-    def id(self):  # pylint: disable=C0103
-        """Return the id of this block."""
-        return self.block_id
+    def imls(self):
+        "Return the intensity measure levels as specified in the config file"
+        return self.extract_values_from_config('INTENSITY_MEASURE_LEVELS',
+                                               separator=',')
 
+    def _record_initial_stats(self):
+        '''
+        Report initial job stats (such as start time) by adding a
+        uiapi.job_stats record to the db.
+        '''
+        oq_job = OqJob.objects.get(id=self.job_id)
 
-class BlockSplitter(object):
-    """Split the sites into a set of blocks."""
+        stats = JobStats(oq_job=oq_job)
+        stats.start_time = datetime.utcnow()
+        stats.num_sites = len(self.sites_to_compute())
 
-    def __init__(
-        self, sites, sites_per_block=SITES_PER_BLOCK, constraint=None):
-        self.sites = sites
-        self.constraint = constraint
-        self.sites_per_block = sites_per_block
-
-        if not self.constraint:
-            self.constraint = AlwaysTrueConstraint()
-
-    def __iter__(self):
-        filtered_sites = []
-
-        for site in self.sites:
-            if self.constraint.match(site):
-                filtered_sites.append(site)
-                if len(filtered_sites) == self.sites_per_block:
-                    yield(Block(filtered_sites))
-                    filtered_sites = []
-        if not filtered_sites:
-            return
-        yield(Block(filtered_sites))
+        stats.save()

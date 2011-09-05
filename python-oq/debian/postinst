@@ -46,7 +46,7 @@ if [ $? -eq 0 ]; then
         LOGFILE=/var/log/openquake-db-installation
         sudo -u postgres /usr/bin/create_oq_schema --yes --db-name=openquake --schema-path=/usr/share/pyshared/openquake/db/schema > $LOGFILE 2>&1
         sudo -u postgres psql -c "ALTER ROLE oq_uiapi_writer WITH PASSWORD 'openquake'" >> $LOGFILE 2>&1
-        num_of_errors=`grep -i error $LOGFILE | grep -v "is not empty" | wc -l`
+        num_of_errors=`grep -i error $LOGFILE | grep -v "is not empty" | grep -v error_msg_ | wc -l`
         if [ $num_of_errors -gt 0 ]; then
             echo "Failed to initialise the openquake database"
             echo "Please file a bug here:"

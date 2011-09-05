@@ -43,18 +43,6 @@ QUAKEML = "{%s}" % QUAKEML_NS
 NSMAP = {None: NRML_NS, "gml": GML_NS}
 NSMAP_WITH_QUAKEML = {None: NRML_NS, "gml": GML_NS, "qml": QUAKEML_NS}
 
-# TODO(fab): remove these when transition to new schema is completed
-NRML_SCHEMA_FILE_OLD = 'old/nrml.xsd'
-
-NRML_NS_OLD = 'http://openquake.org/xmlns/nrml/0.1'
-GML_NS_OLD = 'http://www.opengis.net/gml/profile/sfgml/1.0'
-
-NRML_OLD = "{%s}" % NRML_NS_OLD
-GML_OLD = "{%s}" % GML_NS_OLD
-
-NSMAP_OLD = {None: NRML_NS_OLD, "gml": GML_NS_OLD}
-# end TODO
-
 NRML_ROOT_TAG = "%snrml" % NRML
 NRML_CONFIG_TAG = "%sconfig" % NRML
 
@@ -138,12 +126,19 @@ class XMLMismatchError(Exception):
 
 def nrml_schema_file():
     """Returns the absolute path to the NRML schema file"""
-    # TODO needs to be adjusted for the packaged version
-    return os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                        'docs', 'schema', NRML_SCHEMA_FILE)
+    return os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), 'nrml',
+        'schema', NRML_SCHEMA_FILE)
 
 
 def validates_against_xml_schema(xml_instance_path, schema_path):
+    """
+    Checks whether an XML file validates against an XML Schema
+
+    :param xml_instance_path: XML document path
+    :param schema_path: XML schema path
+    :returns: boolean success value
+    """
     xml_doc = etree.parse(xml_instance_path)
     xmlschema = etree.XMLSchema(etree.parse(schema_path))
     return xmlschema.validate(xml_doc)
@@ -181,4 +176,5 @@ def lon_lat_from_gml_pos(pos_el):
 
 
 def strip_namespace_from_tag(full_tag, namespace):
+    """Remove namespace alias from a tag"""
     return full_tag[len(namespace):]
