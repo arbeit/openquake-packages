@@ -1,8 +1,20 @@
+python-oq (0.4.3-4) natty; urgency=low
+
+  * Fix 'Architecture' field in debian/control.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 05 Sep 2011 21:35:10 +0200
+
+python-oq (0.4.3-3) natty; urgency=low
+
+  * Add Django as a dependency (LP: #830974)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 05 Sep 2011 21:33:01 +0200
+
 python-oq (0.4.3-2) natty; urgency=low
 
   * Make db error detection smarter (LP: #819710)
 
- -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 05 Sep 2011 21:23:22 +0200
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 05 Sep 2011 21:30:16 +0200
 
 python-oq (0.4.3-1) natty; urgency=low
 
