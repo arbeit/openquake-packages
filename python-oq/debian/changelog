@@ -1,3 +1,15 @@
+python-oq (0.4.3-9) natty; urgency=low
+
+  * turn off 'set -x' in debian/postinst
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 06 Sep 2011 17:44:37 +0200
+
+python-oq (0.4.3-8) natty; urgency=low
+
+  * Fixed database (user) setup and general breakage (LP: #842472)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 06 Sep 2011 17:42:51 +0200
+
 python-oq (0.4.3-7) natty; urgency=low
 
   * Fix database (user) setup (LP: #842472)
