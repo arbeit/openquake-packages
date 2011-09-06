@@ -63,10 +63,12 @@ fi
 
 # postgres is installed, flatten and recreate the database.
 LOGFILE=/var/tmp/openquake-db-installation
+rm -f $LOGFILE
 su -c "/usr/bin/oq_create_db --yes --db-name=openquake --schema-path=$IDIR/db/schema > $LOGFILE 2>&1" postgres
 su -c "psql -c \"ALTER ROLE oq_job_init WITH PASSWORD 'openquake'\" >> $LOGFILE 2>&1" postgres
 su -c "psql -c \"ALTER ROLE oq_job_superv WITH PASSWORD 'openquake'\" >> $LOGFILE 2>&1" postgres
 su -c "psql -c \"ALTER ROLE oq_reslt_writer WITH PASSWORD 'openquake'\" >> $LOGFILE 2>&1" postgres
+chmod 644 $LOGFILE
 num_of_errors=`grep -i error $LOGFILE | grep -v "is not empty" | grep -v error_msg_ | wc -l`
 if [ $num_of_errors -gt 0 ]; then
     echo "Failed to initialise the openquake database"
@@ -77,7 +79,6 @@ if [ $num_of_errors -gt 0 ]; then
     su -c "psql -c \"DROP DATABASE openquake\" >/dev/null 2>&1" postgres
     exit 1
 fi
-chmod 644 $LOGFILE
 
 PG_ROOT=/etc/postgresql/8.4/main
 cp $PG_ROOT/pg_hba.conf $PG_ROOT/pg_hba.conf.orig
