@@ -1,3 +1,4 @@
 oqpath.patch
 setuptools.patch
 openquake.patch
+delay-job-import.patch

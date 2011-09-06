@@ -5,7 +5,7 @@
      4,  # minor
      3,  # sprint number
 -    0)  # release date (seconds since the "Epoch"), do *not* set in master!
-+    1315246561)  # release date (seconds since the "Epoch")
++    1315312442)  # release date (seconds since the "Epoch")
  
  # The path to the OpenQuake root directory
  OPENQUAKE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -60,7 +60,7 @@
 +os.environ["DJANGO_SETTINGS_MODULE"] = "openquake.settings"
 --- /dev/null
 +++ b/openquake/openquake.cfg
-@@ -0,0 +1,59 @@
+@@ -0,0 +1,48 @@
 +# Copyright (c) 2010-2011, GEM Foundation.
 +#
 +# OpenQuake is free software: you can redistribute it and/or modify
@@ -101,22 +101,11 @@
 +host = localhost
 +port = 5432
 +
-+admin_password =
-+admin_user = oq_admin
-+
-+eqcat_read_password =
-+eqcat_read_user = oq_eqcat_reader
-+eqcat_write_password =
-+eqcat_write_user = oq_eqcat_writer
-+
-+job_init_password =
++job_init_password = openquake
 +job_init_user = oq_job_init
 +
-+job_superv_password =
++job_superv_password = openquake
 +job_superv_user = oq_job_superv
 +
-+oqmif_password =
-+oqmif_user = oq_ged4gem
-+
-+reslt_writer_password =
++reslt_writer_password = openquake
 +reslt_writer_user = oq_reslt_writer
