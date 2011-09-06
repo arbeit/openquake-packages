@@ -1,0 +1,19 @@
+Please see https://bugs.launchpad.net/openquake/+bug/842604
+--- a/bin/openquake
++++ b/bin/openquake
+@@ -61,7 +61,6 @@
+ from openquake import logs
+ from openquake import __version__
+ 
+-from openquake import job
+ from openquake.utils import config
+ from openquake.utils import version as utils_version
+ 
+@@ -104,6 +103,7 @@
+         print flags.get_flags_help()
+         sys.exit(1)
+ 
++    from openquake import job
+     logs.init_logs(level=FLAGS.debug,
+                    log_type=config.get('logging', 'backend'))
+ 

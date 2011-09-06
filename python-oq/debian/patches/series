@@ -1,3 +1,4 @@
+create_oq_schema-fix-sudo.patch
 oqpath.patch
 setuptools.patch
 openquake.patch
