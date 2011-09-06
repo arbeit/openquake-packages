@@ -1,3 +1,9 @@
+python-oq (0.4.3-5) natty; urgency=low
+
+  * Copy configuration file to /usr/openquake (LP: #842468)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 06 Sep 2011 11:45:55 +0200
+
 python-oq (0.4.3-4) natty; urgency=low
 
   * Fix 'Architecture' field in debian/control.

@@ -33,8 +33,20 @@ fi;
 
 mkdir -p /usr/openquake
 chmod 1777 /usr/openquake
-cp /usr/share/pyshared/openquake/celeryconfig.py /usr/openquake
-chmod 666 /usr/openquake/celeryconfig.py
+
+if [ -f /usr/openquake/celeryconfig.py ]; then
+    diff /usr/share/pyshared/openquake/celeryconfig.py /usr/openquake/celeryconfig.py >/dev/null || cp /usr/share/pyshared/openquake/celeryconfig.py /usr/openquake/celeryconfig.py.new_in_this_release
+else
+    cp /usr/share/pyshared/openquake/celeryconfig.py /usr/openquake
+    chmod 666 /usr/openquake/celeryconfig.py
+fi
+
+if [ -f /usr/openquake/openquake.cfg ]; then
+    diff /usr/share/pyshared/openquake/openquake.cfg /usr/openquake/openquake.cfg >/dev/null || cp /usr/share/pyshared/openquake/openquake.cfg /usr/openquake/openquake.cfg.new_in_this_release
+else
+    cp /usr/share/pyshared/openquake/openquake.cfg /usr/openquake
+    chmod 666 /usr/openquake/openquake.cfg
+fi
 
 # Is postgres installed on this system?
 dpkg-query -l postgresql-8.4 >/dev/null
