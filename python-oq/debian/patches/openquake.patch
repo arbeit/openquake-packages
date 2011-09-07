@@ -60,7 +60,7 @@
 +os.environ["DJANGO_SETTINGS_MODULE"] = "openquake.settings"
 --- /dev/null
 +++ b/openquake/openquake.cfg
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,51 @@
 +# Copyright (c) 2010-2011, GEM Foundation.
 +#
 +# OpenQuake is free software: you can redistribute it and/or modify
@@ -94,12 +94,15 @@
 +backend = amqp
 +
 +[supervisor]
-+exe = bin/openquake_supervisor
++exe = /usr/bin/oq_monitor
 +
 +[database]
 +name = openquake
 +host = localhost
 +port = 5432
++
++admin_password = openquake
++admin_user = oq_admin
 +
 +job_init_password = openquake
 +job_init_user = oq_job_init

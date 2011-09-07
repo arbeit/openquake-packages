@@ -1,5 +1,6 @@
 create_oq_schema-fix-sudo.patch
 oqpath.patch
+logsink-cfg.patch
 setuptools.patch
 openquake.patch
 delay-job-import.patch

@@ -1,3 +1,15 @@
+python-oq (0.4.3-11) natty; urgency=low
+
+  * Fix logging sink configuration file and location.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 07 Sep 2011 14:31:51 +0200
+
+python-oq (0.4.3-10) natty; urgency=low
+
+  * Fix database user/permissions for admin schema.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 07 Sep 2011 14:07:30 +0200
+
 python-oq (0.4.3-9) natty; urgency=low
 
   * turn off 'set -x' in debian/postinst

@@ -45,15 +45,18 @@ else
 fi
 
 SDIR=/etc/openquake
-if [ -f $SDIR/openquake.cfg ]; then
-    if ! diff $IDIR/openquake.cfg $SDIR/openquake.cfg >/dev/null; then
-        cp $IDIR/openquake.cfg $SDIR/openquake.cfg.new_in_this_release
+for cfg in openquake.cfg logging.cfg
+do
+    if [ -f $SDIR/$cfg ]; then
+        if ! diff $IDIR/$cfg $SDIR/$cfg >/dev/null; then
+            cp $IDIR/$cfg $SDIR/$cfg.new_in_this_release
+        fi
+    else
+        mkdir -p $SDIR
+        cp $IDIR/$cfg $SDIR
+        chmod 644 $SDIR/$cfg
     fi
-else
-    mkdir -p $SDIR
-    cp $IDIR/openquake.cfg $SDIR
-    chmod 644 $SDIR/openquake.cfg
-fi
+done
 
 # Is postgres installed on this system?
 if ! dpkg-query -l postgresql-8.4 >/dev/null; then
@@ -65,10 +68,12 @@ fi
 LOGFILE=/var/tmp/openquake-db-installation
 rm -f $LOGFILE
 su -c "/usr/bin/oq_create_db --yes --db-name=openquake --schema-path=$IDIR/db/schema > $LOGFILE 2>&1" postgres
-su -c "psql -c \"ALTER ROLE oq_job_init WITH PASSWORD 'openquake'\" >> $LOGFILE 2>&1" postgres
-su -c "psql -c \"ALTER ROLE oq_job_superv WITH PASSWORD 'openquake'\" >> $LOGFILE 2>&1" postgres
-su -c "psql -c \"ALTER ROLE oq_reslt_writer WITH PASSWORD 'openquake'\" >> $LOGFILE 2>&1" postgres
+for dbu in oq_admin oq_job_init oq_job_superv oq_reslt_writer
+do
+    su -c "psql -c \"ALTER ROLE $dbu WITH PASSWORD 'openquake'\" >> $LOGFILE 2>&1" postgres
+done
 chmod 644 $LOGFILE
+
 num_of_errors=`grep -i error $LOGFILE | grep -v "is not empty" | grep -v error_msg_ | wc -l`
 if [ $num_of_errors -gt 0 ]; then
     echo "Failed to initialise the openquake database"
@@ -82,9 +87,10 @@ fi
 
 PG_ROOT=/etc/postgresql/8.4/main
 cp $PG_ROOT/pg_hba.conf $PG_ROOT/pg_hba.conf.orig
-echo "local   openquake   oq_job_init                   md5" > $PG_ROOT/pg_hba.conf
-echo "local   openquake   oq_job_superv                   md5" > $PG_ROOT/pg_hba.conf
-echo "local   openquake   oq_reslt_writer                   md5" > $PG_ROOT/pg_hba.conf
+for dbu in oq_admin oq_job_init oq_job_superv oq_reslt_writer
+do
+    echo "local   openquake   $dbu                   md5" > $PG_ROOT/pg_hba.conf
+done
 cat $PG_ROOT/pg_hba.conf.orig | grep -v oq_ >> $PG_ROOT/pg_hba.conf
 /etc/init.d/postgresql reload
 
