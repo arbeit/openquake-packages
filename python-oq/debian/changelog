@@ -1,3 +1,22 @@
+python-oq (0.4.3-14) natty; urgency=low
+
+  * turn off 'set -x' in debian/postinst
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 09 Sep 2011 07:18:34 +0200
+
+python-oq (0.4.3-13) natty; urgency=low
+
+  * Better detection of postgresql-8.4
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 09 Sep 2011 07:16:11 +0200
+
+python-oq (0.4.3-12) natty; urgency=low
+
+  * detect the absence of the rabbitmq and postgres services and refrain
+    from the corresponding initialization actions  (LP: #845344)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 09 Sep 2011 06:47:32 +0200
+
 python-oq (0.4.3-11) natty; urgency=low
 
   * Fix logging sink configuration file and location.
