@@ -56,7 +56,7 @@ do
     else
         mkdir -p $SDIR
         cp $IDIR/$cfg $SDIR
-        chmod 644 $SDIR/$cfg
+        chmod 600 $SDIR/$cfg
     fi
 done
 
@@ -84,10 +84,11 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
     fi
 
     PG_ROOT=/etc/postgresql/8.4/main
-    cp $PG_ROOT/pg_hba.conf $PG_ROOT/pg_hba.conf.orig
+    rm -f $PG_ROOT/pg_hba.conf.orig
+    mv $PG_ROOT/pg_hba.conf $PG_ROOT/pg_hba.conf.orig
     for dbu in oq_admin oq_job_init oq_job_superv oq_reslt_writer
     do
-        echo "local   openquake   $dbu                   md5" > $PG_ROOT/pg_hba.conf
+        echo "local   openquake   $dbu                   md5" >> $PG_ROOT/pg_hba.conf
     done
     cat $PG_ROOT/pg_hba.conf.orig | grep -v oq_ >> $PG_ROOT/pg_hba.conf
     /etc/init.d/postgresql reload

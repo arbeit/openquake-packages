@@ -1,3 +1,9 @@
+python-oq (0.4.3-16) natty; urgency=low
+
+  * Add all required db users to pg_hba.conf (LP: #845461)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 09 Sep 2011 11:25:41 +0200
+
 python-oq (0.4.3-15) natty; urgency=low
 
   * Remove obsolete dependency on python-geoalchemy (LP: #845439)
