@@ -1,3 +1,9 @@
+python-oq (0.4.3-17) natty; urgency=low
+
+  * package the correct software revision (LP: #845583)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 09 Sep 2011 15:00:05 +0200
+
 python-oq (0.4.3-16) natty; urgency=low
 
   * Add all required db users to pg_hba.conf (LP: #845461)
