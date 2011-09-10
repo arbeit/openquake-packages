@@ -71,11 +71,15 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
     if [ -x /etc/init.d/celeryd ]; then
         /etc/init.d/celeryd stop
     else
-        ps ax | grep celeryd | grep -v grep | awk '{print $1}' | xargs kill -15
+        for pid in `ps ax | grep celeryd | grep -v grep | awk '{print $1}'`; do
+            kill -15 $pid
+        done
     fi
     # Make sure the celeryd  processes are gone.
     sleep 1
-    ps ax | grep celeryd | grep -v grep | awk '{print $1}' | xargs kill -15
+    for pid in `ps ax | grep celeryd | grep -v grep | awk '{print $1}'`; do
+        kill -15 $pid
+    done
 
     /etc/init.d/postgresql restart
 
