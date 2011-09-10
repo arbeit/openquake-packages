@@ -66,6 +66,17 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
 
     # Restart postgres in order to get rid of idle/open connections
     # held by celeryd processes.
+
+    # Stop celeryd.
+    if [ -x /etc/init.d/celeryd ]; then
+        /etc/init.d/celeryd stop
+    else
+        ps ax | grep celeryd | grep -v grep | awk '{print $1}' | xargs kill -15
+    fi
+    # Make sure the celeryd  processes are gone.
+    sleep 1
+    ps ax | grep celeryd | grep -v grep | awk '{print $1}' | xargs kill -15
+
     /etc/init.d/postgresql restart
 
     LOGFILE=/var/tmp/openquake-db-installation
@@ -97,6 +108,13 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
     done
     cat $PG_ROOT/pg_hba.conf.orig | grep -v oq_ >> $PG_ROOT/pg_hba.conf
     /etc/init.d/postgresql reload
+
+    # Restart celeryd
+    if [ -x /etc/init.d/celeryd ]; then
+        /etc/init.d/celeryd start
+    else
+        cd /usr/openquake && nohup celeryd --purge > /tmp/celeryd.log 2>&1 3>&1 &
+    fi
 fi
 
 # dh_installdeb will replace this with shell code automatically
