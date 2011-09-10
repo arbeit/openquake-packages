@@ -5,7 +5,7 @@
      4,  # minor
      3,  # sprint number
 -    0)  # release date (seconds since the "Epoch"), do *not* set in master!
-+    1315543841)  # release date (seconds since the "Epoch")
++    1315640177)  # release date (seconds since the "Epoch")
  
  # The path to the OpenQuake root directory
  OPENQUAKE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))

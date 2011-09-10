@@ -1,7 +1,7 @@
 Please see https://bugs.launchpad.net/openquake/+bug/842604
 --- a/bin/openquake
 +++ b/bin/openquake
-@@ -61,7 +61,6 @@
+@@ -61,12 +61,12 @@
  from openquake import logs
  from openquake import __version__
  
@@ -9,7 +9,13 @@ Please see https://bugs.launchpad.net/openquake/+bug/842604
  from openquake.utils import config
  from openquake.utils import version as utils_version
  
-@@ -104,6 +103,7 @@
+ FLAGS = flags.FLAGS
+ 
++flags.DEFINE_boolean('include_defaults', True, "Include default configs")
+ flags.DEFINE_string('config_file', 'openquake-config.gem',
+                     'OpenQuake configuration file')
+ flags.DEFINE_enum('output_type', 'db', ['db', 'xml'],
+@@ -104,6 +104,7 @@
          print flags.get_flags_help()
          sys.exit(1)
  
@@ -17,3 +23,26 @@ Please see https://bugs.launchpad.net/openquake/+bug/842604
      logs.init_logs(level=FLAGS.debug,
                     log_type=config.get('logging', 'backend'))
  
+--- a/openquake/job/__init__.py
++++ b/openquake/job/__init__.py
+@@ -28,6 +28,7 @@
+ from datetime import datetime
+ from django.db import transaction
+ from django.contrib.gis.geos import GEOSGeometry
++from gflags import DuplicateFlagError
+ 
+ from openquake import flags
+ from openquake import java
+@@ -47,7 +48,11 @@
+ RE_INCLUDE = re.compile(r'^(.*)_INCLUDE')
+ 
+ FLAGS = flags.FLAGS
+-flags.DEFINE_boolean('include_defaults', True, "Include default configs")
++try:
++    flags.DEFINE_boolean('include_defaults', True, "Include default configs")
++except DuplicateFlagError:
++    # we already have this one.
++    pass
+ 
+ # TODO unify with utils/oqrunner/config_writer.py
+ CALCULATION_MODE = {
