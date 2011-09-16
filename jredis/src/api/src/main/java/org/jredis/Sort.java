@@ -62,10 +62,10 @@ import java.util.List;
  */
 public interface Sort extends Query {
 	/** species the BY clause */
-	Sort BY    (String pattern);
+	<K extends Object> Sort BY    (K pattern);
 	
 	/** specifies the GET clause */
-	Sort GET   (String pattern);
+	<K extends Object> Sort GET   (K pattern);
 	
 	/** 
 	 * Specifies the LIMIT class: from is the initial index, count is the number of results 
@@ -83,7 +83,7 @@ public interface Sort extends Query {
 	/** 
 	 * Store the sort results in another key.
 	 * <p>
-	 * <b>This command alters the semantics of the {@link Query#exec()} (or  {@link Query#execAsynch()()}</b>
+	 * <b>This command alters the semantics of the {@link Query#exec()} (or  {@link Query#execAsync()()}</b>
 	 * to return a list of size 1, with the single entry being the long value representing the size
 	 * of the created (store destination) list.  
 	 * <p>
@@ -100,5 +100,5 @@ public interface Sort extends Query {
 	 * 	System.out.format("Sorted list (size: %d):\n", size);
 	 * </pre>
  	 */
-	Sort STORE (String destKey);
+	<K extends Object> Sort STORE (K destKey);
 }

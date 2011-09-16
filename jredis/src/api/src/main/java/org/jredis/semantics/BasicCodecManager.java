@@ -17,12 +17,14 @@
 package org.jredis.semantics;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.jredis.Codec;
 
 // REFACTOR: this doesn't belong here
 //
 public final class BasicCodecManager implements CodecManager {
-	Map<Class<?>, Codec<?>> map;
+	private final Map<Class<?>, Codec<?>> map = new ConcurrentHashMap<Class<?>, Codec<?>>();
 	public void foo () {
 		Codec<String>  stringCodec = null;
 		map.put(String.class, stringCodec);
@@ -36,15 +38,13 @@ public final class BasicCodecManager implements CodecManager {
 
 //	@Override
 	public <T> boolean register(Codec<T> code, Class<T> type) {
-		// 1 - does it exist?
-		boolean registered = false;
-		Codec<?>	existing = map.get(type);
+		Codec<?> existing = map.get(type);
 		if(null == existing){
 			if (code.supports(type)){
 				map.put(type, code);
-				registered = true;
+				return true;
 			}
 		}
-		return registered;
+		return false;
 	}
 }
