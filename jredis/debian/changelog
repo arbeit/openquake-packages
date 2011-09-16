@@ -1,3 +1,9 @@
+jredis (2.2-1) oneiric; urgency=low
+
+  * New upstream release (LP: #852001)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 16 Sep 2011 20:32:06 +0000
+
 jredis (2.0-3) maverick; urgency=low
 
   * Force the inclusion of the source tarball into the changes file.
