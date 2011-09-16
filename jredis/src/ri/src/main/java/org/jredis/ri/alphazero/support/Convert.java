@@ -42,15 +42,6 @@ public class Convert {
 	private static final int	MAX_POSITIVE_32_BIT_DIGITS	= 10;
 	private static final int	MAX_POSITIVE_64_BIT_DIGITS	= 19;
 	
-	/**
-	 * A few hundred Ks/classloader  Speed things up considerably in the long run as far
-	 * as int to byte[] conversions are concerned.  
-	 * Reduce the constant to adjust memory consumption as required.
-	 */
-	static {
-		for(int i=0; i<INT_P_65535; i++) Integer.toString(i).getBytes();
-	}
-	
 	// ------------------------------------------------------------------------
 	// public Interface
 	// ------------------------------------------------------------------------
@@ -74,25 +65,22 @@ public class Convert {
 	 * @return
 	 */ 
 	public static final byte[] toBytes(int i){
-		byte[] data = null;
-		boolean negative=false;
-		if(i >= INT_N_65535 && i <= INT_P_65535) {
-			if(i < 0) {
-				negative = true;
-				i = 0 - i;
-			}
-			if(null == i2b_65535[i]){
-				i2b_65535[i] = Integer.toString(i).getBytes();
-			}
-			data = i2b_65535[i];
-			if(negative) data = getSignedNumberBytes(data, negative);
+		if(i < INT_N_65535 || i > INT_P_65535) {
+			return Integer.toString(i).getBytes();
+		}
+		final int absi = Math.abs(i);
+		final byte[] cachedData = i2b_65535[absi];
+		final byte[] data;
+		if(cachedData == null) {
+			data = Integer.toString(absi).getBytes();
+			i2b_65535[absi] = data;
 		}
 		else {
-			data = Integer.toString(i).getBytes();
+			data = cachedData;
 		}
-		if(null == data) throw new RuntimeException("null for i=" + i + " and cache is: " + i2b_65535[i]);
-		return data;
+		return i >= 0 ? data : getNegativeNumberBytes(data);
 	}
+
 	/**
 	 * Will delegate to {@link Convert#getBytes(int)} if the 'long' number is actually
 	 * within the range of our int cache, otherwise it will return the bytes using std
@@ -123,14 +111,15 @@ public class Convert {
 	 */
 	public static final int toInt(byte[] potentiallySignedAsciiBytes, int offset, int len) throws IllegalArgumentException
 	{
-		byte[] buff = potentiallySignedAsciiBytes; // lets use a sensible name ;)
+		final byte[] buff = potentiallySignedAsciiBytes; // lets use a sensible name ;)
 		if(null == buff) throw new IllegalArgumentException ("Null input");
 		if(len > buff.length) throw new IllegalArgumentException ("buffer length of " + buff.length + " less than the spec'd len " + len);
 
 		boolean negative = false;
 		int digitCnt = len;
-		if(buff[offset]==BYTE_MINUS || buff[offset]==BYTE_PLUS){ 
-			if(buff[offset]==BYTE_MINUS) negative = true; 
+		final byte bs = buff[offset];
+		if(bs ==BYTE_MINUS || bs == BYTE_PLUS){
+			if(bs == BYTE_MINUS) negative = true;
 			offset++;
 			digitCnt--;
 		}
@@ -139,13 +128,12 @@ public class Convert {
 		// lets do it
 		int value = 0;
 		for(int p = 0; p < digitCnt; p++){
-			byte b = buff[offset+p];
+			final byte b = buff[offset+p];
 			if(b < BYTE_ZERO || b > BYTE_NINE) throw new IllegalArgumentException("That's not a number!  byte value: " + b);
 			value = value*10 + b - BYTE_ZERO;
 		}
 		if(negative) value = 0 - value;
 		
-		// done.
 		return value;
 	}
 	
@@ -161,13 +149,14 @@ public class Convert {
 	 */
 	public static final long toLong(byte[] potentiallySignedAsciiBytes, int offset, int len) throws IllegalArgumentException
 	{
-		byte[] buff = potentiallySignedAsciiBytes; // lets use a sensible name ;)
+		final byte[] buff = potentiallySignedAsciiBytes; // lets use a sensible name ;)
 		if(null == buff) throw new IllegalArgumentException ("Null input");
 		if(len > buff.length) throw new IllegalArgumentException ("buffer length of " + buff.length + " less than the spec'd len " + len);
 
 		boolean negative = false;
 		int digitCnt = len;
-		if(buff[offset]==BYTE_MINUS || buff[offset]==BYTE_PLUS){ 
+		final byte bs = buff[offset];
+		if(bs ==BYTE_MINUS || bs == BYTE_PLUS){
 			if(buff[offset]==BYTE_MINUS) negative = true; 
 			offset++;
 			digitCnt--;
@@ -177,13 +166,12 @@ public class Convert {
 		// lets do it
 		long value = 0;
 		for(int p = 0; p < digitCnt; p++){
-			byte b = buff[offset+p];
+			final byte b = buff[offset+p];
 			if(b < BYTE_ZERO || b > BYTE_NINE) throw new IllegalArgumentException("That's not a number!  byte value: " + b);
 			value = value*10 + b - BYTE_ZERO;
 		}
 		if(negative) value = 0 - value;
 		
-		// done.
 		return value;
 	}
 	
@@ -233,13 +221,12 @@ public class Convert {
 	// ------------------------------------------------------------------------
 	/**
 	 * @param unsigned
-	 * @param negative
 	 * @return
 	 */
-	private static final byte[] getSignedNumberBytes(byte[] unsigned, boolean negative){
+	private static final byte[] getNegativeNumberBytes(byte[] unsigned){
 		int unsigned_length = unsigned.length;
 		byte[] data = new byte[unsigned_length+1];
-		data [0] = negative ? BYTE_MINUS : BYTE_PLUS;
+		data [0] = BYTE_MINUS;
 		System.arraycopy(unsigned, 0, data, 1, unsigned_length);
 		return data;
 	}

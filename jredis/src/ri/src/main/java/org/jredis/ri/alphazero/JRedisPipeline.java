@@ -20,21 +20,21 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
 import org.jredis.ClientRuntimeException;
 import org.jredis.JRedis;
 import org.jredis.JRedisFuture;
 import org.jredis.ProviderException;
-import org.jredis.Redis;
 import org.jredis.RedisException;
 import org.jredis.connector.Connection;
 import org.jredis.connector.ConnectionSpec;
 import org.jredis.protocol.Command;
 import org.jredis.protocol.Response;
-import org.jredis.ri.alphazero.connection.AsynchPipelineConnection;
+import org.jredis.ri.alphazero.connection.AsyncPipelineConnection;
 
 /**
  * Asynchronous Redis client implementing {@link JRedisFuture} and using 
- * an {@link AsynchPipelineConnection} for command processing.
+ * an {@link AsyncPipelineConnection} for command processing.
  * <p>
  * TODO: details the usage and characteristics.
  *
@@ -44,7 +44,7 @@ import org.jredis.ri.alphazero.connection.AsynchPipelineConnection;
  * 
  */
 
-@Redis(versions={"1.00"})
+//@Redis(versions={"1.00"})
 public class JRedisPipeline extends JRedisFutureSupport {
 	
 	// ------------------------------------------------------------------------
@@ -63,7 +63,7 @@ public class JRedisPipeline extends JRedisFutureSupport {
 	 */
 	public JRedisPipeline (ConnectionSpec connectionSpec) {
 		// note: using a non shared connection mod
-		connection = new AsynchPipelineConnection(connectionSpec);
+		connection = new AsyncPipelineConnection(connectionSpec);
 	}
 	
 	// ------------------------------------------------------------------------

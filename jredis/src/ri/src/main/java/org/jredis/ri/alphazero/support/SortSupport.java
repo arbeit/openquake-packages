@@ -16,80 +16,147 @@
 
 package org.jredis.ri.alphazero.support;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Future;
+
 import org.jredis.ClientRuntimeException;
 import org.jredis.RedisException;
 import org.jredis.Sort;
 import org.jredis.protocol.Command;
+import org.jredis.ri.alphazero.semantics.DefaultKeyCodec;
 
 
 public abstract class SortSupport implements Sort {
 	protected volatile boolean stores = false;
-	protected final String key;
+//	protected final String key;
 	protected final byte[] keyBytes;
-	protected SortSupport (String key, byte[] validatedKeyBytes){
-		Assert.notNull(key, "key for sort", ClientRuntimeException.class);
-		this.key = key;
+//	protected SortSupport (String key, byte[] validatedKeyBytes){
+	protected SortSupport (byte[] validatedKeyBytes){
+//		Assert.notNull(key, "key for sort", ClientRuntimeException.class);
+//		this.key = key;
 		this.keyBytes = validatedKeyBytes;
 	}
-	private static final String NO_OP_SPEC = "";
-	private static final String PAD = " ";
-	private String alphaSpec = NO_OP_SPEC;
-	private String sortSpec = NO_OP_SPEC;
-	private String getSpec = NO_OP_SPEC;
-	private String bySpec = NO_OP_SPEC;
-	private String limitSpec = NO_OP_SPEC;
-	private String storeSpec = NO_OP_SPEC;
 	
-	public Sort ALPHA() {  alphaSpec = String.format("%s%s", Command.Option.ALPHA.name(), PAD); return this; }
-	public Sort DESC() { sortSpec = String.format("%s%s", Command.Option.DESC.name(), PAD); return this;}
-	public Sort BY(String pattern) { bySpec = String.format("%s %s%s", Command.Option.BY.name(), pattern, PAD); return this; }
-	public Sort GET(String pattern) { getSpec = String.format("%s %s%s", Command.Option.GET.name(), pattern, PAD); return this; }
+    public static final byte[]  CRLF = {(byte) 13, (byte)10};
+    public static final byte[]  SPACE = {(byte) 32};
+    public static final int     CRLF_LEN = CRLF.length;
+    public static final int     DELIMETER_LEN = SPACE.length;
+    public static final byte    ERR_BYTE    = (byte) 45; // -
+    public static final byte    OK_BYTE     = (byte) 43; // +
+    public static final byte    COUNT_BYTE  = (byte) 42; // *
+    public static final byte    SIZE_BYTE   = (byte) 36; // $
+    public static final byte    NUM_BYTE    = (byte) 58; // :
+    public static final byte    ASCII_ZERO  = (byte) 48; // 0
+	    
+	private List<byte[]> alphaSpec = new ArrayList<byte[]>();
+	private List<byte[]> descSpec = new ArrayList<byte[]>();
+	private List<byte[]> getSpec = new ArrayList<byte[]>();
+	private List<byte[]> bySpec = new ArrayList<byte[]>();
+	private List<byte[]> limitSpec = new ArrayList<byte[]>();
+	private List<byte[]> storeSpec = new ArrayList<byte[]>();
+	
+	public Sort ALPHA() {
+//	  String alphaSpecName = Command.Option.ALPHA.name();
+	  alphaSpec.add(Command.Option.ALPHA.bytes);
+	  return this; 
+	}
+	
+	public Sort DESC() {
+//      String sortSpecName = Command.Option.DESC.name();
+      descSpec.add(Command.Option.DESC.bytes);
+
+	  return this;
+	}
+	
+	public <K extends Object> Sort BY(K pattern) {
+//	   String bySpecName = Command.Option.BY.name();
+	   bySpec.add(Command.Option.BY.bytes);
+	   bySpec.add(DefaultKeyCodec.provider().encode(pattern));
+	   
+	   return this; 
+	 }
+	
+	public <K extends Object> Sort GET(K pattern) {
+//      String getSpecName = Command.Option.GET.name();
+      getSpec.add(Command.Option.GET.bytes);
+      getSpec.add(DefaultKeyCodec.provider().encode(pattern));
+      
+	  return this;
+	}
+	
 	public Sort LIMIT(long from, long count) {
-		if(from < 0) throw new ClientRuntimeException("from in LIMIT clause: " + from);
-		if(count <= 0) throw new ClientRuntimeException("count in LIMIT clause: " + from);
-		limitSpec = String.format("%s %d %d%s", Command.Option.LIMIT.name(), from, count, PAD);
+		if(from < 0) {
+		  throw new ClientRuntimeException("from in LIMIT clause: " + from);
+		}
+		
+		if(count <= 0) {
+		  throw new ClientRuntimeException("count in LIMIT clause: " + from);
+		}
+		
+//		String limitSpecName = Command.Option.LIMIT.name();
+	    String fromString = new Long(from).toString();
+	    String countString = new Long(count).toString();
+	    
+	    limitSpec.add(Command.Option.LIMIT.bytes);
+	    limitSpec.add(fromString.getBytes());
+	    limitSpec.add(countString.getBytes());
+		
 		return this;
 	}
+	
 	/** Store the sort results in another key */
-	public Sort STORE (String destKey) {
+	public <K extends Object> Sort STORE (K destKey) {
 		Assert.notNull(destKey, "deskKey is null", ClientRuntimeException.class);
-		// TODO: check for whitespaces
-		storeSpec = String.format("%s %s%s", Command.Option.STORE, destKey, PAD);
+		
+//		String storeSpecName = Command.Option.STORE.name();
+		storeSpec.add(Command.Option.STORE.bytes);
+		storeSpec.add(DefaultKeyCodec.provider().encode(destKey));
+		
 		stores = true;
+		
 		return this;
 	}
-	private final byte[] getSortSpec() {
-		StringBuilder spec = new StringBuilder()
-			.append(bySpec)
-			.append(limitSpec)
-			.append(getSpec)
-			.append(sortSpec)
-			.append(alphaSpec)
-			.append(storeSpec);
-		return spec.toString().trim().getBytes();
+	
+	private final byte[][] buildSortCmd() {
+	  ArrayList<byte[]> sortSpecs = new ArrayList<byte[]>();
+	  
+	  sortSpecs.addAll(bySpec);
+	  sortSpecs.addAll(limitSpec);
+	  sortSpecs.addAll(getSpec);
+	  sortSpecs.addAll(descSpec);
+	  sortSpecs.addAll(alphaSpec);
+	  sortSpecs.addAll(storeSpec);
+
+	  byte[][] sortCmd = new byte[sortSpecs.size() + 1][];
+	  sortCmd[0] = keyBytes;
+	  for (int i = 0; i < sortSpecs.size(); i++) {
+	    sortCmd[i+1] = sortSpecs.get(i);//.getBytes();
+	  }
+  	  return sortCmd;
 	}
+
+	
 	public List<byte[]> exec() throws IllegalStateException, RedisException {
-		System.out.format("sort spec: [%S]\n", new String(getSortSpec()));
+//	    System.out.format("sort spec: [%S %S %S %S %S %S]\n", bySpec, limitSpec, getSpec, descSpec, alphaSpec, storeSpec);
 		List<byte[]> res = null;
 		if(!stores)
-			res = execSort (keyBytes, getSortSpec());
+			res = execSort(buildSortCmd());
 		else 
-			res = execSortStore(keyBytes, getSortSpec());
+			res = execSortStore(buildSortCmd());
 		return res;
 	}
-	public Future<List<byte[]>> execAsynch() {
-		System.out.format("sort spec: [%S]\n", new String(getSortSpec()));
+	public Future<List<byte[]>> execAsync() {
+//		System.out.format("sort spec: [%S %S %S %S %S %S]\n", bySpec, limitSpec, getSpec, descSpec, alphaSpec, storeSpec);
 		Future<List<byte[]>>  res = null;
 		if(!stores)
-			res = execAsynchSort (keyBytes, getSortSpec());
+			res = execAsyncSort (buildSortCmd());
 		else 
-			res = execAsynchSortStore(keyBytes, getSortSpec());
+			res = execAsyncSortStore(buildSortCmd());
 		return res;
 	}
-	protected abstract List<byte[]> execSort (byte[] keyBytes, byte[] sortSpecBytes) throws IllegalStateException, RedisException;
-	protected abstract List<byte[]> execSortStore (byte[] keyBytes, byte[] sortSpecBytes) throws IllegalStateException, RedisException;
-	protected abstract Future<List<byte[]>> execAsynchSort (byte[] keyBytes, byte[] sortSpecBytes);
-	protected abstract Future<List<byte[]>> execAsynchSortStore (byte[] keyBytes, byte[] sortSpecBytes);
+	protected abstract List<byte[]> execSort (byte[]... fullSortCmd) throws IllegalStateException, RedisException;
+	protected abstract List<byte[]> execSortStore (byte[]... fullSortCmd) throws IllegalStateException, RedisException;
+	protected abstract Future<List<byte[]>> execAsyncSort (byte[]... fullSortCmd);
+	protected abstract Future<List<byte[]>> execAsyncSortStore (byte[]... fullSortCmd);
 }

@@ -69,9 +69,12 @@ public abstract class ConnectionBase implements Connection{
 	// Properties
 	// ------------------------------------------------------------------------
 	
-	/** Protocol specific matters are delegated to an instance of {@link Protocol} */
-	protected Protocol 			protocol;
+	/** Thread specific protocol handler -- optimize fencing */
+	ThreadLocal<Protocol> thrdProtocol = new ThreadLocal<Protocol>();
 	
+	/** Protocol specific matters are delegated to an instance of {@link Protocol} */
+//	private Protocol 			protocol;
+
 	/** Connection specs used to create this {@link Connection} */
 	final protected ConnectionSpec  	spec;
 	
@@ -118,21 +121,17 @@ public abstract class ConnectionBase implements Connection{
 		catch (Exception e) {
 			throw new ProviderException("Unexpected error on initialize -- BUG", e);
 		} 
-		// TODO: problematic in constructor.
-		if(spec.getConnectionFlag(Flag.CONNECT_IMMEDIATELY)) { 
-			connect (); 
-		}
+
+    if (spec.getConnectionFlag(Flag.CONNECT_IMMEDIATELY)) {
+      try {
+        connect ();
+      } catch (ClientRuntimeException e) {
+        // if connecting failed, clean up on our way out.
+        cleanup();
+        throw e;
+      }
+    }
 	}
-	/*
-	 * TDOD: this is the right way but breaks some assumptions in various impls.
-	 * - need to add INITIALIZED state and go from there.
-	 */
-//	@Override
-//	public void initialize() throws ClientRuntimeException, ProviderException {
-//		if(spec.getConnectionFlag(Flag.CONNECT_IMMEDIATELY)) { 
-//			connect (); 
-//		}
-//	}
 
 	// ------------------------------------------------------------------------
 	// Interface
@@ -210,6 +209,9 @@ public abstract class ConnectionBase implements Connection{
 //	    	heartbeat = new HeartbeatJinn(this, this.spec.getHeartbeat(), " [" + this + "] heartbeat");
 //	    	heartbeat.start();
 		}
+    }
+
+    protected void cleanup () {
     }
 
     /**
@@ -374,6 +376,7 @@ public abstract class ConnectionBase implements Connection{
 		socketClose();
 		isConnected = false;
 
+    cleanup();
 		notifyDisconnected();
 		Log.debug ("DISCONNECTED | conn: %s", toString());
 	}
@@ -459,10 +462,10 @@ public abstract class ConnectionBase implements Connection{
     protected final void initializeOnConnect () throws ProviderException, ClientRuntimeException, RedisException{
     	switch (spec.getModality()){
 			case Asynchronous:
-				initializeAsynchConnection();
+				initializeAsyncConnection();
 				break;
 			case Synchronous:
-				initializeSynchConnection();
+				initializeSyncConnection();
 				break;
 			default:
 				throw new ProviderException("Modality " + spec.getModality().name() + " is not supported.");
@@ -474,7 +477,7 @@ public abstract class ConnectionBase implements Connection{
      * @throws ClientRuntimeException
      * @throws RedisException
      */
-    protected final void initializeSynchConnection () throws ProviderException, ClientRuntimeException, RedisException{
+    protected final void initializeSyncConnection () throws ProviderException, ClientRuntimeException, RedisException{
 		if(null!=spec.getCredentials()) {
 			this.serviceRequest(Command.AUTH, spec.getCredentials());
 		}
@@ -487,7 +490,7 @@ public abstract class ConnectionBase implements Connection{
      * @throws ClientRuntimeException
      * @throws RedisException
      */
-    protected final void initializeAsynchConnection () throws ProviderException, ClientRuntimeException, RedisException{
+    protected final void initializeAsyncConnection () throws ProviderException, ClientRuntimeException, RedisException{
     	try {
     		if(null!=spec.getCredentials()) {
     			this.queueRequest(Command.AUTH, spec.getCredentials()).get();
@@ -524,11 +527,13 @@ public abstract class ConnectionBase implements Connection{
 	// ------------------------------------------------------------------------
 	
 	final protected void setProtocolHandler(Protocol protocolHandler) {
-		this.protocol = notNull(protocolHandler, "protocolHandler for ConnectionBase", ClientRuntimeException.class);
+		if(protocolHandler == null) throw new ProviderException("protocol handler is null - BUG");
+    	thrdProtocol.set(protocolHandler);
+//		this.protocol = notNull(protocolHandler, "protocolHandler for ConnectionBase", ClientRuntimeException.class);
 	}
 	
 	final protected Protocol getProtocolHandler() {
-		return notNull(protocol, "protocolHandler for ConnectionBase", ClientRuntimeException.class);
+		return notNull(thrdProtocol.get(), "protocolHandler for ConnectionBase", ClientRuntimeException.class);
 	}
 
 	final protected OutputStream getOutputStream() {

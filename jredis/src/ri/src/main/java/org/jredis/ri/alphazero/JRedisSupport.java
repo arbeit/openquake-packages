@@ -17,16 +17,15 @@
 package org.jredis.ri.alphazero;
 
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.StringTokenizer;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import org.jredis.ClientRuntimeException;
 import org.jredis.JRedis;
 import org.jredis.KeyValueSet;
@@ -43,13 +42,13 @@ import org.jredis.protocol.Command;
 import org.jredis.protocol.MultiBulkResponse;
 import org.jredis.protocol.Response;
 import org.jredis.protocol.ValueResponse;
+import org.jredis.ri.RI.Release;
+import org.jredis.ri.RI.Version;
 import org.jredis.ri.alphazero.semantics.DefaultKeyCodec;
 import org.jredis.ri.alphazero.support.Convert;
 import org.jredis.ri.alphazero.support.DefaultCodec;
 import org.jredis.ri.alphazero.support.SortSupport;
-import org.jredis.semantics.KeyCodec;
-import org.jredis.ri.RI.Release;
-import static org.jredis.ri.RI.*;
+
 /**
  * 
  * [TODO: document me!]
@@ -116,8 +115,8 @@ public abstract class JRedisSupport implements JRedis {
 	// ------------------------------------------------------------------------
 
 
-////	@Override
-//	public JRedis auth(String key) throws RedisException {
+//	@Override
+//	public <K extends Object> JRedis auth(K key) throws RedisException {
 //		byte[] keydata = null;
 //		if((keydata = getKeyBytes(key)) == null) 
 //			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -125,13 +124,13 @@ public abstract class JRedisSupport implements JRedis {
 //		this.serviceRequest(Command.AUTH, keydata);
 //		return this;
 //	}
-//	@Override
-	public void bgsave() throws RedisException {
+	@Override
+	public <K extends Object> void bgsave() throws RedisException {
 		this.serviceRequest(Command.BGSAVE);
 	}
 	
-//	@Override
-	public String bgrewriteaof() throws RedisException {
+	@Override
+	public <K extends Object> String bgrewriteaof() throws RedisException {
 		/* boolean ValueRespose */
 		String value = null;
 		try {
@@ -144,29 +143,29 @@ public abstract class JRedisSupport implements JRedis {
 		return value;
 	}
 	
-//	@Override
-	public JRedis ping() throws RedisException {
+	@Override
+	public <K extends Object> JRedis ping() throws RedisException {
 		this.serviceRequest(Command.PING);
 		return this;
 	}
 
-//	@Override
-	public JRedis flushall() throws RedisException {
+	@Override
+	public <K extends Object> JRedis flushall() throws RedisException {
 		this.serviceRequest(Command.FLUSHALL).getStatus();
 		return this;
 	}
-//	@Override
-	public JRedis flushdb() throws RedisException {
+	@Override
+	public <K extends Object> JRedis flushdb() throws RedisException {
 		this.serviceRequest(Command.FLUSHDB).getStatus();
 		return this;
 	}
-////	@Override
-//	public JRedis select(int index) throws RedisException {
+//	@Override
+//	public <K extends Object> JRedis select(int index) throws RedisException {
 //		this.serviceRequest(Command.SELECT, Convert.toBytes(index));
 //		return this;
 //	}
 	
-	public void slaveof(String host, int port) throws RedisException{
+	public <K extends Object> void slaveof(String host, int port) throws RedisException{
 		byte[] hostbytes = null;
 		if((hostbytes = getKeyBytes(host)) == null) 
 			throw new IllegalArgumentException ("invalid host => ["+host+"]");
@@ -178,12 +177,12 @@ public abstract class JRedisSupport implements JRedis {
 		this.serviceRequest(Command.SLAVEOF, hostbytes, portbytes);
 	}
 	
-	public void slaveofnone() throws RedisException{
+	public <K extends Object> void slaveofnone() throws RedisException{
 		this.serviceRequest(Command.SLAVEOF, "no".getBytes(), "one".getBytes());
 	}
 	
-//	@Override
-	public void rename(String oldkey, String newkey) throws RedisException {
+	@Override
+	public <K extends Object> void rename(K oldkey, K newkey) throws RedisException {
 		byte[] oldkeydata = null;
 		if((oldkeydata = getKeyBytes(oldkey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+oldkey+"]");
@@ -195,8 +194,8 @@ public abstract class JRedisSupport implements JRedis {
 		this.serviceRequest(Command.RENAME, oldkeydata, newkeydata);
 	}
 	
-//	@Override
-	public boolean renamenx(String oldkey, String newkey) throws RedisException{
+	@Override
+	public <K extends Object> boolean renamenx(K oldkey, K newkey) throws RedisException{
 		byte[] oldkeydata = null;
 		if((oldkeydata = getKeyBytes(oldkey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+oldkey+"]");
@@ -216,8 +215,8 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return value;
 	}
-//	@Override
-	public byte[] rpoplpush(String srcList, String destList) 
+	@Override
+	public <K extends Object> byte[] rpoplpush(K srcList, K destList) 
 	throws RedisException 
 	{
 		byte[] srckeybytes = null;
@@ -238,8 +237,8 @@ public abstract class JRedisSupport implements JRedis {
 		
 	}
 	
-//	@Override
-	public void rpush(String key, byte[] value) 
+	@Override
+	public <K extends Object> void rpush(K key, byte[] value) 
 	throws RedisException 
 	{
 		byte[] keybytes = null;
@@ -251,23 +250,23 @@ public abstract class JRedisSupport implements JRedis {
 		
 		this.serviceRequest(Command.RPUSH, keybytes, value);
 	}
-//	@Override
-	public void rpush(String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> void rpush(K key, String value) throws RedisException {
 //		rpush(key, DefaultCodec.encode(value));
 		rpush(key, DefaultCodec.encode(value));
 	}
-//	@Override
-	public void rpush(String key, Number value) throws RedisException {
+	@Override
+	public <K extends Object> void rpush(K key, Number value) throws RedisException {
 		rpush(key, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> void rpush (String key, T value) throws RedisException
+	@Override
+	public <K extends Object, T extends Serializable> void rpush (K key, T value) throws RedisException
 	{
 		rpush(key, DefaultCodec.encode(value));
 	}
 
-//	@Override
-	public boolean sadd(String key, byte[] member) 
+	@Override
+	public <K extends Object> boolean sadd(K key, byte[] member) 
 	throws RedisException 
 	{
 		byte[] keybytes = null;
@@ -284,22 +283,22 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return res;
 	}
-//	@Override
-	public boolean sadd (String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> boolean sadd (K key, String value) throws RedisException {
 		return sadd (key, DefaultCodec.encode(value));
 	}
-//	@Override
-	public boolean sadd (String key, Number value) throws RedisException {
+	@Override
+	public <K extends Object> boolean sadd (K key, Number value) throws RedisException {
 		return sadd (key, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> boolean sadd (String key, T value) throws RedisException
+	@Override
+	public <K extends Object, T extends Serializable> boolean sadd (K key, T value) throws RedisException
 	{
 		return sadd (key, DefaultCodec.encode(value));
 	}
 
-//	@Override
-	public boolean zadd(String key, double score, byte[] member) 
+	@Override
+	public <K extends Object> boolean zadd(K key, double score, byte[] member) 
 	throws RedisException 
 	{
 		byte[] keybytes = null;
@@ -316,22 +315,22 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return res;
 	}
-//	@Override
-	public boolean zadd (String key, double score, String value) throws RedisException {
+	@Override
+	public <K extends Object> boolean zadd (K key, double score, String value) throws RedisException {
 		return zadd (key, score, DefaultCodec.encode(value));
 	}
-//	@Override
-	public boolean zadd (String key, double score, Number value) throws RedisException {
+	@Override
+	public <K extends Object> boolean zadd (K key, double score, Number value) throws RedisException {
 		return zadd (key, score, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> boolean zadd (String key, double score, T value) throws RedisException
+	@Override
+	public <K extends Object, T extends Serializable> boolean zadd (K key, double score, T value) throws RedisException
 	{
 		return zadd (key, score, DefaultCodec.encode(value));
 	}
 
-//	@Override
-	public Double zincrby(String key, double score, byte[] member) 
+	@Override
+	public <K extends Object> Double zincrby(K key, double score, byte[] member) 
 	throws RedisException 
 	{
 		byte[] keybytes = null;
@@ -349,23 +348,23 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return resvalue;
 	}
-//	@Override
-	public Double zincrby (String key, double score, String value) throws RedisException {
+	@Override
+	public <K extends Object> Double zincrby (K key, double score, String value) throws RedisException {
 		return zincrby (key, score, DefaultCodec.encode(value));
 	}
-//	@Override
-	public Double zincrby (String key, double score, Number value) throws RedisException {
+	@Override
+	public <K extends Object> Double zincrby (K key, double score, Number value) throws RedisException {
 		return zincrby (key, score, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> Double zincrby (String key, double score, T value) throws RedisException
+	@Override
+	public <K extends Object, T extends Serializable> Double zincrby (K key, double score, T value) throws RedisException
 	{
 		return zincrby (key, score, DefaultCodec.encode(value));
 	}
 
 	
-//	@Override
-	public void save() 
+	@Override
+	public <K extends Object> void save() 
 	throws RedisException 
 	{
 		this.serviceRequest(Command.SAVE);
@@ -373,30 +372,30 @@ public abstract class JRedisSupport implements JRedis {
 	
 	// -------- set 
 
-//	@Override
-	public void set(String key, byte[] value) throws RedisException {
+	@Override
+	public <K extends Object> void set(K key, byte[] value) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
 
 		this.serviceRequest(Command.SET, keybytes, value);
 	}
-//	@Override
-	public void set(String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> void set(K key, String value) throws RedisException {
 		set(key, DefaultCodec.encode(value));
 	}
-//	@Override
-	public void set(String key, Number value) throws RedisException {
+	@Override
+	public <K extends Object> void set(K key, Number value) throws RedisException {
 		set(key, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> void set (String key, T value) throws RedisException
+	@Override
+	public <K extends Object, T extends Serializable> void set (K key, T value) throws RedisException
 	{
 		set(key, DefaultCodec.encode(value));
 	}
 	
-//	@Override
-	public byte[] getset(String key, byte[] value) throws RedisException {
+	@Override
+	public <K extends Object> byte[] getset(K key, byte[] value) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -411,23 +410,23 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return bulkData;
 	}
-//	@Override
-	public byte[] getset(String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> byte[] getset(K key, String value) throws RedisException {
 		return getset(key, DefaultCodec.encode(value));
 	}
-//	@Override
-	public byte[] getset(String key, Number value) throws RedisException {
+	@Override
+	public <K extends Object> byte[] getset(K key, Number value) throws RedisException {
 		return getset(key, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> 
-	byte[] getset (String key, T value) throws RedisException
+	@Override
+	public <K extends Object, T extends Serializable> 
+	byte[] getset (K key, T value) throws RedisException
 	{
 		return getset(key, DefaultCodec.encode(value));
 	}
 	
-//	@Override
-	public boolean setnx(String key, byte[] value) throws RedisException{
+	@Override
+	public <K extends Object> boolean setnx(K key, byte[] value) throws RedisException{
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -442,22 +441,22 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return resvalue;
 	}
-//	@Override
-	public boolean setnx(String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> boolean setnx(K key, String value) throws RedisException {
 		return setnx(key, DefaultCodec.encode(value));
 	}
-//	@Override
-	public boolean setnx(String key, Number value) throws RedisException {
+	@Override
+	public <K extends Object> boolean setnx(K key, Number value) throws RedisException {
 		return setnx(key, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> boolean setnx (String key, T value) throws RedisException {
+	@Override
+	public <K extends Object, T extends Serializable> boolean setnx (K key, T value) throws RedisException {
 		return setnx(key, DefaultCodec.encode(value));
 	}
 
 	
-//	@Override
-	public long append(String key, byte[] value) throws RedisException{
+	@Override
+	public <K extends Object> long append(K key, byte[] value) throws RedisException{
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -472,16 +471,16 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return resvalue;
 	}
-//	@Override
-	public long append(String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> long append(K key, String value) throws RedisException {
 		return append(key, DefaultCodec.encode(value));
 	}
-//	@Override
-	public long append(String key, Number value) throws RedisException {
+	@Override
+	public <K extends Object> long append(K key, Number value) throws RedisException {
 		return append(key, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> long append (String key, T value) throws RedisException {
+	@Override
+	public <K extends Object, T extends Serializable> long append (K key, T value) throws RedisException {
 		return append(key, DefaultCodec.encode(value));
 	}
 
@@ -496,32 +495,37 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return resvalue;
 	}
-	public boolean msetnx(Map<String, byte[]> keyValueMap) throws RedisException {
-		KeyCodec codec = DefaultKeyCodec.provider();
+	@Override
+	public <K extends Object> boolean msetnx(Map<K, byte[]> keyValueMap) throws RedisException {
+//		KeyCodec<Object> codec = DefaultKeyCodec.provider();
 		byte[][] mappings = new byte[keyValueMap.size()*2][];
 		int i = 0;
-		for (Entry<String, byte[]> e : keyValueMap.entrySet()){
-			mappings[i++] = codec.encode(e.getKey());
+		for (Entry<K, byte[]> e : keyValueMap.entrySet()){
+			mappings[i++] = getKeyBytes(e.getKey());
 			mappings[i++] = e.getValue();
 		}
 		return msetnx(mappings);
 	}
-	public boolean msetnx(KeyValueSet.ByteArrays keyValueMap) throws RedisException {
+	@Override
+	public <K extends Object> boolean msetnx(KeyValueSet.ByteArrays<K> keyValueMap) throws RedisException {
 		return msetnx(keyValueMap.getMappings());
 	}
-	public boolean msetnx(KeyValueSet.Strings keyValueMap) throws RedisException{
+	@Override
+	public <K extends Object> boolean msetnx(KeyValueSet.Strings<K> keyValueMap) throws RedisException{
 		return msetnx(keyValueMap.getMappings());
 	}
-	public boolean msetnx(KeyValueSet.Numbers keyValueMap) throws RedisException{
+	@Override
+	public <K extends Object> boolean msetnx(KeyValueSet.Numbers<K> keyValueMap) throws RedisException{
 		return msetnx(keyValueMap.getMappings());
 	}
-	public <T extends Serializable> boolean msetnx(KeyValueSet.Objects<T> keyValueMap) throws RedisException{
+	@Override
+	public <K extends Object, T extends Serializable> boolean msetnx(KeyValueSet.Objects<K, T> keyValueMap) throws RedisException{
 		return msetnx(keyValueMap.getMappings());
 	}
 
 	
-//	@Override
-	public boolean sismember(String key, byte[] member) throws RedisException {
+	@Override
+	public <K extends Object> boolean sismember(K key, byte[] member) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -538,22 +542,22 @@ public abstract class JRedisSupport implements JRedis {
 		return value;
 	}
 
-//	@Override
-	public boolean sismember(String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> boolean sismember(K key, String value) throws RedisException {
 		return sismember(key, DefaultCodec.encode(value));
 	}
 
-//	@Override
-	public boolean sismember(String key, Number numberValue) throws RedisException {
+	@Override
+	public <K extends Object> boolean sismember(K key, Number numberValue) throws RedisException {
 		return sismember (key, String.valueOf(numberValue).getBytes());
 	}
 
-//	@Override
-	public <T extends Serializable> boolean sismember(String key, T object) throws RedisException {
+	@Override
+	public <K extends Object, T extends Serializable> boolean sismember(K key, T object) throws RedisException {
 		return sismember(key, DefaultCodec.encode(object));
 	}
 
-	public boolean smove (String srcKey, String destKey, byte[] member) throws RedisException {
+	public <K extends Object> boolean smove (K srcKey, K destKey, byte[] member) throws RedisException {
 		byte[] srcKeyBytes = null;
 		if((srcKeyBytes = getKeyBytes(srcKey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+srcKey+"]");
@@ -573,14 +577,14 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return value;
 	}
-	public boolean smove (String srcKey, String destKey, String stringValue) throws RedisException {
+	public <K extends Object> boolean smove (K srcKey, K destKey, String stringValue) throws RedisException {
 		return smove (srcKey, destKey, DefaultCodec.encode(stringValue));
 	}
-	public boolean smove (String srcKey, String destKey, Number numberValue) throws RedisException {
+	public <K extends Object> boolean smove (K srcKey, K destKey, Number numberValue) throws RedisException {
 		return smove (srcKey, destKey, String.valueOf(numberValue).getBytes());
 	}
-	public <T extends Serializable> 
-	boolean smove (String srcKey, String destKey, T object) throws RedisException {
+	public <K extends Object, T extends Serializable> 
+	boolean smove (K srcKey, K destKey, T object) throws RedisException {
 		return smove (srcKey, destKey, DefaultCodec.encode(object));
 	}
 		   
@@ -588,7 +592,7 @@ public abstract class JRedisSupport implements JRedis {
 	// Commands operating on hashes
 	// ------------------------------------------------------------------------
 	
-	public boolean hset(String hashKey, String hashField, byte[] value)  throws RedisException {
+	public <K extends Object> boolean hset(K hashKey, K hashField, byte[] value)  throws RedisException {
 		byte[] hashKeyBytes = null;
 		if((hashKeyBytes = getKeyBytes(hashKey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+hashKey+"]");
@@ -608,20 +612,18 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return response;
 	}
-	
-	
-	public boolean hset(String key, String field, String stringValue)  throws RedisException {
+	public <K extends Object> boolean hset(K key, K field, String stringValue)  throws RedisException {
 		return hset (key, field, DefaultCodec.encode(stringValue));
 	}
-	public boolean hset(String key, String field, Number numberValue)  throws RedisException {
+	public <K extends Object> boolean hset(K key, K field, Number numberValue)  throws RedisException {
 		return hset (key, field, String.valueOf(numberValue).getBytes());
 	}
-	public <T extends Serializable> 
-	boolean hset(String key, String field, T object)  throws RedisException {
+	public <K extends Object, T extends Serializable> 
+	boolean hset(K key, K field, T object)  throws RedisException {
 		return hset (key, field, DefaultCodec.encode(object));
 	}
 	
-	public byte[] hget(String hashKey, String hashField)  throws RedisException {
+	public <K extends Object> byte[] hget(K hashKey, K hashField)  throws RedisException {
 		byte[] hashKeyBytes = null;
 		if((hashKeyBytes = getKeyBytes(hashKey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+hashKey+"]");
@@ -641,7 +643,7 @@ public abstract class JRedisSupport implements JRedis {
 		return bulkData;
 	}
 	
-	public boolean hexists(String hashKey, String hashField)  throws RedisException {
+	public <K extends Object> boolean hexists(K hashKey, K hashField)  throws RedisException {
 		byte[] hashKeyBytes = null;
 		if((hashKeyBytes = getKeyBytes(hashKey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+hashKey+"]");
@@ -660,8 +662,8 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return resp;
 	}
-	
-	public boolean hdel(String hashKey, String hashField)  throws RedisException {
+	@Override
+	public <K extends Object> boolean hdel(K hashKey, K hashField)  throws RedisException {
 		byte[] hashKeyBytes = null;
 		if((hashKeyBytes = getKeyBytes(hashKey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+hashKey+"]");
@@ -680,8 +682,8 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return resp;
 	}
-	
-	public long hlen(String hashKey)  throws RedisException {
+	@Override
+	public <K extends Object> long hlen(K hashKey)  throws RedisException {
 		byte[] hashKeyBytes = null;
 		if((hashKeyBytes = getKeyBytes(hashKey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+hashKey+"]");
@@ -697,24 +699,27 @@ public abstract class JRedisSupport implements JRedis {
 		return resp;
 	}
 	@Redis(versions="1.3.n")
-	public List<String> hkeys(String hashKey)  throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> hkeys(K hashKey)  throws RedisException {
 		byte[] hashKeyBytes = null;
 		if((hashKeyBytes = getKeyBytes(hashKey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+hashKey+"]");
 
-		List<String> resp = null;
+		List<byte[]> multibulkData = null;
 		try {
 			MultiBulkResponse response = (MultiBulkResponse) this.serviceRequest(Command.HKEYS, hashKeyBytes);
-			if(null != response.getMultiBulkData()) resp = DefaultCodec.toStr(response.getMultiBulkData());
+//			if(null != response.getMultiBulkData()) resp = DefaultCodec.toStr(response.getMultiBulkData());
+			multibulkData = response.getMultiBulkData();
 		}
 		catch (ClassCastException e){
 			throw new ProviderException("Expecting a MultiBulkResponse here => " + e.getLocalizedMessage(), e);
 		}
-		return resp;
+		return multibulkData;
 	}
 
 	@Redis(versions="1.3.n")
-	public List<byte[]> hvals(String hashKey)  throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> hvals(K hashKey)  throws RedisException {
 		byte[] hashKeyBytes = null;
 		if((hashKeyBytes = getKeyBytes(hashKey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+hashKey+"]");
@@ -731,19 +736,20 @@ public abstract class JRedisSupport implements JRedis {
 	}
 
 	@Redis(versions="1.3.n")
-	public Map<String, byte[]> hgetall(String hashKey)  throws RedisException {
+	@Override
+	public <K extends Object> Map<byte[], byte[]> hgetall(K hashKey)  throws RedisException {
 		byte[] hashKeyBytes = null;
 		if((hashKeyBytes = getKeyBytes(hashKey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+hashKey+"]");
 
-		Map<String, byte[]> resp = null;
+		Map<byte[], byte[]> resp = null;
 		try {
 			MultiBulkResponse response = (MultiBulkResponse) this.serviceRequest(Command.HGETALL, hashKeyBytes);
 			List<byte[]> bulkdata = response.getMultiBulkData();
 			if(null != bulkdata) {
-				resp = new HashMap<String, byte[]>(bulkdata.size()/2);
+				resp = new HashMap<byte[], byte[]>(bulkdata.size()/2);
 				for(int i=0; i<bulkdata.size(); i+=2){
-					resp.put(DefaultCodec.toStr(bulkdata.get(i)), bulkdata.get(i+1));
+					resp.put(bulkdata.get(i), bulkdata.get(i+1));
 				}
 			}
 		}
@@ -756,8 +762,8 @@ public abstract class JRedisSupport implements JRedis {
 	
 	/* ------------------------------- commands returning int value --------- */
 
-//	@Override
-	public long incr(String key) throws RedisException {
+	@Override
+	public <K extends Object> long incr(K key) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -774,8 +780,8 @@ public abstract class JRedisSupport implements JRedis {
 		return value;
 	}
 
-//	@Override
-	public long incrby(String key, int delta) throws RedisException {
+	@Override
+	public <K extends Object> long incrby(K key, int delta) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -792,8 +798,8 @@ public abstract class JRedisSupport implements JRedis {
 		return value;
 	}
 
-//	@Override
-	public long decr(String key) throws RedisException {
+	@Override
+	public <K extends Object> long decr(K key) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -810,8 +816,8 @@ public abstract class JRedisSupport implements JRedis {
 		return value;
 	}
 
-//	@Override
-	public long decrby(String key, int delta) throws RedisException {
+	@Override
+	public <K extends Object> long decrby(K key, int delta) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -828,8 +834,8 @@ public abstract class JRedisSupport implements JRedis {
 		return value;
 	}
 
-//	@Override
-	public long llen(String key) throws RedisException {
+	@Override
+	public <K extends Object> long llen(K key) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -846,8 +852,8 @@ public abstract class JRedisSupport implements JRedis {
 		return value;
 	}
 
-//	@Override
-	public long scard(String key) throws RedisException {
+	@Override
+	public <K extends Object> long scard(K key) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -862,8 +868,8 @@ public abstract class JRedisSupport implements JRedis {
 		return value;
 	}
 	
-//	@Override
-	public long zcard(String key) throws RedisException {
+	@Override
+	public <K extends Object> long zcard(K key) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -878,7 +884,7 @@ public abstract class JRedisSupport implements JRedis {
 		return value;
 	}
 	
-	public byte[] srandmember (String setkey) throws RedisException {
+	public <K extends Object> byte[] srandmember (K setkey) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(setkey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+setkey+"]");
@@ -894,7 +900,7 @@ public abstract class JRedisSupport implements JRedis {
 		return bulkData;
 	}
 
-	public byte[] spop (String setkey) throws RedisException {
+	public <K extends Object> byte[] spop (K setkey) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(setkey)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+setkey+"]");
@@ -912,8 +918,8 @@ public abstract class JRedisSupport implements JRedis {
 
 	/* ------------------------------- commands returning long value --------- */
 
-//	@Override
-	public long dbsize() throws RedisException {
+	@Override
+	public <K extends Object> long dbsize() throws RedisException {
 		long value = Long.MIN_VALUE;
 		try {
 			ValueResponse valResponse = (ValueResponse) this.serviceRequest(Command.DBSIZE);
@@ -924,8 +930,8 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return value;
 	}
-//	@Override
-	public long lastsave() throws RedisException {
+	@Override
+	public <K extends Object> long lastsave() throws RedisException {
 		long value = Long.MIN_VALUE;
 		try {
 			ValueResponse valResponse = (ValueResponse) this.serviceRequest(Command.LASTSAVE);
@@ -939,8 +945,8 @@ public abstract class JRedisSupport implements JRedis {
 
 	/* ------------------------------- commands returning byte[] --------- */
 
-//	@Override
-	public byte[] get(String key) throws RedisException {
+	@Override
+	public <K extends Object> byte[] get(K key) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -956,8 +962,8 @@ public abstract class JRedisSupport implements JRedis {
 		return bulkData;
 	}
 
-//	@Override
-	public byte[] lindex(String key, long index) throws RedisException {
+	@Override
+	public <K extends Object> byte[] lindex(K key, long index) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -972,8 +978,8 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return bulkData;
 	}
-//	@Override
-	public byte[] lpop(String key) throws RedisException {
+	@Override
+	public <K extends Object> byte[] lpop(K key) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -989,8 +995,8 @@ public abstract class JRedisSupport implements JRedis {
 		return bulkData;
 	}
 
-//	@Override
-	public byte[] rpop(String key) throws RedisException {
+	@Override
+	public <K extends Object> byte[] rpop(K key) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1009,24 +1015,26 @@ public abstract class JRedisSupport implements JRedis {
 
 	/* ------------------------------- commands returning String--------- */
 
-//	@Override
-	public String randomkey() throws RedisException {
+	@Override
+	public byte[] randomkey() throws RedisException {
 		/* ValueRespose */
-		String stringValue = null;
+		byte[] bulkData = null;
+//		String stringValue = null;
 		try {
 			BulkResponse valResponse = (BulkResponse) this.serviceRequest(Command.RANDOMKEY);
-			byte[] bulkData = valResponse.getBulkData();
-			if (null != bulkData) {
-			  stringValue = new String(bulkData);
-			}
+			bulkData = valResponse.getBulkData();
+//			if (null != bulkData) {
+//			  stringValue = new String(bulkData);
+//			}
 		}
 		catch (ClassCastException e){
 			throw new ProviderException("Expecting a BulkResponse here => " + e.getLocalizedMessage(), e);
 		}
-		return stringValue;
+//		return stringValue;
+		return bulkData;
 	}
-//	@Override
-	public RedisType type(String key) throws RedisException {
+	@Override
+	public <K extends Object> RedisType type(K key) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1044,12 +1052,12 @@ public abstract class JRedisSupport implements JRedis {
 		return type;
 	}
 
-//	@Override
-	public ObjectInfo debug (String key) throws RedisException {
+	@Override
+	public <K extends Object> ObjectInfo debug (K key) throws RedisException {
 		
 		byte[] keybytes = getKeyBytes(key);
-		if(key.length() == 0)
-			throw new IllegalArgumentException ("invalid zero length key => ["+key+"]");
+//		if(key.length() == 0)
+//			throw new IllegalArgumentException ("invalid zero length key => ["+key+"]");
 
 		ObjectInfo	objectInfo = null;
 		/* ValueRespose */
@@ -1065,8 +1073,8 @@ public abstract class JRedisSupport implements JRedis {
 	}
 	/* ------------------------------- commands returning Maps --------- */
 
-//	@Override
-	public Map<String, String> info() throws RedisException {
+	@Override
+	public <K extends Object> Map<String, String> info() throws RedisException {
 
 		byte[] bulkData= null;
 		try {
@@ -1092,37 +1100,37 @@ public abstract class JRedisSupport implements JRedis {
 	private void mset(byte[][] mappings) throws RedisException {
 		this.serviceRequest(Command.MSET, mappings);
 	}
-	public void mset(Map<String, byte[]> keyValueMap) throws RedisException {
-		KeyCodec codec = DefaultKeyCodec.provider();
+	public <K extends Object> void mset(Map<K, byte[]> keyValueMap) throws RedisException {
+//		KeyCodec<Object> codec = DefaultKeyCodec.provider();
 		byte[][] mappings = new byte[keyValueMap.size()*2][];
 		int i = 0;
-		for (Entry<String, byte[]> e : keyValueMap.entrySet()){
-			mappings[i++] = codec.encode(e.getKey());
+		for (Entry<K, byte[]> e : keyValueMap.entrySet()){
+			mappings[i++] = getKeyBytes(e.getKey());
 			mappings[i++] = e.getValue();
 		}
 		mset(mappings);
 	}
-	public void mset(KeyValueSet.ByteArrays keyValueMap) throws RedisException {
+	public <K extends Object> void mset(KeyValueSet.ByteArrays<K> keyValueMap) throws RedisException {
 		mset(keyValueMap.getMappings());
 	}
-	public void mset(KeyValueSet.Strings keyValueMap) throws RedisException{
+	public <K extends Object> void mset(KeyValueSet.Strings<K> keyValueMap) throws RedisException{
 		mset(keyValueMap.getMappings());
 	}
-	public void mset(KeyValueSet.Numbers keyValueMap) throws RedisException{
+	public <K extends Object> void mset(KeyValueSet.Numbers<K> keyValueMap) throws RedisException{
 		mset(keyValueMap.getMappings());
 	}
-	public <T extends Serializable> void mset(KeyValueSet.Objects<T> keyValueMap) throws RedisException{
+	public <K extends Object, T extends Serializable> void mset(KeyValueSet.Objects<K, T> keyValueMap) throws RedisException{
 		mset(keyValueMap.getMappings());
 	}
 
-//	@Override
-	public List<byte[]> mget(String...keys) throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> mget(K...keys) throws RedisException {
 
 		if(null == keys || keys.length == 0) throw new IllegalArgumentException("no keys specified");
 		byte[] keydata = null;
 		byte[][] keybytes = new byte[keys.length][];
 		int i=0;
-		for(String k : keys) {
+		for(K k : keys) {
 			if((keydata = getKeyBytes(k)) == null) 
 				throw new IllegalArgumentException ("invalid key => ["+k+"] @ index: " + i);
 			
@@ -1140,8 +1148,8 @@ public abstract class JRedisSupport implements JRedis {
 		return multiBulkData;
 	}
 
-//	@Override
-	public List<byte[]> smembers(String key) throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> smembers(K key) throws RedisException {
 		byte[] keydata = null;
 		if((keydata = getKeyBytes(key)) == null) 
 			throw new RedisException (Command.KEYS, "ERR Invalid key.");
@@ -1156,13 +1164,13 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return multiBulkData;
 	}
-//	@Override
-	public List<String> keys() throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> keys() throws RedisException {
 		return this.keys("*");
 	}
 
-//	@Override
-	public List<String> keys(String pattern) throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> keys(K pattern) throws RedisException {
 		byte[] keydata = null;
 		if((keydata = getKeyBytes(pattern)) == null) 
 			throw new RedisException (Command.KEYS, "ERR Invalid key.");
@@ -1175,7 +1183,8 @@ public abstract class JRedisSupport implements JRedis {
 		catch (ClassCastException e){
 			throw new ProviderException("Expecting a MultiBulkResponse here => " + e.getLocalizedMessage(), e);
 		}
-		return DefaultCodec.toStr(multiBulkData);
+//		return DefaultCodec.toStr(multiBulkData);
+		return multiBulkData;
 		/*
 		byte[] bulkData= null;
 		try {
@@ -1195,8 +1204,8 @@ public abstract class JRedisSupport implements JRedis {
 		*/
 	}
 
-//	@Override
-	public List<byte[]> lrange(String key, long from, long to) throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> lrange(K key, long from, long to) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1215,8 +1224,8 @@ public abstract class JRedisSupport implements JRedis {
 		return multiBulkData;
 	}
 
-//	@Override
-	public byte[] substr(String key, long from, long to) throws RedisException {
+	@Override
+	public <K extends Object> byte[] substr(K key, long from, long to) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1235,8 +1244,8 @@ public abstract class JRedisSupport implements JRedis {
 		return bulkData;
 	}
 
-//	@Override
-	public List<byte[]> zrangebyscore (String key, double minScore, double maxScore) throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> zrangebyscore (K key, double minScore, double maxScore) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1255,8 +1264,8 @@ public abstract class JRedisSupport implements JRedis {
 		return multiBulkData;
 	}
 
-//	@Override
-	public long zremrangebyscore (String key, double minScore, double maxScore) throws RedisException {
+	@Override
+	public <K extends Object> long zremrangebyscore (K key, double minScore, double maxScore) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1275,8 +1284,8 @@ public abstract class JRedisSupport implements JRedis {
 		return resp;
 	}
 
-//	@Override
-	public long zcount (String key, double minScore, double maxScore) throws RedisException {
+	@Override
+	public <K extends Object> long zcount (K key, double minScore, double maxScore) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1295,8 +1304,8 @@ public abstract class JRedisSupport implements JRedis {
 		return resp;
 	}
 
-//	@Override
-	public long zremrangebyrank (String key, long minRank, long maxRank) throws RedisException {
+	@Override
+	public <K extends Object> long zremrangebyrank (K key, long minRank, long maxRank) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1315,8 +1324,8 @@ public abstract class JRedisSupport implements JRedis {
 		return resp;
 	}
 
-//	@Override
-	public List<byte[]> zrange(String key, long from, long to) throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> zrange(K key, long from, long to) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1335,8 +1344,8 @@ public abstract class JRedisSupport implements JRedis {
 		return multiBulkData;
 	}
 
-//	@Override
-	public List<byte[]> zrevrange(String key, long from, long to) throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> zrevrange(K key, long from, long to) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1354,8 +1363,8 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return multiBulkData;
 	}
-//	@Override
-	public List<ZSetEntry> zrangeSubset(String key, long from, long to) throws RedisException {
+	@Override
+	public <K extends Object> List<ZSetEntry> zrangeSubset(K key, long from, long to) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1380,8 +1389,8 @@ public abstract class JRedisSupport implements JRedis {
 		return list;
 	}
 
-//	@Override
-	public List<ZSetEntry> zrevrangeSubset(String key, long from, long to) throws RedisException {
+	@Override
+	public <K extends Object> List<ZSetEntry> zrevrangeSubset(K key, long from, long to) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1407,21 +1416,22 @@ public abstract class JRedisSupport implements JRedis {
 	}
 
 
-//	@Override
-	public Sort sort(final String key) {
+	@Override
+	public <K extends Object> Sort sort(final K key) {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
 
 		final JRedisSupport client = this;
-		Sort sortQuery = new SortSupport (key, keybytes) {
-		//	@Override 
-			protected List<byte[]> execSort(byte[] keyBytes, byte[] sortSpecBytes) 
+//		Sort sortQuery = new SortSupport (key, keybytes) {
+		Sort sortQuery = new SortSupport (keybytes) {
+			@Override 
+			protected List<byte[]> execSort(byte[]... fullSortCmd) 
 			throws IllegalStateException, RedisException {
 				
 				List<byte[]> multiBulkData= null;
 				try {
-					MultiBulkResponse multiBulkResponse = (MultiBulkResponse) client.serviceRequest(Command.SORT, keyBytes, sortSpecBytes);
+					MultiBulkResponse multiBulkResponse = (MultiBulkResponse) client.serviceRequest(Command.SORT, fullSortCmd);
 					multiBulkData = multiBulkResponse.getMultiBulkData();
 				}
 				catch (ClassCastException e){
@@ -1430,12 +1440,12 @@ public abstract class JRedisSupport implements JRedis {
 				return multiBulkData;
 			}
 
-			protected List<byte[]> execSortStore(byte[] keyBytes, byte[] sortSpecBytes) 
+			protected List<byte[]> execSortStore(byte[]... fullSortCmd) 
 			throws IllegalStateException, RedisException {
 				
 				List<byte[]> multiBulkData= new ArrayList<byte[]>(1);
 				try {
-					ValueResponse valueResp = (ValueResponse) client.serviceRequest(Command.SORT$STORE, keyBytes, sortSpecBytes);
+					ValueResponse valueResp = (ValueResponse) client.serviceRequest(Command.SORT$STORE, fullSortCmd);
 					long resSize = valueResp.getLongValue();
 					multiBulkData.add(Convert.toBytes(resSize));
 				}
@@ -1446,11 +1456,11 @@ public abstract class JRedisSupport implements JRedis {
 			}
 
 			@Override
-	        protected Future<List<byte[]>> execAsynchSort (byte[] keyBytes, byte[] sortSpecBytes) {
+	        protected Future<List<byte[]>> execAsyncSort (byte[]... fullSortCmd) {
 				throw new IllegalStateException("JRedis does not support asynchronous sort.");
 	        }
 			@Override
-	        protected Future<List<byte[]>> execAsynchSortStore (byte[] keyBytes, byte[] sortSpecBytes) {
+	        protected Future<List<byte[]>> execAsyncSortStore (byte[]... fullSortCmd) {
 				throw new IllegalStateException("JRedis does not support asynchronous sort.");
 	        }
 		};
@@ -1459,8 +1469,8 @@ public abstract class JRedisSupport implements JRedis {
 
 	/* ------------------------------- commands that don't get a response --------- */
 
-//	@Override
-	public void quit()  {
+	@Override
+	public <K extends Object> void quit()  {
 		try {
 			this.serviceRequest(Command.QUIT);
 		}
@@ -1470,8 +1480,8 @@ public abstract class JRedisSupport implements JRedis {
 		}
 //		return true;
 	}
-////	@Override
-//	public void shutdown() {
+//	@Override
+//	public <K extends Object> void shutdown() {
 //		try {
 //			this.serviceRequest(Command.SHUTDOWN);
 //		}
@@ -1481,15 +1491,15 @@ public abstract class JRedisSupport implements JRedis {
 //		}
 ////		return true;
 //	}
-//	@Override
-	public List<byte[]> sinter(String set1, String... sets) throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> sinter(K set1, K... sets) throws RedisException {
 		byte[] keydata = null;
 		if((keydata = getKeyBytes(set1)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+set1+"]");
 
 		byte[][] keybytes = new byte[1+sets.length][];
 		int i=0; keybytes[i++] = keydata;
-		for(String k : sets) {
+		for(K k : sets) {
 			if((keydata = getKeyBytes(k)) == null) 
 				throw new IllegalArgumentException ("invalid key => ["+k+"]");
 			keybytes[i++] = keydata;
@@ -1506,15 +1516,15 @@ public abstract class JRedisSupport implements JRedis {
 		return multiBulkData;
 	}
 
-//	@Override
-	public List<byte[]> sunion(String set1, String... sets) throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> sunion(K set1, K... sets) throws RedisException {
 		byte[] keydata = null;
 		if((keydata = getKeyBytes(set1)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+set1+"]");
 
 		byte[][] keybytes = new byte[1+sets.length][];
 		int i=0; keybytes[i++] = keydata;
-		for(String k : sets) {
+		for(K k : sets) {
 			if((keydata = getKeyBytes(k)) == null) 
 				throw new IllegalArgumentException ("invalid key => ["+k+"]");
 			keybytes[i++] = keydata;
@@ -1531,15 +1541,15 @@ public abstract class JRedisSupport implements JRedis {
 		return multiBulkData;
 	}
 
-//	@Override
-	public List<byte[]> sdiff(String set1, String... sets) throws RedisException {
+	@Override
+	public <K extends Object> List<byte[]> sdiff(K set1, K... sets) throws RedisException {
 		byte[] keydata = null;
 		if((keydata = getKeyBytes(set1)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+set1+"]");
 
 		byte[][] keybytes = new byte[1+sets.length][];
 		int i=0; keybytes[i++] = keydata;
-		for(String k : sets) {
+		for(K k : sets) {
 			if((keydata = getKeyBytes(k)) == null) 
 				throw new IllegalArgumentException ("invalid key => ["+k+"]");
 			keybytes[i++] = keydata;
@@ -1556,8 +1566,8 @@ public abstract class JRedisSupport implements JRedis {
 		return multiBulkData;
 	}
 
-//	@Override
-	public void sinterstore(String dest, String... sets) throws RedisException {
+	@Override
+	public <K extends Object> void sinterstore(K dest, K... sets) throws RedisException {
 		byte[] keydata = null;
 		if((keydata = getKeyBytes(dest)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+dest+"]");
@@ -1566,7 +1576,7 @@ public abstract class JRedisSupport implements JRedis {
 		int i=0; 
 		setbytes[i++] = keydata;
 		byte[] setdata =null;
-		for(String k : sets) {
+		for(K k : sets) {
 			if((setdata = getKeyBytes(k)) == null) 
 				throw new IllegalArgumentException ("invalid key => ["+k+"]");
 			setbytes[i++] = setdata;
@@ -1575,8 +1585,8 @@ public abstract class JRedisSupport implements JRedis {
 		this.serviceRequest(Command.SINTERSTORE, setbytes);
 	}
 
-//	@Override
-	public void sunionstore(String dest, String... sets) throws RedisException {
+	@Override
+	public <K extends Object> void sunionstore(K dest, K... sets) throws RedisException {
 		byte[] keydata = null;
 		if((keydata = getKeyBytes(dest)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+dest+"]");
@@ -1585,7 +1595,7 @@ public abstract class JRedisSupport implements JRedis {
 		int i=0; 
 		setbytes[i++] = keydata;
 		byte[] setdata =null;
-		for(String k : sets) {
+		for(K k : sets) {
 			if((setdata = getKeyBytes(k)) == null) 
 				throw new IllegalArgumentException ("invalid key => ["+k+"]");
 			setbytes[i++] = setdata;
@@ -1594,8 +1604,8 @@ public abstract class JRedisSupport implements JRedis {
 		this.serviceRequest(Command.SUNIONSTORE, setbytes);
 	}
 
-//	@Override
-	public void sdiffstore(String dest, String... sets) throws RedisException {
+	@Override
+	public <K extends Object> void sdiffstore(K dest, K... sets) throws RedisException {
 		byte[] keydata = null;
 		if((keydata = getKeyBytes(dest)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+dest+"]");
@@ -1604,7 +1614,7 @@ public abstract class JRedisSupport implements JRedis {
 		int i=0; 
 		setbytes[i++] = keydata;
 		byte[] setdata =null;
-		for(String k : sets) {
+		for(K k : sets) {
 			if((setdata = getKeyBytes(k)) == null) 
 				throw new IllegalArgumentException ("invalid key => ["+k+"]");
 			setbytes[i++] = setdata;
@@ -1613,14 +1623,14 @@ public abstract class JRedisSupport implements JRedis {
 		this.serviceRequest(Command.SDIFFSTORE, setbytes);
 	}
 
-//	@Override
-	public long del(String ...keys ) throws RedisException {
+	@Override
+	public <K extends Object> long del(K ...keys ) throws RedisException {
 		
 		if(null == keys || keys.length == 0) throw new IllegalArgumentException("no keys specified");
 		byte[] keydata = null;
 		byte[][] keybytes = new byte[keys.length][];
 		int i=0;
-		for(String k : keys) {
+		for(K k : keys) {
 			if((keydata = getKeyBytes(k)) == null) 
 				throw new IllegalArgumentException ("invalid key => ["+k+"] @ index: " + i);
 			
@@ -1639,8 +1649,8 @@ public abstract class JRedisSupport implements JRedis {
 	}
 
 
-//	@Override
-	public boolean exists(String key) throws RedisException {
+	@Override
+	public <K extends Object> boolean exists(K key) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1657,8 +1667,8 @@ public abstract class JRedisSupport implements JRedis {
 	}
 
 
-//	@Override
-	public void lpush(String key, byte[] value) throws RedisException {
+	@Override
+	public <K extends Object> void lpush(K key, byte[] value) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1669,24 +1679,24 @@ public abstract class JRedisSupport implements JRedis {
 		
 		this.serviceRequest(Command.LPUSH, keybytes, value);
 	}
-//	@Override
-	public void lpush(String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> void lpush(K key, String value) throws RedisException {
 		lpush(key, DefaultCodec.encode(value));
 	}
-//	@Override
-	public void lpush(String key, Number value) throws RedisException {
+	@Override
+	public <K extends Object> void lpush(K key, Number value) throws RedisException {
 		lpush(key, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> void lpush (String key, T value) throws RedisException
+	@Override
+	public <K extends Object, T extends Serializable> void lpush (K key, T value) throws RedisException
 	{
 		lpush(key, DefaultCodec.encode(value));
 	}
 	
 
 
-//	@Override
-	public long lrem(String key, byte[] value, int count) throws RedisException {
+	@Override
+	public <K extends Object> long lrem(K key, byte[] value, int count) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1695,7 +1705,7 @@ public abstract class JRedisSupport implements JRedis {
 
 		long remcnt = 0;
 		try {
-			ValueResponse valResponse = (ValueResponse) this.serviceRequest(Command.LREM, keybytes, value, countBytes);
+			ValueResponse valResponse = (ValueResponse) this.serviceRequest(Command.LREM, keybytes, countBytes, value);
 			remcnt = valResponse.getLongValue();
 		}
 		catch (ClassCastException e){
@@ -1703,23 +1713,23 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return remcnt;
 	}
-//	@Override
-	public long lrem (String listKey, String value, int count) throws RedisException{
+	@Override
+	public <K extends Object> long lrem (K listKey, String value, int count) throws RedisException{
 		return lrem (listKey, DefaultCodec.encode(value), count);
 	}
-//	@Override
-	public long lrem (String listKey, Number numberValue, int count) throws RedisException {
+	@Override
+	public <K extends Object> long lrem (K listKey, Number numberValue, int count) throws RedisException {
 		return lrem (listKey, String.valueOf(numberValue).getBytes(), count);
 	}
-//	@Override
-	public <T extends Serializable> 
-	long lrem (String listKey, T object, int count) throws RedisException{
+	@Override
+	public <K extends Object, T extends Serializable> 
+	long lrem (K listKey, T object, int count) throws RedisException{
 		return lrem (listKey, DefaultCodec.encode(object), count);
 	}
 
 
-//	@Override
-	public void lset(String key, long index, byte[] value) throws RedisException {
+	@Override
+	public <K extends Object> void lset(K key, long index, byte[] value) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1727,21 +1737,21 @@ public abstract class JRedisSupport implements JRedis {
 		byte[] indexBytes = Convert.toBytes(index);
 		this.serviceRequest(Command.LSET, keybytes, indexBytes, value);
 	}
-//	@Override
-	public void lset (String key, long index, String value) throws RedisException {
+	@Override
+	public <K extends Object> void lset (K key, long index, String value) throws RedisException {
 		lset (key, index, DefaultCodec.encode(value));
 	}
-//	@Override
-	public void lset (String key, long index, Number numberValue) throws RedisException{
+	@Override
+	public <K extends Object> void lset (K key, long index, Number numberValue) throws RedisException{
 		lset (key, index, String.valueOf(numberValue).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> void lset (String key, long index, T object) throws RedisException{
+	@Override
+	public <K extends Object, T extends Serializable> void lset (K key, long index, T object) throws RedisException{
 		lset (key, index, DefaultCodec.encode(object));
 	}
 
-//	@Override
-	public boolean move(String key, int dbIndex) throws RedisException {
+	@Override
+	public <K extends Object> boolean move(K key, int dbIndex) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1760,8 +1770,8 @@ public abstract class JRedisSupport implements JRedis {
 	}
 
 
-//	@Override
-	public boolean srem(String key, byte[] member) throws RedisException {
+	@Override
+	public <K extends Object> boolean srem(K key, byte[] member) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1776,22 +1786,22 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return resvalue;
 	}
-//	@Override
-	public boolean srem (String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> boolean srem (K key, String value) throws RedisException {
 		return srem (key, DefaultCodec.encode(value));
 	}
-//	@Override
-	public boolean srem (String key, Number value) throws RedisException {
+	@Override
+	public <K extends Object> boolean srem (K key, Number value) throws RedisException {
 		return srem (key, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> boolean srem (String key, T value) throws RedisException
+	@Override
+	public <K extends Object, T extends Serializable> boolean srem (K key, T value) throws RedisException
 	{
 		return srem (key, DefaultCodec.encode(value));
 	}
 
-//	@Override
-	public boolean zrem(String key, byte[] member) throws RedisException {
+	@Override
+	public <K extends Object> boolean zrem(K key, byte[] member) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1806,22 +1816,22 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return resvalue;
 	}
-//	@Override
-	public boolean zrem (String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> boolean zrem (K key, String value) throws RedisException {
 		return zrem (key, DefaultCodec.encode(value));
 	}
-//	@Override
-	public boolean zrem (String key, Number value) throws RedisException {
+	@Override
+	public <K extends Object> boolean zrem (K key, Number value) throws RedisException {
 		return zrem (key, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> boolean zrem (String key, T value) throws RedisException
+	@Override
+	public <K extends Object, T extends Serializable> boolean zrem (K key, T value) throws RedisException
 	{
 		return zrem (key, DefaultCodec.encode(value));
 	}
 
-//	@Override
-	public Double zscore(String key, byte[] member) throws RedisException {
+	@Override
+	public <K extends Object> Double zscore(K key, byte[] member) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1837,22 +1847,22 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return resvalue;
 	}
-//	@Override
-	public Double zscore (String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> Double zscore (K key, String value) throws RedisException {
 		return zscore (key, DefaultCodec.encode(value));
 	}
-//	@Override
-	public Double zscore (String key, Number value) throws RedisException {
+	@Override
+	public <K extends Object> Double zscore (K key, Number value) throws RedisException {
 		return zscore (key, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> Double zscore (String key, T value) throws RedisException
+	@Override
+	public <K extends Object, T extends Serializable> Double zscore (K key, T value) throws RedisException
 	{
 		return zscore (key, DefaultCodec.encode(value));
 	}
 
-//	@Override
-	public long zrank(String key, byte[] member) throws RedisException {
+	@Override
+	public <K extends Object> long zrank(K key, byte[] member) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1867,22 +1877,22 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return resvalue;
 	}
-//	@Override
-	public long zrank (String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> long zrank (K key, String value) throws RedisException {
 		return zrank (key, DefaultCodec.encode(value));
 	}
-//	@Override
-	public long zrank (String key, Number value) throws RedisException {
+	@Override
+	public <K extends Object> long zrank (K key, Number value) throws RedisException {
 		return zrank (key, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> long zrank (String key, T value) throws RedisException
+	@Override
+	public <K extends Object, T extends Serializable> long zrank (K key, T value) throws RedisException
 	{
 		return zrank (key, DefaultCodec.encode(value));
 	}
 
-//	@Override
-	public long zrevrank(String key, byte[] member) throws RedisException {
+	@Override
+	public <K extends Object> long zrevrank(K key, byte[] member) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1897,23 +1907,23 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return resvalue;
 	}
-//	@Override
-	public long zrevrank (String key, String value) throws RedisException {
+	@Override
+	public <K extends Object> long zrevrank (K key, String value) throws RedisException {
 		return zrevrank (key, DefaultCodec.encode(value));
 	}
-//	@Override
-	public long zrevrank (String key, Number value) throws RedisException {
+	@Override
+	public <K extends Object> long zrevrank (K key, Number value) throws RedisException {
 		return zrevrank (key, String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> long zrevrank (String key, T value) throws RedisException
+	@Override
+	public <K extends Object, T extends Serializable> long zrevrank (K key, T value) throws RedisException
 	{
 		return zrevrank (key, DefaultCodec.encode(value));
 	}
 
 
-//	@Override
-	public void ltrim(String key, long keepFrom, long keepTo) throws RedisException {
+	@Override
+	public <K extends Object> void ltrim(K key, long keepFrom, long keepTo) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1923,8 +1933,8 @@ public abstract class JRedisSupport implements JRedis {
 		this.serviceRequest(Command.LTRIM, keybytes, fromBytes, toBytes);
 	}
 
-//	@Override
-	public boolean expire(String key, int ttlseconds) throws RedisException {
+	@Override
+	public <K extends Object> boolean expire(K key, int ttlseconds) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1942,8 +1952,8 @@ public abstract class JRedisSupport implements JRedis {
 		return resvalue;
 	}
 
-//	@Override
-	public boolean expireat(String key, long epochtime) throws RedisException {
+	@Override
+	public <K extends Object> boolean expireat(K key, long epochtime) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1962,8 +1972,8 @@ public abstract class JRedisSupport implements JRedis {
 		return resvalue;
 	}
 	
-//	@Override
-	public long ttl (String key) throws RedisException {
+	@Override
+	public <K extends Object> long ttl (K key) throws RedisException {
 		byte[] keybytes = null;
 		if((keybytes = getKeyBytes(key)) == null) 
 			throw new IllegalArgumentException ("invalid key => ["+key+"]");
@@ -1979,10 +1989,10 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return value;
 	}
-//	@Override
-	public byte[] echo (byte[] value) throws RedisException {
+	@Override
+	public <K extends Object> byte[] echo (byte[] value) throws RedisException {
 		if(value ==null) 
-			throw new IllegalArgumentException ("invalid echo value => ["+value+"]");
+			throw new IllegalArgumentException ("invalid echo value => [null]");
 
 		byte[] bulkData= null;
 		try {
@@ -1994,16 +2004,16 @@ public abstract class JRedisSupport implements JRedis {
 		}
 		return bulkData;
 	}
-//	@Override
-	public byte[] echo(String value) throws RedisException {
+	@Override
+	public <K extends Object> byte[] echo(String value) throws RedisException {
 		return echo(DefaultCodec.encode(value));
 	}
-//	@Override
-	public byte[] echo(Number value) throws RedisException {
+	@Override
+	public <K extends Object> byte[] echo(Number value) throws RedisException {
 		return echo(String.valueOf(value).getBytes());
 	}
-//	@Override
-	public <T extends Serializable> 
+	@Override
+	public <K extends Object, T extends Serializable> 
 	byte[] echo (T value) throws RedisException
 	{
 		return echo(DefaultCodec.encode(value));
@@ -2018,21 +2028,21 @@ public abstract class JRedisSupport implements JRedis {
 	 * @throws RedisException
 	 */
 	@Version(major=2, minor=0, release=Release.ALPHA)
-	public JRedis multi() throws RedisException {
-		if(true) throw new ProviderException("NOT IMPLEMENTED");
-		// works
-		this.serviceRequest(Command.MULTI);
-		return this;
+	public <K extends Object> JRedis multi() throws RedisException {
+		throw new ProviderException("NOT IMPLEMENTED");
+//		// works
+//		this.serviceRequest(Command.MULTI);
+//		return this;
 	}
 	/**
 	 * @throws RedisException
 	 */
 	@Version(major=2, minor=0, release=Release.ALPHA)
-	public JRedis discard () throws RedisException {
-		if(true) throw new ProviderException("NOT IMPLEMENTED");
-		// works
-		this.serviceRequest(Command.DISCARD);
-		return this;
+	public <K extends Object> JRedis discard () throws RedisException {
+		throw new ProviderException("NOT IMPLEMENTED");
+//		// works
+//		this.serviceRequest(Command.DISCARD);
+//		return this;
 	}
 	// ------------------------------------------------------------------------
 	// utility
@@ -2042,31 +2052,10 @@ public abstract class JRedisSupport implements JRedis {
 	// TODO: (implied) ClientSpec (impls. ConnectionSpec)
 	// this isn't cooked yet -- lets think more about the implications...
 	// 
-	static final private Map<String, byte[]>	keyByteCache = new ConcurrentHashMap<String, byte[]>();
-	public static final boolean	CacheKeys	= false;
+//	static final private Map<String, byte[]>	keyByteCache = new ConcurrentHashMap<String, byte[]>();
+	public static boolean	CacheKeys	= false;
 	
-	private byte[] getKeyBytes(String key) throws IllegalArgumentException {
-		if(null == key) throw new IllegalArgumentException("key is null");
-		byte[] bytes = null;
-		if(JRedisSupport.CacheKeys == true)
-			bytes = keyByteCache.get(key);
-		if(null == bytes) {
-//			bytes = key.getBytes(DefaultCodec.SUPPORTED_CHARSET); // java 1.6
-			try {
-	            bytes = key.getBytes(DefaultCodec.SUPPORTED_CHARSET_NAME);
-            }
-            catch (UnsupportedEncodingException e) {
-	            e.printStackTrace();
-            }
-			for(byte b : bytes) {
-				if (b == (byte)32 || b == (byte)10 || b == (byte)13)
-					throw new IllegalArgumentException ("Key includes invalid byte value: " + (int)b);
-			}
-			
-			if(JRedisSupport.CacheKeys == true)
-				keyByteCache.put(key, bytes);
-		}
-
-		return bytes;
+	public static <K extends Object> byte[] getKeyBytes(K key) throws IllegalArgumentException {
+		return DefaultKeyCodec.provider().encode(key);
 	}
 }

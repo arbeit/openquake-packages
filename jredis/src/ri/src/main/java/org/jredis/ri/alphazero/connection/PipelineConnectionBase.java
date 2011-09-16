@@ -1,5 +1,5 @@
 /*
- *   Copyright 2009-2010 Joubin Houshyar
+ *   Copyright 2009-2011 Joubin Houshyar
  * 
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -24,17 +24,17 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.jredis.ClientRuntimeException;
 import org.jredis.ProviderException;
 import org.jredis.connector.Connection;
 import org.jredis.connector.ConnectionSpec;
 import org.jredis.connector.NotConnectedException;
-//import org.jredis.connector.ConnectionSpec.SocketProperty;
 import org.jredis.protocol.Command;
 import org.jredis.protocol.Protocol;
 import org.jredis.protocol.Request;
 import org.jredis.protocol.Response;
-import org.jredis.ri.alphazero.protocol.ConcurrentSynchProtocol;
+import org.jredis.ri.alphazero.protocol.ConcurrentSyncProtocol;
 import org.jredis.ri.alphazero.protocol.VirtualResponse;
 import org.jredis.ri.alphazero.support.Assert;
 import org.jredis.ri.alphazero.support.FastBufferedInputStream;
@@ -105,9 +105,6 @@ public abstract class PipelineConnectionBase extends ConnectionBase {
     @Override
     protected void initializeComponents () {
     	
-//    	spec.isReliable(true);
-//    	spec.isPipeline(true);
-//    	spec.isShared(true);
     	spec.setConnectionFlag(Flag.PIPELINE, true);
     	spec.setConnectionFlag(Flag.RELIABLE, true);
     	spec.setConnectionFlag(Flag.SHARED, true);
@@ -126,6 +123,12 @@ public abstract class PipelineConnectionBase extends ConnectionBase {
     	isActive.set(false);
     }
     
+    @Override
+    protected void cleanup () {
+      super.cleanup();
+      respHandlerThread.interrupt();
+    }
+
     @Override
     protected void notifyConnected () {
     	super.notifyConnected();
@@ -148,9 +151,16 @@ public abstract class PipelineConnectionBase extends ConnectionBase {
      */
     @Override
     protected Protocol newProtocolHandler () {
-		return new ConcurrentSynchProtocol();
+		return new ConcurrentSyncProtocol();
+//		return new SynchProtocol();
     }
-    
+
+    // TODO: write chunking + mod ProtocolBase.Stream...Request + Command.FLUSH_BUFFERS.
+//    @Override
+//    protected OutputStream newOutputStream(OutputStream socketOutputStream) {
+//    	return new BufferedOutputStream(socketOutputStream);
+//    }
+
     /**
      * Just make sure its a {@link FastBufferedInputStream}.
      */
@@ -185,22 +195,23 @@ public abstract class PipelineConnectionBase extends ConnectionBase {
 		if(!isConnected()) 
 			throw new NotConnectedException ("Not connected!");
 		
-		PendingRequest pendingResponse = null;
+		Protocol		protocol = Assert.notNull(getProtocolHandler(), "thread protocol handler", ProviderException.class);
+		Request 		request = Assert.notNull(protocol.createRequest (cmd, args), "request object from handler", ProviderException.class);
+//		PendingRequest 	pendingResponse = new PendingRequest(request, cmd);
+		PendingRequest 	pendingResponse = new PendingRequest(cmd);
+		
+		if(pendingQuit) 
+			throw new ClientRuntimeException("Pipeline shutting down: Quit in progess; no further requests are accepted.");
+		
 		synchronized (serviceLock) {
-			if(pendingQuit) 
-				throw new ClientRuntimeException("Pipeline shutting down: Quit in progess; no further requests are accepted.");
-			
-			Request request = Assert.notNull(protocol.createRequest (cmd, args), "request object from handler", ProviderException.class);
 			
 			if(cmd != Command.QUIT)
 				request.write(getOutputStream());
 			else {
 				pendingQuit = true;
 				isActive.set(false);
-//				heartbeat.exit();
 			}
 				
-			pendingResponse = new PendingRequest(request, cmd);
 			pendingResponseQueue.add(pendingResponse);
 		}
 		return pendingResponse;
@@ -250,7 +261,7 @@ public abstract class PipelineConnectionBase extends ConnectionBase {
      */
     public final class ResponseHandler implements Runnable, Connection.Listener {
 
-    	private final AtomicBoolean work_flag;
+//    	private final AtomicBoolean work_flag;
     	private final AtomicBoolean run_flag;
     	
     	// ------------------------------------------------------------------------
@@ -262,7 +273,7 @@ public abstract class PipelineConnectionBase extends ConnectionBase {
          */
         public ResponseHandler () {
         	PipelineConnectionBase.this.addListener(this);
-        	this.work_flag = new AtomicBoolean(false);
+//        	this.work_flag = new AtomicBoolean(false);
         	this.run_flag = new AtomicBoolean(true); // TODO: should be false
         } 
         
@@ -287,6 +298,9 @@ public abstract class PipelineConnectionBase extends ConnectionBase {
     	 */
 //        @Override
         public void run () {
+        	/** Response handler thread specific protocol handler -- optimize fencing */
+        	Protocol protocol = Assert.notNull (newProtocolHandler(), "the delegate protocol handler", ClientRuntimeException.class);
+        	
 			Log.log("Pipeline <%s> thread for <%s> started.", Thread.currentThread().getName(), PipelineConnectionBase.this);
         	PendingRequest pending = null;
         	while(run_flag.get()){
@@ -336,7 +350,9 @@ public abstract class PipelineConnectionBase extends ConnectionBase {
 					}
                 }
                 catch (InterruptedException e1) {
-	                e1.printStackTrace();
+                  Log.log("Pipeline thread interrupted.");
+                  break;
+	                //e1.printStackTrace();
                 }
         	}
 			Log.log("Pipeline <%s> thread for <%s> stopped.", Thread.currentThread().getName(), PipelineConnectionBase.this);

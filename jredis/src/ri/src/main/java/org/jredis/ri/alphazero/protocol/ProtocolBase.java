@@ -66,179 +66,53 @@ public abstract class ProtocolBase implements Protocol {
 	protected ProtocolBase () {}
 	
 	// ------------------------------------------------------------------------
-	// Interface
-	// ============================================================== Protocol
+	// Interface: Protocol
 	// ------------------------------------------------------------------------
 	
-	// TODO: lets just forget about this multi-version nonsense.  
-	// and get rid of version all together.
-//	@Override
+	/* TODO: lets just forget about this multi-version nonsense. */  
+	@Override
 	public boolean isCompatibleWithVersion(String version) {
 		return version.equals("0.09");
 	}
 	
-//	@Override
 	/* (non-Javadoc)
 	 * @see org.jredis.connector.Protocol#createRequest(org.jredis.Command, byte[][])
 	 */
+	@Override
 	public Request createRequest(Command cmd, byte[]... args) throws ProviderException, IllegalArgumentException {
 		
 		ByteArrayOutputStream buffer = createRequestBufffer (cmd);
 
 		try {
+			byte[] cmdLenBytes = Convert.toBytes(cmd.bytes.length);
+			byte[] lineCntBytes = Convert.toBytes(args.length+1);
+
+            buffer.write(COUNT_BYTE);
+            buffer.write(lineCntBytes);
+            buffer.write(CRLF);
+            buffer.write(SIZE_BYTE);
+            buffer.write(cmdLenBytes);
+            buffer.write(CRLF);
+            buffer.write(cmd.bytes);
+            buffer.write(CRLF);
+            
 			switch (cmd.requestType) {
+
 			case NO_ARG:
-				// -------------------
-				buffer.write(cmd.bytes);
-				buffer.write(SPACE);
-				buffer.write(CRLF);
-				// -------------------
-				break;
-
-			case KEY:
-				// -------------------
-				buffer.write(cmd.bytes);
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[0], "key arg", ProviderException.class));
-				buffer.write(CRLF);
-				// -------------------
-				break;
-
-			case VALUE:
-			{
-				byte[] value = Assert.notNull(args[0], "value arg", ProviderException.class);				
-				// -------------------
-				buffer.write(cmd.bytes);
-				buffer.write(SPACE);
-				buffer.write(Convert.toBytes(value.length));
-				buffer.write(CRLF);
-				buffer.write(value);
-				buffer.write(CRLF);
-				// -------------------
-			}
-				break;
-
-			case KEY_KEY:
-			case KEY_NUM:
-			case KEY_SPEC:
-				// -------------------
-				buffer.write(cmd.bytes);
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[0], "key arg", ProviderException.class));
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[1], "key2 arg", ProviderException.class));
-				buffer.write(CRLF);
-				// -------------------
-				break;
-
-			case KEY_NUM_NUM:
-				// -------------------
-				buffer.write(cmd.bytes);
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[0], "key arg", ProviderException.class));
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[1], "num_1 arg", ProviderException.class));
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[2], "num_2 arg", ProviderException.class));
-				buffer.write(CRLF);
-				// -------------------
-				break;
-
-			case KEY_NUM_NUM_OPTS:
-				// -------------------
-				buffer.write(cmd.bytes);
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[0], "key arg", ProviderException.class));
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[1], "num_1 arg", ProviderException.class));
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[2], "num_2 arg", ProviderException.class));
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[3], "opt args", ProviderException.class));
-				buffer.write(CRLF);
-				// -------------------
-				break;
-				
-			case KEY_VALUE:
-			{
-				byte[] value = Assert.notNull(args[1], "value arg", ProviderException.class);
-				// -------------------
-				buffer.write(cmd.bytes);
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[0], "key arg", ProviderException.class));
-				buffer.write(SPACE);
-				buffer.write(Convert.toBytes(value.length));
-				buffer.write(CRLF);
-				buffer.write(value);
-				buffer.write(CRLF);
-				// -------------------
-			}
-			break;
-
-			case KEY_IDX_VALUE:
-			case KEY_KEY_VALUE:
-			{
-				byte[] value = Assert.notNull(args[2], "value arg", ProviderException.class);
-				// -------------------
-				buffer.write(cmd.bytes);
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[0], "key arg", ProviderException.class));
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[1], "index arg", ProviderException.class));
-				buffer.write(SPACE);
-				buffer.write(Convert.toBytes(value.length));
-				buffer.write(CRLF);
-				buffer.write(value);
-				buffer.write(CRLF);
-				// -------------------
-			}
-			break;
-			
-			case KEY_CNT_VALUE:
-			{
-				byte[] value = Assert.notNull(args[1], "value arg", ProviderException.class);
-				// -------------------
-				buffer.write(cmd.bytes);
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[0], "key arg", ProviderException.class));
-				buffer.write(SPACE);
-				buffer.write(Assert.notNull(args[2], "count arg", ProviderException.class));
-				buffer.write(SPACE);
-				buffer.write(Convert.toBytes(value.length));
-				buffer.write(CRLF);
-				buffer.write(value);
-				buffer.write(CRLF);
-				// -------------------
-			}
-			break;
-
-			case MULTI_KEY:
-			{
-				int keycnt = args.length;
-				// -------------------
-				buffer.write(cmd.bytes);
-				buffer.write(SPACE);
-				for(int i=0;i<keycnt; i++){
-					buffer.write(Assert.notNull(args[i], "key arg", ProviderException.class));
-					buffer.write(SPACE);
-				}
-				buffer.write(CRLF);
-				// -------------------
-			}	
-			break;
-			
+			    break;
+			    
+			// TODO: check w/ antirez if in fact nulls are now generally accepted
+			// that is the only diff here.
 			case BULK_SET:
-				Assert.isTrue(cmd == Command.MSET || cmd == Command.MSETNX , "Only MSET/NX bulk commands are supported", NotSupportedException.class);
+				String errmsg = "Only MSET, MSETNX, LINSERT bulk commands are supported";
+				Assert.isTrue(cmd == Command.MSET || cmd == Command.MSETNX || cmd == Command.LINSERT, errmsg, NotSupportedException.class);
 
-				byte[] setCmdLenBytes = Convert.toBytes(cmd.bytes.length);
-				byte[] bulkSetLineCntBytes = Convert.toBytes(args.length+1);
-
+				// THIS IS CLEARLY BROKEN ... SO MUCH FOR COMPREHSIVE TESTS ...
 				buffer.write(COUNT_BYTE);
-				buffer.write(bulkSetLineCntBytes);
+				buffer.write(lineCntBytes);
 				buffer.write(CRLF);
-
 				buffer.write(SIZE_BYTE);
-				buffer.write(setCmdLenBytes);
+				buffer.write(cmdLenBytes);
 				buffer.write(CRLF);
 				buffer.write(cmd.bytes);
 				buffer.write(CRLF);
@@ -246,30 +120,40 @@ public abstract class ProtocolBase implements Protocol {
 				for(int s=0; s<args.length; s++){
 					buffer.write(SIZE_BYTE);
 					if (args[s] != null) {
-  					buffer.write(Convert.toBytes(args[s].length));
-  					buffer.write(CRLF);
-  					buffer.write(args[s]);
-  					buffer.write(CRLF);
-  				} else {
+	  					buffer.write(Convert.toBytes(args[s].length));
+	  					buffer.write(CRLF);
+	  					buffer.write(args[s]);
+	  					buffer.write(CRLF);
+	  				} else {
 						buffer.write(ASCII_ZERO);
 						buffer.write(CRLF);
 						buffer.write(CRLF);
-  				}
+	  				}
+				}
+				break;
+			
+			default:
+				for(int i=0;i<args.length; i++){
+					buffer.write(SIZE_BYTE);
+					buffer.write(Convert.toBytes(Assert.notNull(args[i], i, ProviderException.class).length));
+					buffer.write(CRLF);
+					buffer.write(args[i]);
+					buffer.write(CRLF);
 				}
 				break;
 			
 			}
 		}
-		catch (Exception e) {
-			throw new ProviderException("Problem writing to the buffer" + e.getLocalizedMessage());
+		catch (IOException e) {
+			throw new ProviderException("Problem writing to the buffer" + e.getLocalizedMessage(), e);
 		}
 		return createRequest(buffer);
 	}
 	
-//	@Override
 	/* (non-Javadoc)
 	 * @see org.jredis.connector.Protocol#createResponse(org.jredis.Command)
 	 */
+	@Override
 	public Response createResponse(Command cmd) throws ProviderException, ClientRuntimeException {
 
 		Response response = null;
@@ -316,10 +200,11 @@ public abstract class ProtocolBase implements Protocol {
 	protected abstract Response createStringResponse(Command cmd) ;
 	protected abstract Response createStatusResponse(Command cmd);
 
-	// ------------------------------------------------------------------------
-	// Inner Type
-	// =============================================================== Request
-	// ------------------------------------------------------------------------
+	
+	// ========================================================================
+	// Inner Types
+	// ========================================================================
+	
 	/**
 	 * SimpleRequest implements the required {@link Request#read(InputStream)}
 	 * using a (likely) shared data buffer.  It is not thread safe and can only
@@ -351,7 +236,7 @@ public abstract class ProtocolBase implements Protocol {
 		/* (non-Javadoc)
 		 * @see com.alphazero.jredis.connector.Message#read(java.io.InputStream)
 		 */
-//		@Override
+		@Override
 		public void read(InputStream in) throws ClientRuntimeException, ProviderException {
 			throw new ProviderException("Request.read is not supported by this class! [Apr 2, 2009]");
 		}
@@ -361,7 +246,7 @@ public abstract class ProtocolBase implements Protocol {
 		 * 
 		 * @param out the stream to write the Request message to.
 		 */
-//		@Override
+		@Override
 		public void write(OutputStream out) throws ClientRuntimeException, ProviderException {
 			try {
 				// you would expect these to throw exceptions if the socket has been reset

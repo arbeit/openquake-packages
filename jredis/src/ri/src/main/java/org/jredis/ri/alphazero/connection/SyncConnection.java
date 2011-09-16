@@ -42,7 +42,7 @@ import org.jredis.ri.alphazero.support.Log;
  * @since   alpha.0
  * 
  */
-public class SynchConnection extends ConnectionBase implements Connection {
+public class SyncConnection extends ConnectionBase implements Connection {
 
 	// ------------------------------------------------------------------------
 	// Properties
@@ -56,10 +56,10 @@ public class SynchConnection extends ConnectionBase implements Connection {
 	
 	/**
 	 * This constructor will pass the connection spec to the super class constructor and
-	 * create and install the {@link Protocol} handler delegate instance for this {@link SynchConnection}.
+	 * create and install the {@link Protocol} handler delegate instance for this {@link SyncConnection}.
 	 * If you definitely need to specify the redis server version, and the protocol implementation for that
 	 * version exists, you should use this constructor.  Otherwise, it is recommended that the 
-	 * {@link SynchConnection#SynchConnection(ConnectionSpec)}be used.
+	 * {@link SyncConnection#SyncConnection(ConnectionSpec)}be used.
 	 * <p>
 	 * This constructor will open the socket connection immediately. 
 	 *  
@@ -69,7 +69,7 @@ public class SynchConnection extends ConnectionBase implements Connection {
 	 * the socket connection to the specified server.
 	 * @throws ProviderException if the version specified is not supported.
 	 */
-	public SynchConnection (
+	public SyncConnection (
 			ConnectionSpec  connectionSpec
 		)
 		throws ClientRuntimeException, ProviderException 
@@ -103,30 +103,14 @@ public class SynchConnection extends ConnectionBase implements Connection {
 	 */
 	public Response serviceRequest (Command cmd, byte[]... args) 
 		throws RedisException
-//	{
-//		Lock _lock = null;
-//		if(spec.getConnectionFlag(Flag.RELIABLE)) 
-//			_lock = acquireLock();
-//		
-//		Response r = null;
-//		
-//		try { r = _serviceRequest(cmd, args); }
-//		catch (Throwable t){ Log.error("serviceRequest cmd:%s %s:=>%s", t, t.getMessage());}
-//		finally { 
-//			if(_lock != null) releaseLock(); 
-//		}
-//		
-//		return r;
-//	}
-//	private Response _serviceRequest(Command cmd, byte[]... args)
-//		throws RedisException
 	{
 		if(!isConnected()) throw new NotConnectedException ("Not connected!");
 		
 		Request  		request = null;
 		Response		response = null;
 		ResponseStatus  status = null;
-		
+		Protocol		protocol = Assert.notNull(getProtocolHandler(), "thread protocol handler", ProviderException.class);
+
 		try {
 			// 1 - Request
 			//				Log.log("RedisConnection - requesting ..." + cmd.code);
