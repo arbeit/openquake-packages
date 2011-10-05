@@ -2,6 +2,7 @@ package org.opensha.sha.earthquake.rupForecastImpl.GEM1;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.opensha.commons.calc.magScalingRelations.MagAreaRelationship;
 import org.opensha.commons.calc.magScalingRelations.MagScalingRelationship;
@@ -404,7 +405,7 @@ public class GEM1ERF extends EqkRupForecast {
      * This takes a allGemSourceDataList (which get parsed into separate lists)
      * and a CalculationSettings object.
      */
-    public GEM1ERF(ArrayList<GEMSourceData> allGemSourceDataList) {
+    public GEM1ERF(List<GEMSourceData> allGemSourceDataList) {
         parseSourceListIntoDifferentTypes(allGemSourceDataList);
         initialize();
     }
@@ -428,7 +429,7 @@ public class GEM1ERF extends EqkRupForecast {
     }
 
     protected void parseSourceListIntoDifferentTypes(
-            ArrayList<GEMSourceData> allGemSourceDataList) {
+            List<GEMSourceData> allGemSourceDataList) {
 
         areaSourceDataList = new ArrayList<GEMSourceData>();
         griddedSeisSourceDataList = new ArrayList<GEMSourceData>();
@@ -1013,7 +1014,7 @@ public class GEM1ERF extends EqkRupForecast {
         if (areaSrcRupTypeValue.equals(AREA_SRC_RUP_TYPE_POINT)) {
             PoissonAreaSource src =
                     new PoissonAreaSource(areaSourceData.getRegion(),
-                            AREA_SRC_DISCR_PARAM_DEFAULT,
+                    		areaSrcDiscrValue,
                             areaSourceData.getMagfreqDistFocMech(),
                             areaSourceData.getAveRupTopVsMag(),
                             areaSourceData.getAveHypoDepth(), duration,
@@ -1023,7 +1024,7 @@ public class GEM1ERF extends EqkRupForecast {
         } else if (areaSrcRupTypeValue.equals(AREA_SRC_RUP_TYPE_LINE)) {
             PoissonAreaSource src =
                     new PoissonAreaSource(areaSourceData.getRegion(),
-                            AREA_SRC_DISCR_PARAM_DEFAULT,
+                    		areaSrcDiscrValue,
                             areaSourceData.getMagfreqDistFocMech(),
                             areaSourceData.getAveRupTopVsMag(),
                             areaSourceData.getAveHypoDepth(),
@@ -1034,7 +1035,7 @@ public class GEM1ERF extends EqkRupForecast {
         } else if (areaSrcRupTypeValue.equals(AREA_SRC_RUP_TYPE_CROSS_HAIR)) {
             PoissonAreaSource src =
                     new PoissonAreaSource(areaSourceData.getRegion(),
-                            AREA_SRC_DISCR_PARAM_DEFAULT,
+                    		areaSrcDiscrValue,
                             areaSourceData.getMagfreqDistFocMech(),
                             areaSourceData.getAveRupTopVsMag(),
                             areaSourceData.getAveHypoDepth(),
@@ -1045,7 +1046,7 @@ public class GEM1ERF extends EqkRupForecast {
         } else if (areaSrcRupTypeValue.equals(AREA_SRC_RUP_TYPE_SPOKED)) {
             PoissonAreaSource src =
                     new PoissonAreaSource(areaSourceData.getRegion(),
-                            AREA_SRC_DISCR_PARAM_DEFAULT,
+                    		areaSrcDiscrValue,
                             areaSourceData.getMagfreqDistFocMech(),
                             areaSourceData.getAveRupTopVsMag(),
                             areaSourceData.getAveHypoDepth(),

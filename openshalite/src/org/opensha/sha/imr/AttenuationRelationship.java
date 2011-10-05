@@ -40,11 +40,14 @@ import org.opensha.sha.earthquake.rupForecastImpl.PointEqkSource;
 import org.opensha.sha.imr.param.EqkRuptureParams.AftershockParam;
 import org.opensha.sha.imr.param.EqkRuptureParams.DipParam;
 import org.opensha.sha.imr.param.EqkRuptureParams.FaultTypeParam;
+import org.opensha.sha.imr.param.EqkRuptureParams.FocalDepthParam;
 import org.opensha.sha.imr.param.EqkRuptureParams.MagParam;
 import org.opensha.sha.imr.param.EqkRuptureParams.RakeParam;
 import org.opensha.sha.imr.param.EqkRuptureParams.RupTopDepthParam;
 import org.opensha.sha.imr.param.EqkRuptureParams.RupWidthParam;
 import org.opensha.sha.imr.param.IntensityMeasureParams.DampingParam;
+import org.opensha.sha.imr.param.IntensityMeasureParams.IA_Param;
+import org.opensha.sha.imr.param.IntensityMeasureParams.RelativeSignificantDuration_Param;
 import org.opensha.sha.imr.param.IntensityMeasureParams.MMI_Param;
 import org.opensha.sha.imr.param.IntensityMeasureParams.PGA_Param;
 import org.opensha.sha.imr.param.IntensityMeasureParams.PGD_Param;
@@ -260,730 +263,733 @@ import org.opensha.sha.util.TectonicRegionType;
  */
 
 public abstract class AttenuationRelationship extends
-        IntensityMeasureRelationship implements
-        ScalarIntensityMeasureRelationshipAPI {
-
-    private static final long serialVersionUID = -5230687816643155822L;
-
-    /**
-     * Classname constant used for debugging statements
-     */
-    public final static String C = "AttenuationRelationship";
-
-    /**
-     * Prints out debugging statements if true
-     */
-    protected final static boolean D = false;
-
-    /**
-     * Intensity-Measure Parameters (see classes for exact definitions)
-     */
-    protected PGA_Param pgaParam = null;
-    protected PGV_Param pgvParam = null;
-    protected PGD_Param pgdParam = null;
-    protected SA_Param saParam = null;
-    protected PeriodParam saPeriodParam = null;
-    protected DampingParam saDampingParam = null;
-    protected MMI_Param mmiParam = null;
-    /**
-     * Other Parameters (see classes for exact definitions)
-     * 
-     * TODO: This can be a problem: The protected member e.g. "magParam" or
-     * "sigmaTruncLevelParam" is initialised by the subclass but it is accessed
-     * here, in the super class in a public method. Refactor: Set them private
-     * and provide protected setters and getters and let the getter do a lazy
-     * initialisation or make it null proof or pass "magParam" in as parameter
-     * or...
-     * 
-     */
-    protected StdDevTypeParam stdDevTypeParam = null;
-    protected SigmaTruncTypeParam sigmaTruncTypeParam = null;
-    protected SigmaTruncLevelParam sigmaTruncLevelParam = null;
-    protected ComponentParam componentParam = null;
-    protected TectonicRegionTypeParam tectonicRegionTypeParam = null;
-
-    /**
-     * Earthquake Rupture related parameters (see classes for exact definitions)
-     */
-    protected MagParam magParam = null;
-    protected FaultTypeParam fltTypeParam = null;
-    protected AftershockParam aftershockParam = null;
-    protected RakeParam rakeParam = null;
-    protected DipParam dipParam = null;
-    protected RupTopDepthParam rupTopDepthParam = null;
-    protected RupWidthParam rupWidthParam;
-
-    /**
-     * Propagation Effect Parameters (see classes for exact definitions)
-     */
-    protected DistanceRupParameter distanceRupParam = null;
-    protected DistanceHypoParameter distanceHypoParam = null;
-    protected DistanceJBParameter distanceJBParam = null;
-    protected DistanceSeisParameter distanceSeisParam = null;
-    protected DistRupMinusJB_OverRupParameter distRupMinusJB_OverRupParam =
-            null;
-    protected DistRupMinusDistX_OverRupParam distRupMinusDistX_OverRupParam =
-            null; // not a subclass of PropagationEffectParameter
-    protected HangingWallFlagParam hangingWallFlagParam = null; // not a
-                                                                // subclass of
-                                                                // PropagationEffectParameter
-    protected DistanceEpicentralParameter distanceEpicentralParameter = null;
-
-    /**
-     * Site related parameters (see classes for exact definitions)
-     */
-    protected Vs30_Param vs30Param = null;
-    protected Vs30_TypeParam vs30_TypeParam;
-    protected DepthTo2pt5kmPerSecParam depthTo2pt5kmPerSecParam = null;
-    protected DepthTo1pt0kmPerSecParam depthTo1pt0kmPerSecParam;
-
-    /**
-     * This allows users to set a maximul distance (beyond which the mean will
-     * be effectively zero)
-     */
-    protected double USER_MAX_DISTANCE = Double.MAX_VALUE;
-    protected final static double VERY_SMALL_MEAN = -35.0; // in ln() space
-
-    /**
-     * Common error message = "Not all parameters have been set"
-     */
-    protected final static String ERR = "Not all parameters have been set";
-
-    /**
-     * List of all Parameters that the mean calculation depends upon, except for
-     * the intensity-measure related parameters (type/level) and any
-     * independentdent parameters they contain.
-     */
-    protected ParameterList meanIndependentParams = new ParameterList();
-
-    /**
-     * List of all Parameters that the stdDev calculation depends upon, except
-     * for the intensity-measure related parameters (type/level) and any
-     * independentdent parameters they contain.
-     */
-    protected ParameterList stdDevIndependentParams = new ParameterList();
-
-    /**
-     * List of all Parameters that the exceed. prob. calculation depends upon,
-     * except for the intensity-measure related parameters (type/level) and any
-     * independentdent parameters they contain. Note that this and its iterator
-     * method could be applied in the parent class.
-     */
-    protected ParameterList exceedProbIndependentParams = new ParameterList();
-
-    /**
-     * List of all Parameters that the IML at exceed. prob. calculation depends
-     * upon, except for the intensity-measure related parameters (type/level)
-     * and any independentdent parameters they contain.
-     */
-    protected ParameterList imlAtExceedProbIndependentParams =
-            new ParameterList();
-
-    /**
-     * Constructor for the AttenuationRelationship object - subclasses should
-     * execute the various init*() methods (in proper order)
-     */
-    public AttenuationRelationship() {
-        super();
-    }
-
-    /**
-     * This method sets the user-defined distance beyond which ground motion is
-     * set to effectively zero (the mean is a large negative value).
-     * 
-     * @param maxDist
-     */
-    public void setUserMaxDistance(double maxDist) {
-        USER_MAX_DISTANCE = maxDist;
-    }
-
-    /**
-     * Sets the value of the currently selected intensityMeasure (if the value
-     * is allowed); this will reject anything that is not a Double.
-     * 
-     * @param iml
-     *            The new intensityMeasureLevel value
-     * @exception ParameterException
-     *                Description of the Exception
-     */
-    public void setIntensityMeasureLevel(Object iml) throws ParameterException {
-
-        if (!(iml instanceof Double)) {
-            throw new ParameterException(
-                    C
-                            + ": setIntensityMeasureLevel(): Object not a DoubleParameter, unable to set.");
-        }
-
-        setIntensityMeasureLevel((Double) iml);
-    }
-
-    /**
-     * Sets the value of the selected intensityMeasure;
-     * 
-     * @param iml
-     *            The new intensityMeasureLevel value
-     * @exception ParameterException
-     *                Description of the Exception
-     */
-    public void setIntensityMeasureLevel(Double iml) throws ParameterException {
-
-        if (im == null) {
-            throw new ParameterException(
-                    C
-                            + ": setIntensityMeasureLevel(): Intensity Measure is null, unable to set.");
-        }
-
-        this.im.setValue(iml);
-    }
-
-    /**
-     * This method sets the location in the site. This is helpful because it
-     * allows to set the location within the site without setting the Site
-     * Parameters. Thus allowing the capability of setting the site once and
-     * changing the location of the site to do the calculations.
-     */
-    public void setSiteLocation(Location loc) {
-        // if site is null create a new Site
-        if (site == null) {
-            site = new Site();
-        }
-        site.setLocation(loc);
-        setPropagationEffectParams();
-    }
-
-    /**
-     * Calculates the value of each propagation effect parameter from the
-     * current Site and ProbEqkRupture objects.
-     * <P>
-     */
-    protected abstract void setPropagationEffectParams();
-
-    /**
-     * This calculates the probability that the intensity-measure level (the
-     * value in the Intensity-Measure Parameter) will be exceeded given the mean
-     * and stdDev computed from current independent parameter values. Note that
-     * the answer is not stored in the internally held exceedProbParam (this
-     * latter param is used only for the getIML_AtExceedProb() method).
-     * 
-     * @return The exceedProbability value
-     * @exception ParameterException
-     *                Description of the Exception
-     * @exception IMRException
-     *                Description of the Exception
-     */
-    public double getExceedProbability() throws ParameterException,
-            IMRException {
-
-        // Calculate the standardized random variable
-        double iml = ((Double) im.getValue()).doubleValue();
-        double stdDev = getStdDev();
-        double mean = getMean();
-
-        return getExceedProbability(mean, stdDev, iml);
-    }
-
-    /**
-     * This calculates the probability that the supplied intensity-measure level
-     * will be exceeded given the mean and stdDev computed from current
-     * independent parameter values. Note that the answer is not stored in the
-     * internally held exceedProbParam (this latter param is used only for the
-     * getIML_AtExceedProb() method).
-     * 
-     * @return The exceedProbability value
-     * @exception ParameterException
-     *                Description of the Exception
-     * @exception IMRException
-     *                Description of the Exception
-     */
-    public double getExceedProbability(double iml) throws ParameterException,
-            IMRException {
-
-        // set the im parameter in order to verify that it's a permitted value
-        im.setValue(new Double(iml));
-
-        return getExceedProbability();
-    }
-
-    /**
-     * This calculates the exceed-probability at each SA Period for the supplied
-     * intensity-measure level (a hazard spectrum). The x values in the returned
-     * function correspond to the periods supported by the IMR.
-     * 
-     * @return DiscretizedFuncAPI - The hazard spectrum
-     */
-    public DiscretizedFuncAPI getSA_ExceedProbSpectrum(double iml)
-            throws ParameterException, IMRException {
-        this.setIntensityMeasure(SA_Param.NAME);
-        im.setValue(new Double(iml));
-        DiscretizedFuncAPI exeedProbFunction = new ArbitrarilyDiscretizedFunc();
-        ArrayList allowedSA_Periods = saPeriodParam.getAllowedDoubles();
-        int size = allowedSA_Periods.size();
-        for (int i = 0; i < size; ++i) {
-            Double saPeriod = (Double) allowedSA_Periods.get(i);
-            getParameter(PeriodParam.NAME).setValue(saPeriod);
-            exeedProbFunction.set(saPeriod.doubleValue(),
-                    getExceedProbability());
-        }
-        return exeedProbFunction;
-    }
-
-    /**
-     * This calculates the intensity-measure level for each SA Period associated
-     * with the given probability. The x values in the returned function
-     * correspond to the periods supported by the IMR.
-     * 
-     * @param exceedProb
-     * @return DiscretizedFuncAPI - the IML function
-     */
-    public DiscretizedFuncAPI getSA_IML_AtExceedProbSpectrum(double exceedProb)
-            throws ParameterException, IMRException {
-        this.setIntensityMeasure(SA_Param.NAME);
-        // sets the value of the exceedProb Param.
-        exceedProbParam.setValue(exceedProb);
-        DiscretizedFuncAPI imlFunction = new ArbitrarilyDiscretizedFunc();
-        ArrayList allowedSA_Periods = saPeriodParam.getAllowedDoubles();
-        int size = allowedSA_Periods.size();
-        for (int i = 0; i < size; ++i) {
-            Double saPeriod = (Double) allowedSA_Periods.get(i);
-            getParameter(PeriodParam.NAME).setValue(saPeriod);
-            imlFunction.set(saPeriod.doubleValue(), getIML_AtExceedProb());
-        }
-
-        return imlFunction;
-    }
-
-    /**
-     * This returns (iml-mean)/stdDev, ignoring any truncation. This gets the
-     * iml from the value in the Intensity-Measure Parameter.
-     * 
-     * @return double
-     */
-    public double getEpsilon() {
-        double iml = ((Double) im.getValue()).doubleValue();
-        return (iml - getMean()) / getStdDev();
-    }
-
-    /**
-     * This returns (iml-mean)/stdDev, ignoring any truncation.
-     * 
-     * @param iml
-     *            double
-     * @return double
-     */
-    public double getEpsilon(double iml) {
-        // set the im parameter in order to verify that it's a permitted value
-        im.setValue(new Double(iml));
-
-        return getEpsilon();
-    }
-
-    /**
-     * This method computed the probability of exceeding the IM-level given the
-     * mean and stdDev, and considering the sigma truncation type and level.
-     * 
-     * @param mean
-     * @param stdDev
-     * @param iml
-     * @return
-     * @throws ParameterException
-     * @throws IMRException
-     */
-    protected double
-            getExceedProbability(double mean, double stdDev, double iml)
-                    throws ParameterException, IMRException {
-
-        if (stdDev != 0) {
-            double stRndVar = (iml - mean) / stdDev;
-            // compute exceedance probability based on truncation type
-            if (sigmaTruncTypeParam.getValue().equals(
-                    SigmaTruncTypeParam.SIGMA_TRUNC_TYPE_NONE)) {
-                return GaussianDistCalc.getExceedProb(stRndVar);
-            } else {
-                double numSig =
-                        ((Double) ((ParameterAPI) sigmaTruncLevelParam)
-                                .getValue()).doubleValue();
-                if (sigmaTruncTypeParam.getValue().equals(
-                        SigmaTruncTypeParam.SIGMA_TRUNC_TYPE_1SIDED)) {
-                    return GaussianDistCalc.getExceedProb(stRndVar, 1, numSig);
-                } else {
-                    return GaussianDistCalc.getExceedProb(stRndVar, 2, numSig);
-                }
-            }
-        } else {
-            if (iml > mean) {
-                return 0;
-            } else {
-                return 1;
-            }
-        }
-    }
-
-    /**
-     * This fills in the exceedance probability for multiple intensityMeasure
-     * levels (often called a "hazard curve"); the levels are obtained from the
-     * X values of the input function, and Y values are filled in with the
-     * asociated exceedance probabilities.
-     * 
-     * @param intensityMeasureLevels
-     *            The function to be filled in
-     * @return The function filled in
-     * @exception ParameterException
-     *                Description of the Exception
-     */
-    public DiscretizedFuncAPI getExceedProbabilities(
-            DiscretizedFuncAPI intensityMeasureLevels)
-            throws ParameterException {
-
-        double stdDev = getStdDev();
-        double mean = getMean();
-
-        Iterator it = intensityMeasureLevels.getPointsIterator();
-        while (it.hasNext()) {
-
-            DataPoint2D point = (DataPoint2D) it.next();
-            point.setY(getExceedProbability(mean, stdDev, point.getX()));
-
-        }
-
-        return intensityMeasureLevels;
-    }
-
-    /**
-     * This method will compute the total probability of exceedance for a
-     * PointEqkSource (including the probability of each rupture). It is assumed
-     * that this source is Poissonian (not checked). This saves time by
-     * computing distance only once for all ruptures in this source. This could
-     * be extended to include the point-source distance correction as well (a
-     * boolean in the constructor?), although this would have to check for each
-     * distance type.
-     * 
-     * @param ptSrc
-     * @param iml
-     * @return
-     */
-    public double getTotExceedProbability(PointEqkSource ptSrc, double iml) {
-
-        double totProb = 1.0, qkProb;
-        ProbEqkRupture tempRup;
-
-        // set the IML
-        im.setValue(new Double(iml));
-
-        // set the eqRup- and propEffect-params from the first rupture
-        this.setEqkRupture(ptSrc.getRupture(0));
-
-        // now loop over ruptures changing only the magnitude parameter.
-        for (int i = 0; i < ptSrc.getNumRuptures(); i++) {
-            tempRup = ptSrc.getRupture(i);
-            /*
-             * TODO: This can be a problem: The protected member "magParam" is
-             * initialised by the subclass but it is used here, in the super
-             * class in a public method. Refactor: Make it null proof or pass
-             * "magParam" in as parameter or...
-             */
-            magParam.setValueIgnoreWarning(new Double(tempRup.getMag()));
-            qkProb = tempRup.getProbability();
-
-            // check for numerical problems
-            if (Math.log(1.0 - qkProb) < -30.0) {
-                throw new RuntimeException(
-                        "Error: The probability for this ProbEqkRupture ("
-                                + qkProb
-                                + ") is too high for a Possion source (~infinite number of events)");
-            }
-
-            totProb *= Math.pow(1.0 - qkProb, getExceedProbability());
-        }
-        return 1 - totProb;
-    }
-
-    /**
-     * This calculates the intensity-measure level associated with probability
-     * held by the exceedProbParam given the mean and standard deviation
-     * (according to the chosen truncation type and level). Note that this does
-     * not store the answer in the value of the internally held
-     * intensity-measure parameter.
-     * 
-     * @return The intensity-measure level
-     * @exception ParameterException
-     *                Description of the Exception
-     */
-    public double getIML_AtExceedProb() throws ParameterException {
-
-        if (exceedProbParam.getValue() == null) {
-            throw new ParameterException(
-                    C
-                            + ": getExceedProbability(): "
-                            + "exceedProbParam or its value is null, unable to run this calculation.");
-        }
-
-        double exceedProb =
-                ((Double) ((ParameterAPI) exceedProbParam).getValue())
-                        .doubleValue();
-        double stRndVar;
-        String sigTrType = (String) sigmaTruncTypeParam.getValue();
-
-        // compute the iml from exceed probability based on truncation type:
-
-        // check for the simplest, most common case (median from symmectric
-        // truncation)
-
-        if (!sigTrType.equals(SigmaTruncTypeParam.SIGMA_TRUNC_TYPE_1SIDED)
-                && exceedProb == 0.5) {
-            return getMean();
-        } else {
-            if (sigTrType.equals(SigmaTruncTypeParam.SIGMA_TRUNC_TYPE_NONE)) {
-                stRndVar =
-                        GaussianDistCalc.getStdRndVariable(exceedProb, 0, 0,
-                                1e-6);
-            } else {
-                double numSig =
-                        ((Double) ((ParameterAPI) sigmaTruncLevelParam)
-                                .getValue()).doubleValue();
-                if (sigTrType
-                        .equals(SigmaTruncTypeParam.SIGMA_TRUNC_TYPE_1SIDED)) {
-                    stRndVar =
-                            GaussianDistCalc.getStdRndVariable(exceedProb, 1,
-                                    numSig, 1e-6);
-                } else {
-                    stRndVar =
-                            GaussianDistCalc.getStdRndVariable(exceedProb, 2,
-                                    numSig, 1e-6);
-                }
-            }
-            return getMean() + stRndVar * getStdDev();
-        }
-    }
-
-    /**
-     * This calculates the intensity-measure level associated with given
-     * probability and the calculated mean and standard deviation (and according
-     * to the chosen truncation type and level). Note that this does not store
-     * the answer in the value of the internally held intensity-measure
-     * parameter.
-     * 
-     * @param exceedProb
-     *            : Sets the Value of the exceed Prob param with this value.
-     * @return The intensity-measure level
-     * @exception ParameterException
-     *                Description of the Exception
-     */
-    public double getIML_AtExceedProb(double exceedProb)
-            throws ParameterException {
-
-        // sets the value of the exceedProb Param.
-        exceedProbParam.setValue(exceedProb);
-        return getIML_AtExceedProb();
-    }
-
-    /**
-     * Returns an iterator over all the Parameters that the Mean calculation
-     * depends upon. (not including the intensity-measure related parameters and
-     * their internal, independent parameters).
-     * 
-     * @return The Independent Params Iterator
-     */
-    public ListIterator<ParameterAPI<?>> getMeanIndependentParamsIterator() {
-        return meanIndependentParams.getParametersIterator();
-    }
-
-    public ParameterList getMeanIndependentParamsList() {
-        return meanIndependentParams;
-    }
-
-    /**
-     * Returns an iterator over all the Parameters that the StdDev calculation
-     * depends upon (not including the intensity-measure related parameters and
-     * their internal, independent parameters).
-     * 
-     * @return The Independent Parameters Iterator
-     */
-    public ListIterator<ParameterAPI<?>> getStdDevIndependentParamsIterator() {
-        return stdDevIndependentParams.getParametersIterator();
-    }
-
-    public ParameterList getStdDevIndependentParamsList() {
-        return stdDevIndependentParams;
-    }
-
-    /**
-     * Returns an iterator over all the Parameters that the exceedProb
-     * calculation depends upon (not including the intensity-measure related
-     * parameters and their internal, independent parameters).
-     * 
-     * @return The Independent Params Iterator
-     */
-    public ListIterator<ParameterAPI<?>>
-            getExceedProbIndependentParamsIterator() {
-        return exceedProbIndependentParams.getParametersIterator();
-    }
-
-    public ParameterList getExceedProbIndependentParamsList() {
-        return exceedProbIndependentParams;
-    }
-
-    /**
-     * Returns an iterator over all the Parameters that the IML-at-exceed-
-     * probability calculation depends upon. (not including the
-     * intensity-measure related paramters and their internal, independent
-     * parameters).
-     * 
-     * @return The Independent Params Iterator
-     */
-    public ListIterator<ParameterAPI<?>>
-            getIML_AtExceedProbIndependentParamsIterator() {
-        return imlAtExceedProbIndependentParams.getParametersIterator();
-    }
-
-    public ParameterList getIML_AtExceedProbIndependentParamsList() {
-        return imlAtExceedProbIndependentParams;
-    }
-
-    /**
-     * This returns metadata for all parameters (only showing the independent
-     * parameters relevant for the presently chosen imt)
-     * 
-     * @return
-     */
-    public String getAllParamMetadata() {
-        String metadata =
-                imlAtExceedProbIndependentParams
-                        .getParameterListMetadataString();
-        metadata += "; " + im.getMetadataString() + " [ ";
-        Iterator it =
-                ((DependentParameter) im).getIndependentParametersIterator();
-        while (it.hasNext()) {
-            metadata += ((ParameterAPI) it.next()).getMetadataString() + "; ";
-        }
-        metadata = metadata.substring(0, metadata.length() - 2);
-        metadata += " ]";
-        return metadata;
-
-    }
-
-    /**
-     * This creates the supported intensity-measure parameters. All
-     * implementation is in the subclass (it's defined here as a
-     * reminder/suggestions).
-     */
-    protected abstract void initSupportedIntensityMeasureParams();
-
-    /**
-     * This creates Site-related parameters, which are all associated parameters
-     * that the exceedance probability depends upon. All implementation is in
-     * the subclass (it's defined here as a reminder/suggestions).
-     */
-    protected abstract void initSiteParams();
-
-    /**
-     * Creates the EqkRupture-related parameters, which are all associated
-     * parameters that the exceedance probability depends upon. All
-     * implementation is in the subclass (it's defined here as a
-     * reminder/suggestions).
-     */
-    protected abstract void initEqkRuptureParams();
-
-    /**
-     * Creates Propagation-Effect related parameters, which are all associated
-     * parameters that the exceedance probability depends upon. All
-     * implementation is in the subclass (it's defined here as a
-     * reminder/suggestions).
-     */
-    protected abstract void initPropagationEffectParams();
-
-    /**
-     * This creates the otherParams list. These are any parameters that the
-     * exceedance probability depends upon that is not a supported IMT (or one
-     * of their independent parameters) and is not contained in, or computed
-     * from, the site or eqkRutpure objects. Note that this does not include the
-     * exceedProbParam (which exceedance probability does not depend on).
-     * sigmaTruncTypeParam and sigmaTruncLevelParam are instantiated here and
-     * added to the otherParams list (others should be implemented as desired in
-     * subclasses). The tectonicRegionTypeParam is also instantiated here with
-     * default options (TYPE_ACTIVE_SHALLOW); this should be overridden in
-     * subclass if other options are desired (and you'll need use the
-     * replaceParameter method to change the one in the otherParams list).
-     */
-    protected void initOtherParams() {
-
-        sigmaTruncTypeParam = new SigmaTruncTypeParam();
-        sigmaTruncLevelParam = new SigmaTruncLevelParam();
-        tectonicRegionTypeParam = new TectonicRegionTypeParam();
-
-        // Put parameters in the otherParams list:
-        otherParams.clear();
-        otherParams.addParameter(sigmaTruncTypeParam);
-        otherParams.addParameter(sigmaTruncLevelParam);
-        otherParams.addParameter(tectonicRegionTypeParam);
-    }
-
-    /**
-     * Adds the Listeners to the parameters so that Attenuation can listen to
-     * any kind of changes to parameter values.
-     */
-    protected void initParameterEventListeners() {
-    };
-
-    /**
-     * Allows to reset the change listeners on the parameters
-     */
-    public void resetParameterEventListeners() {
-    };
-
-    /**
-     * Tells whether the given tectonic region is supported
-     * 
-     * @param tectRegionName
-     * @return
-     */
-    public boolean isTectonicRegionSupported(String tectRegionName) {
-        if (tectonicRegionTypeParam == null)
-            return false;
-        return tectonicRegionTypeParam.isAllowed(tectRegionName);
-    }
-
-    /**
-     * Tells whether the given tectonic region is supported
-     * 
-     * @param tectRegion
-     * @return
-     */
-    public boolean isTectonicRegionSupported(TectonicRegionType tectRegion) {
-        return isTectonicRegionSupported(tectRegion.toString());
-    }
-
-    @SuppressWarnings("unchecked")
-    /**
-     * Sets the component identified by the given name,
-     * if the IMT (Intensity Measure Type) allows it.
-     * 
-     * @param component the component name
-     * @param intensityMeasureType the intensity measure type
-     * @throws IllegalArgumentException when the given component is not available for this relationship
-     */
-    public void setComponentParameter(String component, String intensityMeasureType)
-    {
-        if (!intensityMeasureType.equalsIgnoreCase("MMI"))
-        {
-            ParameterAPI<Object> parameter = getParameter(ComponentParam.NAME);
-            
-            if (parameter.isAllowed(component))
-            {
-                parameter.setValue(component);
-            }
-            else
-            {
-                StringWriter writer = new StringWriter();
-                PrintWriter printer = new PrintWriter(writer);
-                
-                printer.print("The chosen component " + component + " ");
-                printer.println("is not supported by " + getClass().getCanonicalName());
-                printer.println("The supported components are the following:");
-                printer.println(parameter.getConstraint());
-
-                throw new IllegalArgumentException(writer.toString());
-            }
-        }
-    }
+IntensityMeasureRelationship implements
+ScalarIntensityMeasureRelationshipAPI {
+
+	private static final long serialVersionUID = -5230687816643155822L;
+
+	/**
+	 * Classname constant used for debugging statements
+	 */
+	public final static String C = "AttenuationRelationship";
+
+	/**
+	 * Prints out debugging statements if true
+	 */
+	protected final static boolean D = false;
+
+	/**
+	 * Intensity-Measure Parameters (see classes for exact definitions)
+	 */
+	protected PGA_Param pgaParam = null;
+	protected PGV_Param pgvParam = null;
+	protected PGD_Param pgdParam = null;
+	protected SA_Param saParam = null;
+	protected PeriodParam saPeriodParam = null;
+	protected DampingParam saDampingParam = null;
+	protected MMI_Param mmiParam = null;
+	protected IA_Param aiParam = null;
+	protected RelativeSignificantDuration_Param rsdParam = null;
+	/**
+	 * Other Parameters (see classes for exact definitions)
+	 * 
+	 * TODO: This can be a problem: The protected member e.g. "magParam" or
+	 * "sigmaTruncLevelParam" is initialised by the subclass but it is accessed
+	 * here, in the super class in a public method. Refactor: Set them private
+	 * and provide protected setters and getters and let the getter do a lazy
+	 * initialisation or make it null proof or pass "magParam" in as parameter
+	 * or...
+	 * 
+	 */
+	protected StdDevTypeParam stdDevTypeParam = null;
+	protected SigmaTruncTypeParam sigmaTruncTypeParam = null;
+	protected SigmaTruncLevelParam sigmaTruncLevelParam = null;
+	protected ComponentParam componentParam = null;
+	protected TectonicRegionTypeParam tectonicRegionTypeParam = null;
+
+	/**
+	 * Earthquake Rupture related parameters (see classes for exact definitions)
+	 */
+	protected MagParam magParam = null;
+	protected FaultTypeParam fltTypeParam = null;
+	protected AftershockParam aftershockParam = null;
+	protected RakeParam rakeParam = null;
+	protected DipParam dipParam = null;
+	protected RupTopDepthParam rupTopDepthParam = null;
+	protected RupWidthParam rupWidthParam;
+	protected FocalDepthParam focalDepthParam = null;
+
+	/**
+	 * Propagation Effect Parameters (see classes for exact definitions)
+	 */
+	protected DistanceRupParameter distanceRupParam = null;
+	protected DistanceHypoParameter distanceHypoParam = null;
+	protected DistanceJBParameter distanceJBParam = null;
+	protected DistanceSeisParameter distanceSeisParam = null;
+	protected DistRupMinusJB_OverRupParameter distRupMinusJB_OverRupParam =
+			null;
+	protected DistRupMinusDistX_OverRupParam distRupMinusDistX_OverRupParam =
+			null; // not a subclass of PropagationEffectParameter
+	protected HangingWallFlagParam hangingWallFlagParam = null; // not a
+	// subclass of
+	// PropagationEffectParameter
+	protected DistanceEpicentralParameter distanceEpicentralParameter = null;
+
+	/**
+	 * Site related parameters (see classes for exact definitions)
+	 */
+	protected Vs30_Param vs30Param = null;
+	protected Vs30_TypeParam vs30_TypeParam;
+	protected DepthTo2pt5kmPerSecParam depthTo2pt5kmPerSecParam = null;
+	protected DepthTo1pt0kmPerSecParam depthTo1pt0kmPerSecParam;
+
+	/**
+	 * This allows users to set a maximul distance (beyond which the mean will
+	 * be effectively zero)
+	 */
+	protected double USER_MAX_DISTANCE = Double.MAX_VALUE;
+	protected final static double VERY_SMALL_MEAN = -35.0; // in ln() space
+
+	/**
+	 * Common error message = "Not all parameters have been set"
+	 */
+	protected final static String ERR = "Not all parameters have been set";
+
+	/**
+	 * List of all Parameters that the mean calculation depends upon, except for
+	 * the intensity-measure related parameters (type/level) and any
+	 * independentdent parameters they contain.
+	 */
+	protected ParameterList meanIndependentParams = new ParameterList();
+
+	/**
+	 * List of all Parameters that the stdDev calculation depends upon, except
+	 * for the intensity-measure related parameters (type/level) and any
+	 * independentdent parameters they contain.
+	 */
+	protected ParameterList stdDevIndependentParams = new ParameterList();
+
+	/**
+	 * List of all Parameters that the exceed. prob. calculation depends upon,
+	 * except for the intensity-measure related parameters (type/level) and any
+	 * independentdent parameters they contain. Note that this and its iterator
+	 * method could be applied in the parent class.
+	 */
+	protected ParameterList exceedProbIndependentParams = new ParameterList();
+
+	/**
+	 * List of all Parameters that the IML at exceed. prob. calculation depends
+	 * upon, except for the intensity-measure related parameters (type/level)
+	 * and any independentdent parameters they contain.
+	 */
+	protected ParameterList imlAtExceedProbIndependentParams =
+			new ParameterList();
+
+	/**
+	 * Constructor for the AttenuationRelationship object - subclasses should
+	 * execute the various init*() methods (in proper order)
+	 */
+	public AttenuationRelationship() {
+		super();
+	}
+
+	/**
+	 * This method sets the user-defined distance beyond which ground motion is
+	 * set to effectively zero (the mean is a large negative value).
+	 * 
+	 * @param maxDist
+	 */
+	public void setUserMaxDistance(double maxDist) {
+		USER_MAX_DISTANCE = maxDist;
+	}
+
+	/**
+	 * Sets the value of the currently selected intensityMeasure (if the value
+	 * is allowed); this will reject anything that is not a Double.
+	 * 
+	 * @param iml
+	 *            The new intensityMeasureLevel value
+	 * @exception ParameterException
+	 *                Description of the Exception
+	 */
+	public void setIntensityMeasureLevel(Object iml) throws ParameterException {
+
+		if (!(iml instanceof Double)) {
+			throw new ParameterException(
+					C
+					+ ": setIntensityMeasureLevel(): Object not a DoubleParameter, unable to set.");
+		}
+
+		setIntensityMeasureLevel((Double) iml);
+	}
+
+	/**
+	 * Sets the value of the selected intensityMeasure;
+	 * 
+	 * @param iml
+	 *            The new intensityMeasureLevel value
+	 * @exception ParameterException
+	 *                Description of the Exception
+	 */
+	public void setIntensityMeasureLevel(Double iml) throws ParameterException {
+
+		if (im == null) {
+			throw new ParameterException(
+					C
+					+ ": setIntensityMeasureLevel(): Intensity Measure is null, unable to set.");
+		}
+
+		this.im.setValue(iml);
+	}
+
+	/**
+	 * This method sets the location in the site. This is helpful because it
+	 * allows to set the location within the site without setting the Site
+	 * Parameters. Thus allowing the capability of setting the site once and
+	 * changing the location of the site to do the calculations.
+	 */
+	public void setSiteLocation(Location loc) {
+		// if site is null create a new Site
+		if (site == null) {
+			site = new Site();
+		}
+		site.setLocation(loc);
+		setPropagationEffectParams();
+	}
+
+	/**
+	 * Calculates the value of each propagation effect parameter from the
+	 * current Site and ProbEqkRupture objects.
+	 * <P>
+	 */
+	protected abstract void setPropagationEffectParams();
+
+	/**
+	 * This calculates the probability that the intensity-measure level (the
+	 * value in the Intensity-Measure Parameter) will be exceeded given the mean
+	 * and stdDev computed from current independent parameter values. Note that
+	 * the answer is not stored in the internally held exceedProbParam (this
+	 * latter param is used only for the getIML_AtExceedProb() method).
+	 * 
+	 * @return The exceedProbability value
+	 * @exception ParameterException
+	 *                Description of the Exception
+	 * @exception IMRException
+	 *                Description of the Exception
+	 */
+	public double getExceedProbability() throws ParameterException,
+	IMRException {
+
+		// Calculate the standardized random variable
+		double iml = ((Double) im.getValue()).doubleValue();
+		double stdDev = getStdDev();
+		double mean = getMean();
+
+		return getExceedProbability(mean, stdDev, iml);
+	}
+
+	/**
+	 * This calculates the probability that the supplied intensity-measure level
+	 * will be exceeded given the mean and stdDev computed from current
+	 * independent parameter values. Note that the answer is not stored in the
+	 * internally held exceedProbParam (this latter param is used only for the
+	 * getIML_AtExceedProb() method).
+	 * 
+	 * @return The exceedProbability value
+	 * @exception ParameterException
+	 *                Description of the Exception
+	 * @exception IMRException
+	 *                Description of the Exception
+	 */
+	public double getExceedProbability(double iml) throws ParameterException,
+	IMRException {
+
+		// set the im parameter in order to verify that it's a permitted value
+		im.setValue(new Double(iml));
+
+		return getExceedProbability();
+	}
+
+	/**
+	 * This calculates the exceed-probability at each SA Period for the supplied
+	 * intensity-measure level (a hazard spectrum). The x values in the returned
+	 * function correspond to the periods supported by the IMR.
+	 * 
+	 * @return DiscretizedFuncAPI - The hazard spectrum
+	 */
+	public DiscretizedFuncAPI getSA_ExceedProbSpectrum(double iml)
+			throws ParameterException, IMRException {
+		this.setIntensityMeasure(SA_Param.NAME);
+		im.setValue(new Double(iml));
+		DiscretizedFuncAPI exeedProbFunction = new ArbitrarilyDiscretizedFunc();
+		ArrayList allowedSA_Periods = saPeriodParam.getAllowedDoubles();
+		int size = allowedSA_Periods.size();
+		for (int i = 0; i < size; ++i) {
+			Double saPeriod = (Double) allowedSA_Periods.get(i);
+			getParameter(PeriodParam.NAME).setValue(saPeriod);
+			exeedProbFunction.set(saPeriod.doubleValue(),
+					getExceedProbability());
+		}
+		return exeedProbFunction;
+	}
+
+	/**
+	 * This calculates the intensity-measure level for each SA Period associated
+	 * with the given probability. The x values in the returned function
+	 * correspond to the periods supported by the IMR.
+	 * 
+	 * @param exceedProb
+	 * @return DiscretizedFuncAPI - the IML function
+	 */
+	public DiscretizedFuncAPI getSA_IML_AtExceedProbSpectrum(double exceedProb)
+			throws ParameterException, IMRException {
+		this.setIntensityMeasure(SA_Param.NAME);
+		// sets the value of the exceedProb Param.
+		exceedProbParam.setValue(exceedProb);
+		DiscretizedFuncAPI imlFunction = new ArbitrarilyDiscretizedFunc();
+		ArrayList allowedSA_Periods = saPeriodParam.getAllowedDoubles();
+		int size = allowedSA_Periods.size();
+		for (int i = 0; i < size; ++i) {
+			Double saPeriod = (Double) allowedSA_Periods.get(i);
+			getParameter(PeriodParam.NAME).setValue(saPeriod);
+			imlFunction.set(saPeriod.doubleValue(), getIML_AtExceedProb());
+		}
+
+		return imlFunction;
+	}
+
+	/**
+	 * This returns (iml-mean)/stdDev, ignoring any truncation. This gets the
+	 * iml from the value in the Intensity-Measure Parameter.
+	 * 
+	 * @return double
+	 */
+	public double getEpsilon() {
+		double iml = ((Double) im.getValue()).doubleValue();
+		return (iml - getMean()) / getStdDev();
+	}
+
+	/**
+	 * This returns (iml-mean)/stdDev, ignoring any truncation.
+	 * 
+	 * @param iml
+	 *            double
+	 * @return double
+	 */
+	public double getEpsilon(double iml) {
+		// set the im parameter in order to verify that it's a permitted value
+		im.setValue(new Double(iml));
+
+		return getEpsilon();
+	}
+
+	/**
+	 * This method computed the probability of exceeding the IM-level given the
+	 * mean and stdDev, and considering the sigma truncation type and level.
+	 * 
+	 * @param mean
+	 * @param stdDev
+	 * @param iml
+	 * @return
+	 * @throws ParameterException
+	 * @throws IMRException
+	 */
+	protected double
+	getExceedProbability(double mean, double stdDev, double iml)
+			throws ParameterException, IMRException {
+
+		if (stdDev != 0) {
+			double stRndVar = (iml - mean) / stdDev;
+			// compute exceedance probability based on truncation type
+			if (sigmaTruncTypeParam.getValue().equals(
+					SigmaTruncTypeParam.SIGMA_TRUNC_TYPE_NONE)) {
+				return GaussianDistCalc.getExceedProb(stRndVar);
+			} else {
+				double numSig =
+						((Double) ((ParameterAPI) sigmaTruncLevelParam)
+								.getValue()).doubleValue();
+				if (sigmaTruncTypeParam.getValue().equals(
+						SigmaTruncTypeParam.SIGMA_TRUNC_TYPE_1SIDED)) {
+					return GaussianDistCalc.getExceedProb(stRndVar, 1, numSig);
+				} else {
+					return GaussianDistCalc.getExceedProb(stRndVar, 2, numSig);
+				}
+			}
+		} else {
+			if (iml > mean) {
+				return 0;
+			} else {
+				return 1;
+			}
+		}
+	}
+
+	/**
+	 * This fills in the exceedance probability for multiple intensityMeasure
+	 * levels (often called a "hazard curve"); the levels are obtained from the
+	 * X values of the input function, and Y values are filled in with the
+	 * asociated exceedance probabilities.
+	 * 
+	 * @param intensityMeasureLevels
+	 *            The function to be filled in
+	 * @return The function filled in
+	 * @exception ParameterException
+	 *                Description of the Exception
+	 */
+	public DiscretizedFuncAPI getExceedProbabilities(
+			DiscretizedFuncAPI intensityMeasureLevels)
+					throws ParameterException {
+
+		double stdDev = getStdDev();
+		double mean = getMean();
+
+		Iterator it = intensityMeasureLevels.getPointsIterator();
+		while (it.hasNext()) {
+
+			DataPoint2D point = (DataPoint2D) it.next();
+			point.setY(getExceedProbability(mean, stdDev, point.getX()));
+
+		}
+
+		return intensityMeasureLevels;
+	}
+
+	/**
+	 * This method will compute the total probability of exceedance for a
+	 * PointEqkSource (including the probability of each rupture). It is assumed
+	 * that this source is Poissonian (not checked). This saves time by
+	 * computing distance only once for all ruptures in this source. This could
+	 * be extended to include the point-source distance correction as well (a
+	 * boolean in the constructor?), although this would have to check for each
+	 * distance type.
+	 * 
+	 * @param ptSrc
+	 * @param iml
+	 * @return
+	 */
+	public double getTotExceedProbability(PointEqkSource ptSrc, double iml) {
+
+		double totProb = 1.0, qkProb;
+		ProbEqkRupture tempRup;
+
+		// set the IML
+		im.setValue(new Double(iml));
+
+		// set the eqRup- and propEffect-params from the first rupture
+		this.setEqkRupture(ptSrc.getRupture(0));
+
+		// now loop over ruptures changing only the magnitude parameter.
+		for (int i = 0; i < ptSrc.getNumRuptures(); i++) {
+			tempRup = ptSrc.getRupture(i);
+			/*
+			 * TODO: This can be a problem: The protected member "magParam" is
+			 * initialised by the subclass but it is used here, in the super
+			 * class in a public method. Refactor: Make it null proof or pass
+			 * "magParam" in as parameter or...
+			 */
+			magParam.setValueIgnoreWarning(new Double(tempRup.getMag()));
+			qkProb = tempRup.getProbability();
+
+			// check for numerical problems
+			if (Math.log(1.0 - qkProb) < -30.0) {
+				throw new RuntimeException(
+						"Error: The probability for this ProbEqkRupture ("
+								+ qkProb
+								+ ") is too high for a Possion source (~infinite number of events)");
+			}
+
+			totProb *= Math.pow(1.0 - qkProb, getExceedProbability());
+		}
+		return 1 - totProb;
+	}
+
+	/**
+	 * This calculates the intensity-measure level associated with probability
+	 * held by the exceedProbParam given the mean and standard deviation
+	 * (according to the chosen truncation type and level). Note that this does
+	 * not store the answer in the value of the internally held
+	 * intensity-measure parameter.
+	 * 
+	 * @return The intensity-measure level
+	 * @exception ParameterException
+	 *                Description of the Exception
+	 */
+	public double getIML_AtExceedProb() throws ParameterException {
+
+		if (exceedProbParam.getValue() == null) {
+			throw new ParameterException(
+					C
+					+ ": getExceedProbability(): "
+					+ "exceedProbParam or its value is null, unable to run this calculation.");
+		}
+
+		double exceedProb =
+				((Double) ((ParameterAPI) exceedProbParam).getValue())
+				.doubleValue();
+		double stRndVar;
+		String sigTrType = (String) sigmaTruncTypeParam.getValue();
+
+		// compute the iml from exceed probability based on truncation type:
+
+		// check for the simplest, most common case (median from symmectric
+		// truncation)
+
+		if (!sigTrType.equals(SigmaTruncTypeParam.SIGMA_TRUNC_TYPE_1SIDED)
+				&& exceedProb == 0.5) {
+			return getMean();
+		} else {
+			if (sigTrType.equals(SigmaTruncTypeParam.SIGMA_TRUNC_TYPE_NONE)) {
+				stRndVar =
+						GaussianDistCalc.getStdRndVariable(exceedProb, 0, 0,
+								1e-6);
+			} else {
+				double numSig =
+						((Double) ((ParameterAPI) sigmaTruncLevelParam)
+								.getValue()).doubleValue();
+				if (sigTrType
+						.equals(SigmaTruncTypeParam.SIGMA_TRUNC_TYPE_1SIDED)) {
+					stRndVar =
+							GaussianDistCalc.getStdRndVariable(exceedProb, 1,
+									numSig, 1e-6);
+				} else {
+					stRndVar =
+							GaussianDistCalc.getStdRndVariable(exceedProb, 2,
+									numSig, 1e-6);
+				}
+			}
+			return getMean() + stRndVar * getStdDev();
+		}
+	}
+
+	/**
+	 * This calculates the intensity-measure level associated with given
+	 * probability and the calculated mean and standard deviation (and according
+	 * to the chosen truncation type and level). Note that this does not store
+	 * the answer in the value of the internally held intensity-measure
+	 * parameter.
+	 * 
+	 * @param exceedProb
+	 *            : Sets the Value of the exceed Prob param with this value.
+	 * @return The intensity-measure level
+	 * @exception ParameterException
+	 *                Description of the Exception
+	 */
+	public double getIML_AtExceedProb(double exceedProb)
+			throws ParameterException {
+
+		// sets the value of the exceedProb Param.
+		exceedProbParam.setValue(exceedProb);
+		return getIML_AtExceedProb();
+	}
+
+	/**
+	 * Returns an iterator over all the Parameters that the Mean calculation
+	 * depends upon. (not including the intensity-measure related parameters and
+	 * their internal, independent parameters).
+	 * 
+	 * @return The Independent Params Iterator
+	 */
+	public ListIterator<ParameterAPI<?>> getMeanIndependentParamsIterator() {
+		return meanIndependentParams.getParametersIterator();
+	}
+
+	public ParameterList getMeanIndependentParamsList() {
+		return meanIndependentParams;
+	}
+
+	/**
+	 * Returns an iterator over all the Parameters that the StdDev calculation
+	 * depends upon (not including the intensity-measure related parameters and
+	 * their internal, independent parameters).
+	 * 
+	 * @return The Independent Parameters Iterator
+	 */
+	public ListIterator<ParameterAPI<?>> getStdDevIndependentParamsIterator() {
+		return stdDevIndependentParams.getParametersIterator();
+	}
+
+	public ParameterList getStdDevIndependentParamsList() {
+		return stdDevIndependentParams;
+	}
+
+	/**
+	 * Returns an iterator over all the Parameters that the exceedProb
+	 * calculation depends upon (not including the intensity-measure related
+	 * parameters and their internal, independent parameters).
+	 * 
+	 * @return The Independent Params Iterator
+	 */
+	public ListIterator<ParameterAPI<?>>
+	getExceedProbIndependentParamsIterator() {
+		return exceedProbIndependentParams.getParametersIterator();
+	}
+
+	public ParameterList getExceedProbIndependentParamsList() {
+		return exceedProbIndependentParams;
+	}
+
+	/**
+	 * Returns an iterator over all the Parameters that the IML-at-exceed-
+	 * probability calculation depends upon. (not including the
+	 * intensity-measure related paramters and their internal, independent
+	 * parameters).
+	 * 
+	 * @return The Independent Params Iterator
+	 */
+	public ListIterator<ParameterAPI<?>>
+	getIML_AtExceedProbIndependentParamsIterator() {
+		return imlAtExceedProbIndependentParams.getParametersIterator();
+	}
+
+	public ParameterList getIML_AtExceedProbIndependentParamsList() {
+		return imlAtExceedProbIndependentParams;
+	}
+
+	/**
+	 * This returns metadata for all parameters (only showing the independent
+	 * parameters relevant for the presently chosen imt)
+	 * 
+	 * @return
+	 */
+	public String getAllParamMetadata() {
+		String metadata =
+				imlAtExceedProbIndependentParams
+				.getParameterListMetadataString();
+		metadata += "; " + im.getMetadataString() + " [ ";
+		Iterator it =
+				((DependentParameter) im).getIndependentParametersIterator();
+		while (it.hasNext()) {
+			metadata += ((ParameterAPI) it.next()).getMetadataString() + "; ";
+		}
+		metadata = metadata.substring(0, metadata.length() - 2);
+		metadata += " ]";
+		return metadata;
+
+	}
+
+	/**
+	 * This creates the supported intensity-measure parameters. All
+	 * implementation is in the subclass (it's defined here as a
+	 * reminder/suggestions).
+	 */
+	protected abstract void initSupportedIntensityMeasureParams();
+
+	/**
+	 * This creates Site-related parameters, which are all associated parameters
+	 * that the exceedance probability depends upon. All implementation is in
+	 * the subclass (it's defined here as a reminder/suggestions).
+	 */
+	protected abstract void initSiteParams();
+
+	/**
+	 * Creates the EqkRupture-related parameters, which are all associated
+	 * parameters that the exceedance probability depends upon. All
+	 * implementation is in the subclass (it's defined here as a
+	 * reminder/suggestions).
+	 */
+	protected abstract void initEqkRuptureParams();
+
+	/**
+	 * Creates Propagation-Effect related parameters, which are all associated
+	 * parameters that the exceedance probability depends upon. All
+	 * implementation is in the subclass (it's defined here as a
+	 * reminder/suggestions).
+	 */
+	protected abstract void initPropagationEffectParams();
+
+	/**
+	 * This creates the otherParams list. These are any parameters that the
+	 * exceedance probability depends upon that is not a supported IMT (or one
+	 * of their independent parameters) and is not contained in, or computed
+	 * from, the site or eqkRutpure objects. Note that this does not include the
+	 * exceedProbParam (which exceedance probability does not depend on).
+	 * sigmaTruncTypeParam and sigmaTruncLevelParam are instantiated here and
+	 * added to the otherParams list (others should be implemented as desired in
+	 * subclasses). The tectonicRegionTypeParam is also instantiated here with
+	 * default options (TYPE_ACTIVE_SHALLOW); this should be overridden in
+	 * subclass if other options are desired (and you'll need use the
+	 * replaceParameter method to change the one in the otherParams list).
+	 */
+	protected void initOtherParams() {
+
+		sigmaTruncTypeParam = new SigmaTruncTypeParam();
+		sigmaTruncLevelParam = new SigmaTruncLevelParam();
+		tectonicRegionTypeParam = new TectonicRegionTypeParam();
+
+		// Put parameters in the otherParams list:
+		otherParams.clear();
+		otherParams.addParameter(sigmaTruncTypeParam);
+		otherParams.addParameter(sigmaTruncLevelParam);
+		otherParams.addParameter(tectonicRegionTypeParam);
+	}
+
+	/**
+	 * Adds the Listeners to the parameters so that Attenuation can listen to
+	 * any kind of changes to parameter values.
+	 */
+	protected void initParameterEventListeners() {
+	};
+
+	/**
+	 * Allows to reset the change listeners on the parameters
+	 */
+	public void resetParameterEventListeners() {
+	};
+
+	/**
+	 * Tells whether the given tectonic region is supported
+	 * 
+	 * @param tectRegionName
+	 * @return
+	 */
+	public boolean isTectonicRegionSupported(String tectRegionName) {
+		if (tectonicRegionTypeParam == null)
+			return false;
+		return tectonicRegionTypeParam.isAllowed(tectRegionName);
+	}
+
+	/**
+	 * Tells whether the given tectonic region is supported
+	 * 
+	 * @param tectRegion
+	 * @return
+	 */
+	public boolean isTectonicRegionSupported(TectonicRegionType tectRegion) {
+		return isTectonicRegionSupported(tectRegion.toString());
+	}
+
+	@SuppressWarnings("unchecked")
+	/**
+	 * Sets the component identified by the given name,
+	 * if the IMT (Intensity Measure Type) allows it.
+	 * 
+	 * @param component the component name
+	 * @param intensityMeasureType the intensity measure type
+	 * @throws IllegalArgumentException when the given component is not available for this relationship
+	 */
+	public void setComponentParameter(String component, String intensityMeasureType)
+	{
+		if (!intensityMeasureType.equalsIgnoreCase("MMI"))
+		{
+			ParameterAPI<Object> parameter = getParameter(ComponentParam.NAME);
+
+			if (parameter.isAllowed(component))
+			{
+				parameter.setValue(component);
+			}
+			else
+			{
+				StringWriter writer = new StringWriter();
+				PrintWriter printer = new PrintWriter(writer);
+
+				printer.print("The chosen component " + component + " ");
+				printer.println("is not supported by " + getClass().getCanonicalName());
+				printer.println("The supported components are the following:");
+				printer.println(parameter.getConstraint());
+
+				throw new IllegalArgumentException(writer.toString());
+			}
+		}
+	}
 
 }

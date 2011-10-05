@@ -26,6 +26,7 @@ import org.opensha.commons.data.Container2D;
 import org.opensha.commons.geo.Location;
 import org.opensha.commons.geo.LocationList;
 import org.opensha.commons.geo.LocationUtils;
+import org.opensha.commons.geo.LocationVector;
 
 /**
  * <b>Title:</b> GriddedSurface
@@ -622,5 +623,102 @@ public abstract class EvenlyGriddedSurface extends Container2D<Location>
     @Override
     public void setLocation(int row, int column, Location loc) {
         set(row, column, loc);
+    }
+    
+    /**
+     * Returns location corresponding to surface centre.
+     * If number of grid points along lenght and width is odd,
+     * returns location corresponding to middle index.
+     * If number of grid points along length and width is even,
+     * compute surface centre as location in the middle of 
+     * the central patch.
+     * If number of grid points along length is even and along
+     * width is odd (or viceversa), compute surface centre as
+     * location in the middle of the central segment.
+     */
+    public Location getSurfaceCentre(){
+    	Location surfaceCentre = null;
+    	if(isOdd(this.numCols) && isOdd(this.numRows)){
+    		int alongLengthCentreIndex = (this.numCols-1)/2;
+    		int alongWidthCentreIndex = (this.numRows-1)/2;
+    		surfaceCentre = get(alongWidthCentreIndex, alongLengthCentreIndex);
+    	}
+    	else if (isOdd(this.numCols) && !isOdd(this.numRows)){
+    		int alongLengthCentreIndex = (this.numCols-1)/2;
+    		int alongWidthIndex1 = (this.numRows-1)/2;
+    		int alongWidthIndex2 = alongWidthIndex1 + 1;
+    		double meanLat = (get(alongWidthIndex1,alongLengthCentreIndex)
+					.getLatitude() +
+					get(alongWidthIndex2,alongLengthCentreIndex)
+					.getLatitude())/2;
+    		double meanLon = (get(alongWidthIndex1,alongLengthCentreIndex)
+					.getLongitude() +
+					get(alongWidthIndex2,alongLengthCentreIndex)
+					.getLongitude())/2;
+    		double meanDepth = (get(alongWidthIndex1,alongLengthCentreIndex)
+    				.getDepth()+
+    				get(alongWidthIndex2,alongLengthCentreIndex)
+    				.getDepth())/2;
+    		surfaceCentre = new Location(meanLat,meanLon,meanDepth);
+    	}
+    	else if (!isOdd(this.numCols) && isOdd(this.numRows)){
+    		int alongLengthIndex1 = (this.numCols-1)/2;
+    		int alongLengthIndex2 = alongLengthIndex1 + 1;
+    		int alongWidthCentreIndex = (this.numRows-1)/2;
+    		double meanLat = (get(alongWidthCentreIndex,alongLengthIndex1)
+					.getLatitude() +
+					get(alongWidthCentreIndex,alongLengthIndex2)
+					.getLatitude())/2;
+    		double meanLon = (get(alongWidthCentreIndex,alongLengthIndex1)
+					.getLongitude() +
+					get(alongWidthCentreIndex,alongLengthIndex2)
+					.getLongitude())/2;
+    		double meanDepth = (get(alongWidthCentreIndex,alongLengthIndex1)
+    				.getDepth()+
+    				get(alongWidthCentreIndex,alongLengthIndex2)
+    				.getDepth())/2;
+    		surfaceCentre = new Location(meanLat,meanLon,meanDepth);
+    	}
+    	else if(!isOdd(this.numCols) && !isOdd(this.numRows)){
+    		int alongLengthIndex1 = (this.numCols-1)/2;
+    		int alongLengthIndex2 = alongLengthIndex1 + 1;
+    		int alongWidthIndex1 = (this.numRows-1)/2;
+    		int alongWidthIndex2 = alongWidthIndex1 + 1;
+    		double meanLat = (get(alongWidthIndex1,alongLengthIndex1)
+    				.getLatitude() +
+    				get(alongWidthIndex1,alongLengthIndex2)
+    				.getLatitude() +
+    				get(alongWidthIndex2,alongLengthIndex1)
+    				.getLatitude() +
+    				get(alongWidthIndex2,alongLengthIndex2)
+    				.getLatitude())/4;
+    		double meanLon = (get(alongWidthIndex1,alongLengthIndex1)
+					.getLongitude() +
+					get(alongWidthIndex1,alongLengthIndex2)
+					.getLongitude() +
+					get(alongWidthIndex2,alongLengthIndex1)
+					.getLongitude() +
+					get(alongWidthIndex2,alongLengthIndex2)
+					.getLongitude())/4;
+    		double meanDepth = (get(alongWidthIndex1,alongLengthIndex1)
+					.getDepth() +
+					get(alongWidthIndex2,alongLengthIndex1)
+					.getDepth() +
+					get(alongWidthIndex1,alongLengthIndex2)
+					.getDepth() +
+					get(alongWidthIndex2,alongLengthIndex2)
+					.getDepth())/4;
+    		surfaceCentre = new Location(meanLat,meanLon,meanDepth);
+    	}
+    	return surfaceCentre;
+    }
+    
+    public static boolean isOdd(int num){
+    	if(num % 2 == 0){
+    		return false;
+    	}
+    	else{
+    		return true;
+    	}
     }
 }

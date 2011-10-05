@@ -19,10 +19,12 @@
 package org.opensha.sha.earthquake.rupForecastImpl;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import org.opensha.commons.calc.magScalingRelations.MagAreaRelationship;
 import org.opensha.commons.calc.magScalingRelations.MagLengthRelationship;
 import org.opensha.commons.calc.magScalingRelations.MagScalingRelationship;
+import org.opensha.commons.data.DataPoint2D;
 import org.opensha.commons.data.Site;
 import org.opensha.commons.data.function.ArbitrarilyDiscretizedFunc;
 import org.opensha.commons.geo.LocationVector;
@@ -35,6 +37,7 @@ import org.opensha.sha.earthquake.ProbEqkSource;
 import org.opensha.sha.earthquake.griddedForecast.HypoMagFreqDistAtLoc;
 import org.opensha.sha.faultSurface.EvenlyGriddedSurfaceAPI;
 import org.opensha.sha.faultSurface.FaultTrace;
+import org.opensha.sha.faultSurface.PointSurface;
 import org.opensha.sha.faultSurface.StirlingGriddedSurface;
 import org.opensha.sha.magdist.IncrementalMagFreqDist;
 
@@ -251,58 +254,70 @@ public class PointToLineSource extends ProbEqkSource implements
             double rate = magFreqDist.getY(m);
             double prob = 1 - Math.exp(-rate * weight * duration);
             if (prob > 0 && mag >= minMag) {
-                // set depth of rupture
-                // Location loc = location.copy();
-                double depth;
+                
+            	// set depth of rupture
+                double depth = Double.NaN;
                 if (mag < aveRupTopVersusMag.getMinX())
                     depth = defaultHypoDepth;
-                else
-                    depth = aveRupTopVersusMag.getClosestY(mag);
+                else if (mag >= aveRupTopVersusMag.getMaxX()){
+                	depth = aveRupTopVersusMag.getY(aveRupTopVersusMag.getNum()-1);
+                }
+                else{
+                	for(int i=0;i<aveRupTopVersusMag.getNum()-1;i++){
+                		if(mag >= aveRupTopVersusMag.getX(i) && mag < aveRupTopVersusMag.getX(i+1)){
+                			depth = aveRupTopVersusMag.getY(i);
+                			break;
+                		}
+                	}
+                }
+                // rupture location
                 Location loc =
                         new Location(location.getLatitude(),
                                 location.getLongitude(), depth);
-                // set rupture length
-                double rupLength =
-                        getRupLength(mag, aveRupTopVersusMag, lowerSeisDepth,
-                                dip, magScalingRel);
-
-                // if(rupLength>maxLength) maxLength=rupLength;
-
-                // get randome strike if needed
-                if (isStrikeRandom) {
-                    strike = (Math.random() - 0.5) * 180.0; // get a random
-                                                            // strike between
-                                                            // -90 and 90
-                    // System.out.println(strike);
-                }
-                // LocationVector dir = new
-                // LocationVector(0.0,rupLength/2,strike,Double.NaN);
-                LocationVector dir =
-                        new LocationVector(strike, rupLength / 2, 0.0);
-                Location loc1 = LocationUtils.location(loc, dir);
-                dir.setAzimuth(strike - 180);
-                Location loc2 = LocationUtils.location(loc, dir);
-                FaultTrace fltTrace = new FaultTrace(null);
-                fltTrace.add(loc1);
-                fltTrace.add(loc2);
-
-                // make the surface
-                StirlingGriddedSurface surf =
-                        new StirlingGriddedSurface(fltTrace, dip, depth, depth,
-                                1.0);
-
+                
+                // create probabilistic earthquake rupture
                 ProbEqkRupture rupture = new ProbEqkRupture();
                 rupture.setMag(mag);
                 rupture.setAveRake(focalMech.getRake());
-                rupture.setRuptureSurface(surf);
-                rupture.setHypocenterLocation(new Location(location.getLatitude(),location.getLongitude(),defaultHypoDepth));
+                rupture.setHypocenterLocation(new Location(loc.getLatitude(),loc.getLongitude(),defaultHypoDepth));
+                rupture.setTectRegType(this.getTectonicRegionType());
                 rupture.setProbability(prob);
+                
+                // if magnitude is greater than first magnitude value
+                // in the top-of-rupture depth distribution, create extended rupture
+                if (mag > aveRupTopVersusMag.getMinX()){
+                	
+                	// set rupture length
+                    double rupLength =
+                            getRupLength(mag, aveRupTopVersusMag, lowerSeisDepth,
+                                    dip, magScalingRel);
 
-                if (D)
-                    System.out.println("\trupLength\t" + rupLength
-                            + "\tstrike\t" + strike + "\tmag\t" + (float) mag
-                            + "\trate\t" + (float) rate + "\tprob\t"
-                            + (float) prob + "\tweight\t" + (float) weight);
+                    // get randome strike if needed (between -90 and + 90)
+                    if (isStrikeRandom) {
+                        strike = (Math.random() - 0.5) * 180.0;
+                    }
+                    
+                    // create fault trace
+                    LocationVector dir =
+                            new LocationVector(strike, rupLength / 2, 0.0);
+                    Location loc1 = LocationUtils.location(loc, dir);
+                    dir.setAzimuth(strike - 180);
+                    Location loc2 = LocationUtils.location(loc, dir);
+                    FaultTrace fltTrace = new FaultTrace(null);
+                    fltTrace.add(loc1);
+                    fltTrace.add(loc2);
+
+                    // make the surface
+                    StirlingGriddedSurface surf =
+                            new StirlingGriddedSurface(fltTrace, dip, depth, depth,
+                                    1.0);
+                    rupture.setRuptureSurface(surf);
+                }
+                // if it's smaller set point surface at hypocentral depth
+                else{
+                	PointSurface surf = new PointSurface(loc.getLatitude(),loc.getLongitude(),defaultHypoDepth);
+                	rupture.setRuptureSurface(surf);
+                }
 
                 // add the rupture to the list and save the rate in case the
                 // duration changes

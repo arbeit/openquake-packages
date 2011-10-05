@@ -525,5 +525,10 @@ public class PointSurface implements EvenlyGriddedSurfaceAPI {
     public Iterator<Location> iterator() {
         return listIterator();
     }
+    
+    @Override
+    public Location getSurfaceCentre(){
+    	return this.location;
+    }
 
 }

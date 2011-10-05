@@ -268,6 +268,17 @@ public class FloatingPoissonFaultSource extends ProbEqkSource {
         }
         lastDuration = newDuration;
     }
+    
+    /**
+     * Allows to set tectonic region type.
+     * (overrides org.opensha.sha.earthquake.ProbEqkSource.
+     * setTectonicRegionType)
+     */
+    public void setTectonicRegionType(TectonicRegionType tectRegType){
+    	for (int r = 0; r < ruptureList.size(); r++) {
+    		ruptureList.get(r).setTectRegType(tectRegType);
+    	}
+    }
 
     /**
      * This computes the rupture length from the information supplied
@@ -369,19 +380,27 @@ public class FloatingPoissonFaultSource extends ProbEqkSource {
                     for (int r = 0; r < numRup; ++r) {
                         probEqkRupture = new ProbEqkRupture();
                         probEqkRupture.setAveRake(rake);
-                        if (floatTypeFlag != 2)
-                            probEqkRupture.setRuptureSurface(faultSurface
-                                    .getNthSubsetSurface(rupLen, rupWidth,
-                                            rupOffset, r));
-                        else
-                            probEqkRupture.setRuptureSurface(faultSurface
-                                    .getNthSubsetSurfaceCenteredDownDip(rupLen,
-                                            rupWidth, rupOffset, r));
+                        EvenlyGriddedSurfaceAPI rupSurf = null;
+                        if (floatTypeFlag != 2){
+                        	rupSurf = faultSurface
+                            .getNthSubsetSurface(rupLen, rupWidth,
+                                    rupOffset, r);
+                        }
+                        else{
+                        	rupSurf = faultSurface
+                            .getNthSubsetSurfaceCenteredDownDip(rupLen,
+                                    rupWidth, rupOffset, r);
+                        }
+                        probEqkRupture.setRuptureSurface(rupSurf);
                         probEqkRupture.setMag(mag);
                         prob =
                                 (1.0 - Math.exp(-duration * weight * rate
                                         / numRup));
                         probEqkRupture.setProbability(prob);
+                        probEqkRupture.setTectRegType(
+                        		this.getTectonicRegionType());
+                        probEqkRupture.setHypocenterLocation(
+                        		rupSurf.getSurfaceCentre());
                         ruptureList.add(probEqkRupture);
                     }
                     /*
@@ -399,6 +418,8 @@ public class FloatingPoissonFaultSource extends ProbEqkSource {
                     probEqkRupture = new ProbEqkRupture();
                     probEqkRupture.setAveRake(rake);
                     probEqkRupture.setRuptureSurface(faultSurface);
+                    probEqkRupture.setHypocenterLocation(
+                    		faultSurface.getSurfaceCentre());
                     probEqkRupture.setMag(mag);
                     prob = (1.0 - Math.exp(-duration * weight * rate));
                     probEqkRupture.setProbability(prob);

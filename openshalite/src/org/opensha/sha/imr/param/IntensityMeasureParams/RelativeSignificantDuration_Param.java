@@ -22,23 +22,19 @@ import org.opensha.commons.param.DoubleConstraint;
 import org.opensha.commons.param.WarningDoubleParameter;
 
 /**
- * This constitutes the natural-log Arias Intensity intensity measure parameter.
- * See constructors for info on editability and default values.
+ * This constitutes the natural-log relative significant duration intensity measure
+ * parameter. See constructors for info on editability and default values.
  * 
- * @author goulet (aug 2009) - modified based on PGA_Param from field
+ * @author J. Douglas
  * 
  */
-public class IA_Param extends WarningDoubleParameter {
+public class RelativeSignificantDuration_Param extends WarningDoubleParameter {
 
-	public final static String NAME = "IA";
-	public final static String UNITS = "m/s";
-	public final static String INFO = "Arias Intensity";
+	public final static String NAME = "RSD";
+	public final static String UNITS = "s";
+	public final static String INFO = "Relative significant duration (5-95% of Arias intensity)";
 	public final static Double MIN = new Double(Math.log(Double.MIN_VALUE));
 	public final static Double MAX = new Double(Double.MAX_VALUE);
-	/**
-    public final static Double DEFAULT_WARN_MIN = new Double(Double.MIN_VALUE);
-    public final static Double DEFAULT_WARN_MAX = new Double(Double.MAX_VALUE);
-	 */
 	public final static Double DEFAULT_WARN_MIN = new Double(
 			Math.log(Double.MIN_VALUE));
 	public final static Double DEFAULT_WARN_MAX = new Double(Math.log(2.5));
@@ -48,14 +44,14 @@ public class IA_Param extends WarningDoubleParameter {
 	 * natural-log space). The parameter is left as non editable
 	 * 
 	 * @param warningConstraint
-	 * @param defaultPGA
+	 * @param defaultRSD
 	 */
-	public IA_Param(DoubleConstraint warningConstraint, double defaultIA) {
+	public RelativeSignificantDuration_Param(DoubleConstraint warningConstraint, double defaultRSD) {
 		super(NAME, new DoubleConstraint(MIN, MAX), UNITS);
 		getConstraint().setNonEditable();
 		this.setInfo(INFO);
 		setWarningConstraint(warningConstraint);
-		setDefaultValue(defaultIA);
+		setDefaultValue(defaultRSD);
 		setNonEditable();
 	}
 
@@ -64,7 +60,7 @@ public class IA_Param extends WarningDoubleParameter {
 	 * warning constraint, and sets the default as Math.log(1.0) (the natural
 	 * log of 1.0). The parameter is left as non editable
 	 */
-	public IA_Param() {
+	public RelativeSignificantDuration_Param() {
 		super(NAME, new DoubleConstraint(MIN, MAX), UNITS);
 		getConstraint().setNonEditable();
 		setInfo(INFO);

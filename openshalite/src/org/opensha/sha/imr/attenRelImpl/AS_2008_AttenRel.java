@@ -28,6 +28,7 @@ import org.opensha.commons.data.NamedObjectAPI;
 import org.opensha.commons.data.Site;
 import org.opensha.commons.exceptions.InvalidRangeException;
 import org.opensha.commons.exceptions.ParameterException;
+import org.opensha.commons.geo.Location;
 import org.opensha.commons.param.DoubleConstraint;
 import org.opensha.commons.param.DoubleDiscreteConstraint;
 import org.opensha.commons.param.StringConstraint;
@@ -37,6 +38,8 @@ import org.opensha.commons.param.event.ParameterChangeWarningListener;
 import org.opensha.commons.util.FileUtils;
 import org.opensha.sha.earthquake.EqkRupture;
 import org.opensha.sha.faultSurface.EvenlyGriddedSurfaceAPI;
+import org.opensha.sha.faultSurface.FaultTrace;
+import org.opensha.sha.faultSurface.StirlingGriddedSurface;
 import org.opensha.sha.imr.AttenuationRelationship;
 import org.opensha.sha.imr.PropagationEffect;
 import org.opensha.sha.imr.ScalarIntensityMeasureRelationshipAPI;
@@ -928,11 +931,14 @@ public class AS_2008_AttenRel extends AttenuationRelationship implements
         super.initOtherParams();
 
         // the Component Parameter
+		// Geometrical Mean (COMPONENT_AVE_HORZ) = Geometrical MeanI50 (COMPONENT_GMRotI50)
         StringConstraint constraint = new StringConstraint();
+        constraint.addString(ComponentParam.COMPONENT_AVE_HORZ);
         constraint.addString(ComponentParam.COMPONENT_GMRotI50);
-        componentParam =
-                new ComponentParam(constraint,
-                        ComponentParam.COMPONENT_GMRotI50);
+        constraint.setNonEditable();
+        componentParam = new ComponentParam(constraint, ComponentParam.COMPONENT_GMRotI50);
+        componentParam = new ComponentParam(constraint, ComponentParam.COMPONENT_AVE_HORZ);
+
 
         // the stdDevType Parameter
         StringConstraint stdDevTypeConstraint = new StringConstraint();
@@ -1582,39 +1588,39 @@ public class AS_2008_AttenRel extends AttenuationRelationship implements
      * 
      * @param args
      */
-    // public static void main(String[] args) {
-    //
-    // Location loc1 = new Location(-0.1, 0.0, 0);
-    // Location loc2 = new Location(+0.1, 0.0, 0);
-    // FaultTrace faultTrace = new FaultTrace("test");
-    // faultTrace.add(loc1);
-    // faultTrace.add(loc2);
-    // StirlingGriddedSurface surface = new StirlingGriddedSurface(faultTrace,
-    // 45.0,0,10,1);
-    // EqkRupture rup = new EqkRupture();
-    // rup.setMag(7);
-    // rup.setAveRake(90);
-    // rup.setRuptureSurface(surface);
-    //
-    // AS_2008_AttenRel attenRel = new AS_2008_AttenRel(null);
-    // attenRel.setParamDefaults();
-    // attenRel.setIntensityMeasure("PGA");
-    // attenRel.setEqkRupture(rup);
-    //
-    // Site site = new Site();
-    // site.addParameter(attenRel.getParameter(Vs30_Param.NAME));
-    // site.addParameter(attenRel.getParameter(DepthTo1pt0kmPerSecParam.NAME));
-    // site.addParameter(attenRel.getParameter(Vs30_TypeParam.NAME));
-    //
-    // Location loc;
-    // for(double dist=-0.3; dist<=0.3; dist+=0.01) {
-    // loc = new Location(0,dist);
-    // site.setLocation(loc);
-    // attenRel.setSite(site);
-    // // System.out.print((float)dist+"\t");
-    // attenRel.getMean();
-    // }
-    //
-    // }
+//     public static void main(String[] args) {
+//    //
+//     Location loc1 = new Location(-0.1, 0.0, 0);
+//     Location loc2 = new Location(+0.1, 0.0, 0);
+//     FaultTrace faultTrace = new FaultTrace("test");
+//     faultTrace.add(loc1);
+//     faultTrace.add(loc2);
+//     StirlingGriddedSurface surface = new StirlingGriddedSurface(faultTrace,
+//     45.0,0,10,1);
+//     EqkRupture rup = new EqkRupture();
+//     rup.setMag(7);
+//     rup.setAveRake(90);
+//     rup.setRuptureSurface(surface);
+//    
+//     AS_2008_AttenRel attenRel = new AS_2008_AttenRel(null);
+//     attenRel.setParamDefaults();
+//     attenRel.setIntensityMeasure("PGA");
+//     attenRel.setEqkRupture(rup);
+//    //
+//     Site site = new Site();
+//     site.addParameter(attenRel.getParameter(Vs30_Param.NAME));
+//     site.addParameter(attenRel.getParameter(DepthTo1pt0kmPerSecParam.NAME));
+//     site.addParameter(attenRel.getParameter(Vs30_TypeParam.NAME));
+//    
+//     Location loc;
+//     for(double dist=-0.3; dist<=0.3; dist+=0.01) {
+//     loc = new Location(0,dist);
+//     site.setLocation(loc);
+//     attenRel.setSite(site);
+//     // System.out.print((float)dist+"\t");
+//     attenRel.getMean();
+//     }
+//    
+//     }
 
 }

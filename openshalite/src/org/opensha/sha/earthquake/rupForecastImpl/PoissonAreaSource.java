@@ -173,15 +173,12 @@ public class PoissonAreaSource extends PointToLineSource implements
 							rup.setMag(mag);
 							rup.setProbability(prob);
 							rup.setAveRake(focalMechanisms[k].getRake());
-							double depth;
-							if (mag < aveRupTopVersusMag.getMinX())
-								depth = defaultHypoDepth;
-							else
-								depth = aveRupTopVersusMag.getClosestY(mag);
-							Location finalLoc = new Location(loc.getLatitude(),
-									loc.getLongitude(), depth);
-							rup.setPointSurface(finalLoc,
+							Location hypoLoc = new Location(loc.getLatitude(),
+									loc.getLongitude(), defaultHypoDepth);
+							rup.setPointSurface(hypoLoc,
 									focalMechanisms[k].getDip());
+							rup.setHypocenterLocation(hypoLoc);
+							rup.setTectRegType(this.getTectonicRegionType());
 
 							// Adding the rupture
 							probEqkRuptureList.add(rup);

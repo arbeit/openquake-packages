@@ -410,12 +410,19 @@ public class ParameterList implements Serializable, Iterable<ParameterAPI<?>> {
         return params.size();
     }
 
+    public boolean equals(Object other) {
+        if (other instanceof ParameterList)
+            return equalsParameterList((ParameterList)other);
+
+        return false;
+    }
+
     /**
      * Returns true if all the parameters have the same names and values. One
      * use will be to determine if two DisctetizedFunctions are the same, i.e.
      * set up with the same independent parameters.
      */
-    public boolean equals(ParameterList list) {
+    public boolean equalsParameterList(ParameterList list) {
 
         // Not same size, can't be equal
         if (this.size() != list.size())

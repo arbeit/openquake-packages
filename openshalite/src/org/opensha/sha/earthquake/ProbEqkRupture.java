@@ -217,6 +217,7 @@ public class ProbEqkRupture extends EqkRupture {
         eqkRuptureClone.setRuptureSurface(this.ruptureSurface);
         eqkRuptureClone.setHypocenterLocation(this.hypocenterLocation);
         eqkRuptureClone.setProbability(this.probability);
+        eqkRuptureClone.setTectRegType(this.tectRegType);
         return eqkRuptureClone;
     }
 

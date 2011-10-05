@@ -126,34 +126,8 @@ public class DistanceEpicentralParameter extends
     protected void calcValueFromSiteAndEqkRup() {
         if ((this.site != null) && (this.eqkRupture != null)) {
             Location loc1 = site.getLocation();
-            double distance = Double.NaN;
-            // surface rupture
-            EvenlyGriddedSurfaceAPI rupSurf = eqkRupture.getRuptureSurface();
-            // get number of rows
-            int numRows = rupSurf.getNumRows();
-            // get number of columns
-            int numColumns = rupSurf.getNumCols();
-            int indexRow = 0;
-            int indexColumn = 0;
-            if (numRows == 1 && numColumns == 1) {
-                // point source
-                distance =
-                        LocationUtils.horzDistance(loc1,
-                                rupSurf.get(indexRow, indexColumn));
-            } else if (numRows == 1 && numColumns > 1) {
-                // line source
-                indexColumn = numColumns / 2;
-                distance =
-                        LocationUtils.horzDistance(loc1,
-                                rupSurf.get(indexRow, indexColumn));
-            } else {
-                // 3D surface
-                indexRow = numRows / 2;
-                indexColumn = numColumns / 2;
-                distance =
-                        LocationUtils.horzDistance(loc1,
-                                rupSurf.get(indexRow, indexColumn));
-            }
+            Location hypocenter = this.eqkRupture.getHypocenterLocation();
+            double distance = LocationUtils.horzDistance(loc1,hypocenter);
             this.setValueIgnoreWarning(new Double(distance));
         } else
             this.setValue(null);

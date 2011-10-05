@@ -18,6 +18,8 @@
 
 package org.opensha.sha.faultSurface;
 
+import org.opensha.commons.geo.Location;
+
 /**
  * <b>Title:</b> EvenlyGriddedSurfaceAPI
  * <p>
@@ -74,5 +76,12 @@ public interface EvenlyGriddedSurfaceAPI extends GriddedSurfaceAPI {
      * @return double
      */
     public double getSurfaceArea();
+    
+    /**
+     * This returns the location
+     * corresponding to surface centre.
+     * @return
+     */
+    public Location getSurfaceCentre();
 
 }
