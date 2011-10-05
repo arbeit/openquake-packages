@@ -1,3 +1,9 @@
+java-oq (0.4.4-1) oneiric; urgency=low
+
+  * Upstream release (tidies up java/python logging interplay)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 05 Oct 2011 13:55:58 +0200
+
 java-oq (0.4.3-1) natty; urgency=low
 
   * Upstream release
