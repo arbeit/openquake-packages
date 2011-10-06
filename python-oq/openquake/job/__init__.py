@@ -20,11 +20,9 @@
 
 import os
 import re
-import subprocess
 import urlparse
-import logging
 
-from ConfigParser import ConfigParser, RawConfigParser
+from ConfigParser import ConfigParser
 from datetime import datetime
 from django.db import transaction, close_connection
 from django.contrib.gis.db import models
@@ -32,10 +30,8 @@ from django.contrib.gis.geos import GEOSGeometry
 from lxml import etree
 
 from openquake import flags
-from openquake import java
 from openquake import kvs
 from openquake import logs
-from openquake import OPENQUAKE_ROOT
 from openquake import shapes
 from openquake import xml
 from openquake.parser import exposure
@@ -51,7 +47,6 @@ from openquake.job.params import (
     ARRAY_RE)
 from openquake.kvs import mark_job_as_current
 from openquake.logs import LOG
-from openquake.utils import config as oq_config
 
 RE_INCLUDE = re.compile(r'^(.*)_INCLUDE')
 

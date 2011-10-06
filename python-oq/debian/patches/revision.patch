@@ -1,0 +1,8 @@
+--- a/openquake/__init__.py
++++ b/openquake/__init__.py
+@@ -56,4 +56,4 @@
+     0,  # major
+     4,  # minor
+     4,  # sprint number
+-    0)  # release date (seconds since the "Epoch"), do *not* set in master!
++    1317883411)  # release date (seconds since the "Epoch")

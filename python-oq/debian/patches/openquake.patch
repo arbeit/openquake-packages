@@ -1,17 +1,24 @@
 --- a/openquake/__init__.py
 +++ b/openquake/__init__.py
-@@ -58,7 +58,7 @@
-     0,  # major
-     4,  # minor
-     3,  # sprint number
--    0)  # release date (seconds since the "Epoch"), do *not* set in master!
-+    1315677464)  # release date (seconds since the "Epoch")
+@@ -49,8 +49,6 @@
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ """
  
- # The path to the OpenQuake root directory
- OPENQUAKE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+-import os
+-
+ # Please note: the release date should always have a value of 0 (zero) in the
+ # master branch. It will only be set to a meaningful value in *packaged* and
+ # released OpenQuake code.
+@@ -59,6 +57,3 @@
+     4,  # minor
+     4,  # sprint number
+     0)  # release date (seconds since the "Epoch"), do *not* set in master!
+-
+-# The path to the OpenQuake root directory
+-OPENQUAKE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 --- /dev/null
 +++ b/openquake/celeryconfig.py
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,50 @@
 +# -*- coding: utf-8 -*-
 +# vim: tabstop=4 shiftwidth=4 softtabstop=4
 +
@@ -43,6 +50,9 @@
 +
 +from openquake.utils import config
 +
++
++config.abort_if_no_config_available()
++
 +sys.path.insert(0, os.path.dirname(__file__))
 +
 +amqp = config.get_section("amqp")
@@ -54,6 +64,7 @@
 +BROKER_VHOST = amqp.get("vhost")
 +
 +CELERY_RESULT_BACKEND = "amqp"
++
 +
 +CELERY_IMPORTS = ("openquake.risk.job", "openquake.hazard.tasks")
 +

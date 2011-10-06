@@ -3,3 +3,4 @@ oqpath.patch
 logsink-cfg.patch
 setuptools.patch
 openquake.patch
+revision.patch
