@@ -27,8 +27,7 @@ if [ -f /usr/sbin/rabbitmqctl ]; then
         rabbitmqctl add_user celeryuser celery
     fi;
     celeryvhost_count=`rabbitmqctl list_vhosts | grep celeryvhost | wc -l`
-    if [ $celeryvhost_count -eq 0 ];
-    then
+    if [ $celeryvhost_count -eq 0 ]; then
         rabbitmqctl add_vhost celeryvhost
         rabbitmqctl set_permissions -p celeryvhost celeryuser ".*" ".*" ".*"
     fi;
@@ -46,6 +45,10 @@ else
     chmod 666 $HDIR/celeryconfig.py
 fi
 
+if [ `cat /etc/group | grep ^openquake | wc -l` -eq 0 ]; then
+    addgroup --system openquake
+fi
+
 SDIR=/etc/openquake
 for cfg in openquake.cfg logging.cfg
 do
@@ -56,7 +59,8 @@ do
     else
         mkdir -p $SDIR
         cp $IDIR/$cfg $SDIR
-        chmod 600 $SDIR/$cfg
+        chown root.openquake $SDIR/$cfg
+        chmod 644 $SDIR/$cfg
     fi
 done
 
