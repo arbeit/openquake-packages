@@ -5,4 +5,4 @@
      4,  # minor
      4,  # sprint number
 -    0)  # release date (seconds since the "Epoch"), do *not* set in master!
-+    1317883411)  # release date (seconds since the "Epoch")
++    1317971547)  # release date (seconds since the "Epoch")
