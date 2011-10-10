@@ -108,14 +108,30 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
     fi
 
     PG_ROOT=/etc/postgresql/8.4/main
-    rm -f $PG_ROOT/pg_hba.conf.orig
-    mv $PG_ROOT/pg_hba.conf $PG_ROOT/pg_hba.conf.orig
-    for dbu in oq_admin oq_job_init oq_job_superv oq_reslt_writer
-    do
-        echo "local   openquake   $dbu                   md5" >> $PG_ROOT/pg_hba.conf
-    done
-    cat $PG_ROOT/pg_hba.conf.orig | grep -v oq_ >> $PG_ROOT/pg_hba.conf
-    /etc/init.d/postgresql reload
+    # Do we already have oq_* database users configured and how many?
+    oq_config_lines=`grep oq_ $PG_ROOT/pg_hba.conf | grep -v '^#' | wc -l`
+    # Do we already have oq_* database users *auto-configured* and how many?
+    auto_oq_config_lines=`grep oq_ $PG_ROOT/pg_hba.conf | grep -v '^#' | grep '^local' | wc -l`
+    if [ $oq_config_lines -eq $auto_oq_config_lines ]; then
+        # The oq_* db users (if any) have been auto-configured i.e. it's OK
+        # if we flatten them.
+        rm -f $PG_ROOT/pg_hba.conf.orig
+        mv $PG_ROOT/pg_hba.conf $PG_ROOT/pg_hba.conf.orig
+        for dbu in oq_admin oq_job_init oq_job_superv oq_reslt_writer
+        do
+            echo "local   openquake   $dbu                   md5" >> $PG_ROOT/pg_hba.conf
+        done
+        cat $PG_ROOT/pg_hba.conf.orig | grep -v 'local..*oq_' >> $PG_ROOT/pg_hba.conf
+        /etc/init.d/postgresql reload
+    else
+        echo "Your system seems to have custom pg_hba.conf (postgres"
+        echo "authentication configuration)"
+        echo ""
+        echo "Please ask the system administrator to grant access to the"
+        echo "'openquake' database to the following users:"
+        echo ""
+        echo "      oq_admin oq_job_init oq_job_superv oq_reslt_writer"
+    fi
 
     # Restart celeryd
     if [ -x /etc/init.d/celeryd ]; then
