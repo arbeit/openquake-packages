@@ -3,4 +3,6 @@ oqpath.patch
 logsink-cfg.patch
 setuptools.patch
 openquake.patch
+gmpe-params-1
+gmpe-params-2
 revision.patch
