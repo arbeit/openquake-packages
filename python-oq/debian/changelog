@@ -1,3 +1,9 @@
+python-oq (0.4.4-6) natty; urgency=low
+
+  * make the demo files writable by owner and group.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 11 Oct 2011 16:09:51 +0200
+
 python-oq (0.4.4-5) natty; urgency=low
 
   * Remove unneeded database users (LP #872277)

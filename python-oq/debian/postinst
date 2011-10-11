@@ -149,6 +149,8 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
         cp -a /usr/share/doc/python-oq/examples/smoketests $HDIR/demos
         cd $HDIR/demos && find . | grep gz$ | xargs gunzip
         cd $HDIR/demos && chown -R root.openquake .
+        # Make the demo files writable by owner and group.
+        cd $HDIR/demos && find . -type f | xargs chmod 664
     fi
 fi
 
