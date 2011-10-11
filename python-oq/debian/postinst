@@ -124,13 +124,17 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
         cat $PG_ROOT/pg_hba.conf.orig | grep -v 'local..*oq_' >> $PG_ROOT/pg_hba.conf
         /etc/init.d/postgresql reload
     else
-        echo "Your system seems to have custom pg_hba.conf (postgres"
+        echo ""
+        echo "============================================================"
+        echo "Your system seems to have a custom pg_hba.conf (postgres"
         echo "authentication configuration)"
         echo ""
         echo "Please ask the system administrator to grant access to the"
         echo "'openquake' database to the following users:"
         echo ""
         echo "      oq_admin oq_job_init oq_job_superv oq_reslt_writer"
+        echo "============================================================"
+        echo ""
     fi
 
     # Restart celeryd
