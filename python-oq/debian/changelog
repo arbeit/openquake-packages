@@ -1,3 +1,16 @@
+python-oq (0.4.4-4) natty; urgency=low
+
+  * turn off -x flag in debian/postinst
+  * unzip the example files in /usr/openquake/demos
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 11 Oct 2011 14:55:30 +0200
+
+python-oq (0.4.4-3) natty; urgency=low
+
+  * fix lintian warning
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 11 Oct 2011 14:26:25 +0200
+
 python-oq (0.4.4-2) natty; urgency=low
 
   * Use dh_installexamples to include the smoketests in the package.
