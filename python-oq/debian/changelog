@@ -1,3 +1,9 @@
+python-oq (0.4.4-2) natty; urgency=low
+
+  * Use dh_installexamples to include the smoketests in the package.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 11 Oct 2011 12:23:06 +0200
+
 python-oq (0.4.4-1) natty; urgency=low
 
   * fix permissions for config files in /etc/openquake (LP #850766)

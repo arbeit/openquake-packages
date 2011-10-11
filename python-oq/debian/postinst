@@ -142,7 +142,7 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
 
     # Last but not least copy the smoke tests into a more prominent place.
     if [ ! -d /usr/openquake/demos ]; then
-        cp -a $IDIR/smoketests $HDIR/demos
+        cp -a /usr/share/doc/python-oq/examples/smoketests $HDIR/demos
         chown -R root.openquake $HDIR/demos
     fi
 fi
