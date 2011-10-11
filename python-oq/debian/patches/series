@@ -5,3 +5,4 @@ setuptools.patch
 openquake.patch
 gmpe-params-1
 gmpe-params-2
+rm-unneeded-db-users

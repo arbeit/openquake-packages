@@ -1,3 +1,10 @@
+python-oq (0.4.4-5) natty; urgency=low
+
+  * Remove unneeded database users (LP #872277)
+  * fix smoketests (add DEPTHTO1PT0KMPERSEC, VS30_TYPE parameter defaults)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 11 Oct 2011 15:48:20 +0200
+
 python-oq (0.4.4-4) natty; urgency=low
 
   * turn off -x flag in debian/postinst
