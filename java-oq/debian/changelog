@@ -1,3 +1,9 @@
+java-oq (0.4.4-2) natty; urgency=low
+
+  * Require the openshalite library with the new GMPEs.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 11 Oct 2011 11:02:22 +0200
+
 java-oq (0.4.4-1) oneiric; urgency=low
 
   * Upstream release (tidies up java/python logging interplay)
