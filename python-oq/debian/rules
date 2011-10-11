@@ -24,6 +24,8 @@ override_dh_quilt_patch:
 	[ -f bin/oq_monitor ] || mv bin/openquake_supervisor bin/oq_monitor
 	[ -f bin/oq_check_monitors ] || mv bin/openquake_supersupervisor bin/oq_check_monitors
 	[ -f bin/oq_log_sink ] || mv bin/openquake_messages_collector.py bin/oq_log_sink
+	cp openquake/__init__.py /tmp
+	cat /tmp/__init__.py | sed -e "s/0)  #.*$$/`date +'%s'`)/" > openquake/__init__.py
 
 override_dh_quilt_unpatch:
 	[ -f bin/cache_gc.py ] || mv bin/oq_cache_gc bin/cache_gc.py
