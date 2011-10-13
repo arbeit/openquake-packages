@@ -1,3 +1,9 @@
+python-oq (0.4.4-8) natty; urgency=low
+
+  * Make sure all demo files are unzipped (LP: #872816)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 13 Oct 2011 10:17:08 +0200
+
 python-oq (0.4.4-7) natty; urgency=low
 
   * More robust detection of the 'openquake' system group (LP #872814)
