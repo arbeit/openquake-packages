@@ -45,7 +45,7 @@ else
     chmod 666 $HDIR/celeryconfig.py
 fi
 
-if [ `cat /etc/group | grep ^openquake | wc -l` -eq 0 ]; then
+if [ `cat /etc/group | grep ^openquake: | wc -l` -eq 0 ]; then
     addgroup --system openquake
 fi
 
@@ -59,10 +59,10 @@ do
     else
         mkdir -p $SDIR
         cp $IDIR/$cfg $SDIR
-        chown root.openquake $SDIR/$cfg
         chmod 644 $SDIR/$cfg
     fi
 done
+chown -R root.openquake $SDIR
 
 # Is postgres installed on this system?
 if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then

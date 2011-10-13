@@ -1,3 +1,9 @@
+python-oq (0.4.4-7) natty; urgency=low
+
+  * More robust detection of the 'openquake' system group (LP #872814)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 12 Oct 2011 14:37:40 +0200
+
 python-oq (0.4.4-6) natty; urgency=low
 
   * make the demo files writable by owner *and* group.
