@@ -1,3 +1,9 @@
+java-oq (0.4.4-3) oneiric; urgency=low
+
+  * Ubuntu 11.10 upload.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 14 Oct 2011 11:34:15 +0200
+
 java-oq (0.4.4-2) natty; urgency=low
 
   * Require the openshalite library with the new GMPEs.

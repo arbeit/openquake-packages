@@ -1,3 +1,21 @@
+python-oq (0.4.4-11) oneiric; urgency=low
+
+  * add python-oq_0.4.4.orig.tar.gz to upload
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 14 Oct 2011 11:57:11 +0200
+
+python-oq (0.4.4-10) oneiric; urgency=low
+
+  * Ubuntu 11.10 upload.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 14 Oct 2011 11:37:17 +0200
+
+python-oq (0.4.4-9) natty; urgency=low
+
+  * 'new_in_this_release' files apply to latest upgrade (LP: #873205)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 13 Oct 2011 10:36:04 +0200
+
 python-oq (0.4.4-8) natty; urgency=low
 
   * Make sure all demo files are unzipped (LP: #872816)
