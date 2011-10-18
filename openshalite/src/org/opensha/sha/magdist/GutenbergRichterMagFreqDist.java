@@ -63,7 +63,8 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
     public GutenbergRichterMagFreqDist(double min, int num, double delta)
             throws InvalidRangeException {
         super(min, num, delta);
-        this.magLower = min;
+        this.magLower = this.minX;
+        this.magUpper = this.maxX;
     }
 
     /**
@@ -138,6 +139,92 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
             throws InvalidRangeException, DataPoint2DException {
         super(min, num, delta);
         setAllButTotCumRate(magLower, magUpper, totMoRate, bValue);
+    }
+
+    /**
+     * Add provided value to magUpper keeping total moment rate the same.
+     *
+     * @param magUpperIncrement
+     *           : value to add to magUpper
+     */
+    public void incrementMagUpper(double magUpperIncrement) {
+        // get old total moment rate
+        double totMoRate = getTotalMomentRate();
+
+        // calculate new magUpper with respect to existing delta
+        double newMagUpper = magUpper + magUpperIncrement;
+        newMagUpper = Math.round((newMagUpper - magLower) / delta) * delta + magLower;
+
+        // calculate new number of magnitude values
+        int numVal = (int) ((newMagUpper - magLower) / delta + 1);
+
+        // changing the bins array
+        set(magLower, newMagUpper, numVal);
+
+        // preserving the same total moment rate
+        setAllButTotCumRate(magLower, newMagUpper, totMoRate, bValue);
+    }
+
+    /**
+     * Replace magUpper with a provided value.
+     *
+     * @param newMagUpper
+     *           : value to replace magUpper with, not shifted to a bin center.
+     */
+    public void setMagUpper(double newMagUpper) {
+    	double oldA = get_aValue(); 
+    	
+    	double totCumRate = Math.pow(10, oldA - bValue * (magLower - delta/2))
+    						- Math.pow(10, oldA - bValue * newMagUpper);
+    	
+    	newMagUpper -= delta / 2;
+    	// rounding with respect to delta
+    	newMagUpper = Math.round((newMagUpper - magLower) / delta) * delta + magLower;
+
+    	// calculate new number of magnitude values
+        int numVal = (int) ((newMagUpper - magLower) / delta + 1);
+
+        // changing the bins array
+        set(magLower, newMagUpper, numVal);    	
+        
+    	setAllButTotMoRate(magLower, newMagUpper, totCumRate, bValue);
+    }
+
+    /**
+     * Replace values of a and b with provided numbers.
+     *
+     * @param newA
+     *           : new value for a
+     * @param newB
+     *           : new value for b
+     */
+    public void setAB(double newA, double newB) {
+        // compute total cumulative rate between minimum and maximum magnitude
+        double totCumRate;
+        if (magLower != magUpper) {
+            totCumRate =
+                    Math.pow(10, newA - newB * (magLower - delta/2))
+                            - Math.pow(10, newA - newB * (magUpper + delta/2));
+        } else {
+            // compute incremental a value and calculate rate corresponding to
+            // minimum magnitude
+            double aIncr = newA + Math.log10(newB * Math.log(10));
+            totCumRate = Math.pow(10, aIncr - newB * magLower);
+        }
+        setAllButTotMoRate(magLower, magUpper, totCumRate, newB);
+    }
+
+    /**
+     * Increment b value by provided number keeping the total moment rate
+     * the same.
+     *
+     * @param bValueIncrement
+     *           : increment value for b
+     */
+    public void incrementB(double bValueIncrement) {
+        double newBValue = bValue + bValueIncrement;
+        double totMoRate = getTotalMomentRate();
+        setAllButTotCumRate(magLower, magUpper, totMoRate, newBValue);
     }
 
     /**
@@ -375,13 +462,28 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
     }
 
     /**
-     * @returns th bValue for this distribution
+     * @returns the bValue for this distribution
      */
 
     public double get_bValue() {
         return bValue;
     }
 
+    /**
+     * @returns the computed aValue for this distribution
+     */
+    public double get_aValue() {
+    	double TMR = getTotalMomentRate();
+    	double mMax = magUpper + delta/2;
+    	double mMin = magLower - delta/2;
+    	
+    	double mb = 1.5 - bValue;
+    	
+    	return Math.log10(TMR * mb / (Math.pow(10, mb * mMax) - Math.pow(10, mb * mMin)))
+    		   - 9.05
+    		   - Math.log10(bValue);
+    }
+    
     /**
      * 
      * @returns the magLower : lowest magnitude that has non zero rate

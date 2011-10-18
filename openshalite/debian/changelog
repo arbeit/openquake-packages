@@ -1,3 +1,9 @@
+openshalite (1.2-2) oneiric; urgency=low
+
+  * Improvements to the Gutenberg-Richter magnitude frequency distribution
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 18 Oct 2011 08:05:32 +0200
+
 openshalite (1.2-1) oneiric; urgency=low
 
   * upstream release
