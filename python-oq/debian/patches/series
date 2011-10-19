@@ -7,3 +7,4 @@ gmpe-params-1
 gmpe-params-2
 rm-unneeded-db-users
 max-mem-limit-for-java.patch
+mean-hazard-fixes-1

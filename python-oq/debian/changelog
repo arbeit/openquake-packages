@@ -1,3 +1,9 @@
+python-oq (0.4.4-13) oneiric; urgency=low
+
+  * Avoid failures while reraising exceptions (LP: #877992)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 19 Oct 2011 15:03:58 +0200
+
 python-oq (0.4.4-12) natty; urgency=low
 
   * Impose upper limit on JVM memory usage (LP: #821002)

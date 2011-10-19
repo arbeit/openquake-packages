@@ -1,0 +1,73 @@
+--- a/openquake/hazard/classical_psha.py
++++ b/openquake/hazard/classical_psha.py
+@@ -84,14 +84,20 @@
+     using as input all the pre-computed curves for different realizations."""
+     keys = []
+     for site in sites:
++        LOG.info("1> %s" % site)
++
+         poes = poes_at(job_id, site, realizations)
++        LOG.info("2> %s" % poes)
+ 
+         mean_poes = compute_mean_curve(poes)
++        LOG.info("3>")
+ 
+         key = kvs.tokens.mean_hazard_curve_key(job_id, site)
+         keys.append(key)
++        LOG.info("4> %s" % key)
+ 
+         kvs.set_value_json_encoded(key, mean_poes)
++        LOG.info("5>")
+ 
+     return keys
+ 
+--- a/openquake/hazard/tasks.py
++++ b/openquake/hazard/tasks.py
+@@ -115,11 +115,15 @@
+     """Compute the mean hazard curve for each site given."""
+ 
+     check_job_status(job_id)
+-    HAZARD_LOG.info("Computing MEAN curves for %s sites (job_id %s)"
+-            % (len(sites), job_id))
++    HAZARD_LOG.info(
++        "s> mean[hzrd], %s sites (%s)" % (len(sites), job_id))
+ 
+-    return classical_psha.compute_mean_hazard_curves(job_id, sites,
+-        realizations)
++    r = classical_psha.compute_mean_hazard_curves(job_id, sites, realizations)
++
++    HAZARD_LOG.info(
++        "e> mean[hzrd], %s sites (%s)" % (len(sites), job_id))
++
++    return r
+ 
+ 
+ @task
+--- a/openquake/utils/tasks.py
++++ b/openquake/utils/tasks.py
+@@ -158,16 +158,23 @@
+     """
+     result = TaskSet(tasks=subtasks).apply_async()
+ 
++    def instantiate_exception(eclass, exc):
++        """Only pass the *original* exception message string if present."""
++        if exc.args:
++            return eclass(exc.args[0])
++        else:
++            return eclass()
++
+     # Wait for all subtasks to complete.
+     while not result.ready():
+         time.sleep(0.25)
+     try:
+         the_results = result.join()
+     except TypeError, exc:
+-        raise WrongTaskParameters(exc.args[0])
++        raise instantiate_exception(WrongTaskParameters, exc)
+     except Exception, exc:
+         # At least one subtask failed.
+-        raise TaskFailed(exc.args[0])
++        raise instantiate_exception(TaskFailed, exc)
+ 
+     if flatten_results:
+         if the_results:
