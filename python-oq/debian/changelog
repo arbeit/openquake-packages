@@ -1,3 +1,9 @@
+python-oq (0.4.4-14) oneiric; urgency=low
+
+  * leave exceptions raised by celery tasks alone (LP: #878736)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 20 Oct 2011 12:30:50 +0200
+
 python-oq (0.4.4-13) oneiric; urgency=low
 
   * Avoid failures while reraising exceptions (LP: #877992)
