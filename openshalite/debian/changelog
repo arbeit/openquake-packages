@@ -1,3 +1,9 @@
+openshalite (1.2-3) oneiric; urgency=low
+
+  * Changes needed for the new logic tree implementation (LP: #879450)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Sat, 22 Oct 2011 18:05:10 +0200
+
 openshalite (1.2-2) oneiric; urgency=low
 
   * Improvements to the Gutenberg-Richter magnitude frequency distribution
