@@ -156,7 +156,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
         newMagUpper = Math.round((newMagUpper - magLower) / delta) * delta + magLower;
 
         // calculate new number of magnitude values
-        int numVal = (int) ((newMagUpper - magLower) / delta + 1);
+        int numVal = (int) Math.round((newMagUpper - magLower) / delta + 1);
 
         // changing the bins array
         set(magLower, newMagUpper, numVal);
@@ -182,7 +182,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
     	newMagUpper = Math.round((newMagUpper - magLower) / delta) * delta + magLower;
 
     	// calculate new number of magnitude values
-        int numVal = (int) ((newMagUpper - magLower) / delta + 1);
+        int numVal = (int) Math.round((newMagUpper - magLower) / delta) + 1;
 
         // changing the bins array
         set(magLower, newMagUpper, numVal);    	
