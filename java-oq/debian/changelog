@@ -1,3 +1,10 @@
+java-oq (0.4.4-4) oneiric; urgency=low
+
+  * java code changes needed for the new logic tree implementation
+    (LP: #879452)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Sat, 22 Oct 2011 22:49:26 +0200
+
 java-oq (0.4.4-3) oneiric; urgency=low
 
   * Ubuntu 11.10 upload.
