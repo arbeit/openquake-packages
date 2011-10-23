@@ -123,3 +123,13 @@
 +
 +reslt_writer_password = openquake
 +reslt_writer_user = oq_reslt_writer
+--- a/openquake/job/__init__.py
++++ b/openquake/job/__init__.py
+@@ -35,7 +35,6 @@
+ from openquake import java
+ from openquake import kvs
+ from openquake import logs
+-from openquake import OPENQUAKE_ROOT
+ from openquake import shapes
+ from openquake import xml
+ from openquake.parser import exposure
