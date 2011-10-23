@@ -1,8 +1,9 @@
 python-oq (0.4.4-17) oneiric; urgency=low
 
-  * Refresh the demos
+  * Refresh the demos and make sure the newest ones are always installed
+    under /usr/openquake/demos
 
- -- Muharem Hrnjadovic <mh@foldr3.com>  Sun, 23 Oct 2011 17:05:49 +0200
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Sun, 23 Oct 2011 18:12:59 +0200
 
 python-oq (0.4.4-16) oneiric; urgency=low
 
