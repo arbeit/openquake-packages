@@ -1,3 +1,10 @@
+python-oq (0.4.4-15) oneiric; urgency=low
+
+  * Added the python code needed for the new logic tree implementation
+    (LP: #879451)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Sun, 23 Oct 2011 12:27:15 +0200
+
 python-oq (0.4.4-14) oneiric; urgency=low
 
   * leave exceptions raised by celery tasks alone (LP: #878736)
