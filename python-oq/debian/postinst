@@ -150,9 +150,7 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
     # Last but not least copy the smoke tests into a more prominent place.
     if [ -d $HDIR/demos ]; then
         # Do the existing demos differ from the ones we just installed?
-        diff -qurN $HDIR/demos /usr/share/doc/python-oq/examples/smoketests >/dev/null 2>&1
-        demos_differ=$?
-        if [ $demos_differ -ne 0 ]; then
+        if ! diff -qurN $HDIR/demos /usr/share/doc/python-oq/examples/smoketests >/dev/null ; then
             # The demos do differ, move the old demos out of the way.
             tstamp=`date +"%Y-%m-%d-%H-%M-%S"`
             mv  $HDIR/demos $HDIR/demos.backup-from-$tstamp
