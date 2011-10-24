@@ -112,7 +112,15 @@
              self.params["COMPONENT"],
 --- a/openquake/hazard/opensha.py
 +++ b/openquake/hazard/opensha.py
-@@ -38,6 +38,7 @@
+@@ -25,6 +25,7 @@
+ import multiprocessing
+ import numpy
+ import random
++import functools
+ 
+ from itertools import izip
+ 
+@@ -38,6 +39,7 @@
  from openquake.hazard import job
  from openquake.hazard import tasks
  from openquake.job.mixins import Mixin
@@ -120,12 +128,34 @@
  from openquake.output import hazard as hazard_output
  from openquake.utils import config
  from openquake.utils import tasks as utils_tasks
-@@ -66,8 +67,11 @@
+@@ -58,16 +60,29 @@
+ HAZARD_MAP_FILENAME_PREFIX = 'hazardmap'
+ 
+ 
+-def preload(fn):
+-    """A decorator for preload steps that must run on the Jobber node"""
++def create_java_cache(fn):
++    """A decorator for creating java cache object"""
+ 
+-    def preloader(self, *args, **kwargs):
+-        """Validate job"""
++    @functools.wraps(fn)
++    def decorated(self, *args, **kwargs):  # pylint: disable=C0111
          self.cache = java.jclass("KVS")(
                  config.get("kvs", "host"),
                  int(config.get("kvs", "port")))
 -        self.calc = java.jclass("LogicTreeProcessor")(
 -                self.cache, self.key)
++        return fn(self, *args, **kwargs)
++
++    return decorated
++
++
++def preload(fn):
++    """A decorator for preload steps that must run on the Jobber node"""
++
++    @functools.wraps(fn)
++    def preloader(self, *args, **kwargs):  # pylint: disable=C0111
 +        source_model_lt = self.params.get('SOURCE_MODEL_LOGIC_TREE_FILE_PATH')
 +        gmpe_lt = self.params.get('GMPE_LOGIC_TREE_FILE_PATH')
 +        basepath = self.params.get('BASE_PATH')
@@ -134,7 +164,7 @@
          return fn(self, *args, **kwargs)
      return preloader
  
-@@ -96,33 +100,20 @@
+@@ -96,33 +111,20 @@
      """Contains common functionality for PSHA Mixins."""
  
      def store_source_model(self, seed):
@@ -173,7 +203,7 @@
  
      def generate_erf(self):
          """Generate the Earthquake Rupture Forecast from the currently stored
-@@ -131,16 +122,17 @@
+@@ -131,16 +133,17 @@
          sources = java.jclass("JsonSerializer").getSourceListFromCache(
                      self.cache, key)
          erf = java.jclass("GEM1ERF")(sources)
@@ -194,7 +224,7 @@
                  self.params['INTENSITY_MEASURE_TYPE'],
                  jpype.JDouble(float(self.params['PERIOD'])),
                  jpype.JDouble(float(self.params['DAMPING'])),
-@@ -187,9 +179,19 @@
+@@ -187,9 +190,19 @@
                      self.params['REFERENCE_DEPTH_TO_2PT5KM_PER_SEC_PARAM']))
              sadigh = java.jclass("StringParameter")("Sadigh Site Type")
              sadigh.setValue(self.params['SADIGH_SITE_TYPE'])
@@ -214,6 +244,40 @@
              jsite_list.add(site)
          return jsite_list
  
+@@ -393,6 +406,7 @@
+ 
+     @java.jexception
+     @preload
++    @create_java_cache
+     def execute(self):
+         """
+         Trigger the calculation and serialization of hazard curves, mean hazard
+@@ -603,7 +617,7 @@
+ 
+         return nrml_path
+ 
+-    @preload
++    @create_java_cache
+     def compute_hazard_curve(self, sites, realization):
+         """ Compute hazard curves, write them to KVS as JSON,
+         and return a list of the KVS keys for each curve. """
+@@ -709,6 +723,7 @@
+ 
+     @java.jexception
+     @preload
++    @create_java_cache
+     def execute(self):
+         """Main hazard processing block.
+ 
+@@ -789,7 +804,7 @@
+                 files.append(nrml_path)
+         return files
+ 
+-    @preload
++    @create_java_cache
+     def compute_ground_motion_fields(self, site_list, history, realization,
+                                      seed):
+         """Ground motion field calculation, runs on the workers."""
 --- /dev/null
 +++ b/openquake/input/logictree.py
 @@ -0,0 +1,1078 @@
