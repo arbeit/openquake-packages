@@ -1,22 +1,22 @@
-The sphinxcontrib-issuetracker was disabled since it connects to various issue trackers via the internet and that won't work in the build environment.
 --- a/docs/conf.py
 +++ b/docs/conf.py
-@@ -33,7 +33,6 @@
- extensions = ['sphinx.ext.autodoc',
+@@ -34,7 +34,6 @@
                'sphinx.ext.coverage',
                'sphinx.ext.pngmath',
+               'sphinx.ext.intersphinx',
 -              'sphinxcontrib.issuetracker',
                'celerydocs']
  
- # Add any paths that contain templates here, relative to this directory.
-@@ -91,10 +90,3 @@
+ html_show_sphinx = False
+@@ -100,11 +99,3 @@
      '**': ['sidebarlogo.html', 'relations.html',
             'sourcelink.html', 'searchbox.html'],
  }
 -
 -### Issuetracker
 -
--issuetracker = "github"
--issuetracker_user = "ask"
--issuetracker_project = "celery"
--issuetracker_issue_pattern = r'[Ii]ssue #(\d+)'
+-if False: #not os.environ.get("SKIP_ISSUES"):
+-    # Issue tracker is not working, just hangs
+-    issuetracker = "github"
+-    issuetracker_project = "ask/celery"
+-    issuetracker_issue_pattern = r'[Ii]ssue #(\d+)'
