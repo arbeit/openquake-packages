@@ -1,0 +1,22 @@
+--- a/docs/conf.py
++++ b/docs/conf.py
+@@ -34,7 +34,6 @@
+               'sphinx.ext.coverage',
+               'sphinx.ext.pngmath',
+               'sphinx.ext.intersphinx',
+-              'sphinxcontrib.issuetracker',
+               'celerydocs']
+ 
+ html_show_sphinx = False
+@@ -100,11 +99,3 @@
+     '**': ['sidebarlogo.html', 'relations.html',
+            'sourcelink.html', 'searchbox.html'],
+ }
+-
+-### Issuetracker
+-
+-if False: #not os.environ.get("SKIP_ISSUES"):
+-    # Issue tracker is not working, just hangs
+-    issuetracker = "github"
+-    issuetracker_project = "ask/celery"
+-    issuetracker_issue_pattern = r'[Ii]ssue #(\d+)'
