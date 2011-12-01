@@ -16,9 +16,6 @@ REGION_GRID_SPACING = 0.1
 # Choose at least one of the following:
 #   MagPMF, DistPMF, TRTPMF, MagDistPMF, MagDistEpsPMF, LatLonPMF, LatLonMagPMF,
 #   LatLonMagEpsPMF, FullDisaggMatrix
-DEPTHTO1PT0KMPERSEC = 100.0
-VS30_TYPE = measured
-
 DISAGGREGATION_RESULTS = MagPMF, MagDistEpsPMF, FullDisaggMatrix
 
 LATITUDE_BIN_LIMITS = 14.0, 16.0, 18.0, 20.0

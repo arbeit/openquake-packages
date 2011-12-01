@@ -1,0 +1,1856 @@
+--- a/smoketests/HazardMapTest/config.gem
++++ b/smoketests/HazardMapTest/config.gem
+@@ -10,6 +10,8 @@
+ 
+ [HAZARD]
+ 
++DEPTHTO1PT0KMPERSEC = 100.0
++VS30_TYPE = measured
+ SOURCE_MODEL_LT_RANDOM_SEED = 23
+ GMPE_LT_RANDOM_SEED = 5
+ GMF_RANDOM_SEED = 3
+--- a/smoketests/HazardMapTest/gmpe_logic_tree.xml
++++ b/smoketests/HazardMapTest/gmpe_logic_tree.xml
+@@ -3,14 +3,17 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1" tectonicRegion="Active Shallow Crust">
+-            <logicTreeBranchSet branchingLevel="1" uncertaintyType="gmpeModel">
+-                <logicTreeBranch>
++    <logicTree logicTreeID='lt1'>
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="gmpeModel" branchSetID="bs1"
++                    applyToTectonicRegionType="Active Shallow Crust">
++
++                <logicTreeBranch branchID="b1">
+                     <uncertaintyModel>BA_2008_AttenRel</uncertaintyModel>
+                     <uncertaintyWeight>1.0</uncertaintyWeight>
+                 </logicTreeBranch>
++
+             </logicTreeBranchSet>
+-        </logicTree>
+-    </logicTreeSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/HazardMapTest/source_model_logic_tree.xml
++++ b/smoketests/HazardMapTest/source_model_logic_tree.xml
+@@ -2,14 +2,15 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1">
+-                <logicTreeBranchSet branchingLevel="1" uncertaintyType="sourceModel">
+-                    <logicTreeBranch>
+-                        <uncertaintyModel>source_model.xml</uncertaintyModel>
+-                        <uncertaintyWeight>1.0</uncertaintyWeight>
+-                    </logicTreeBranch>
+-                </logicTreeBranchSet>
+-        </logicTree>
+-    </logicTreeSet>
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="sourceModel"
++                                branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>source_model.xml</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case10/README.txt
+@@ -0,0 +1 @@
++Source model consisting of a single area source (PEER test "AREA 1" model)
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case10/config.gem
+@@ -0,0 +1,125 @@
++[general]
++
++CALCULATION_MODE = Classical
++
++# NOTE: The order of the vertices is to be kept!!!
++# lat, lon of polygon vertices (in clock or counter-clock wise order)
++# REGION_VERTEX = 38.000, -122.000, 38.000, -122.000, 38.000, -122.000, 38.000, -122.000
++# degrees
++# REGION_GRID_SPACING = 0.1
++
++SITES = 38.000, -122.000, 37.550, -122.000, 37.099, -122.000, 36.874, -122.000
++
++[HAZARD]
++
++DEPTHTO1PT0KMPERSEC = 100.0
++VS30_TYPE = measured
++SOURCE_MODEL_LT_RANDOM_SEED = 23
++GMPE_LT_RANDOM_SEED = 5
++GMF_RANDOM_SEED = 3
++
++# file containing erf logic tree structure
++SOURCE_MODEL_LOGIC_TREE_FILE = source_model_logic_tree.xml
++# file containing gmpe logic tree structure
++GMPE_LOGIC_TREE_FILE = gmpe_logic_tree.xml
++# output directory - relative to this file
++OUTPUT_DIR = computed_output
++
++
++# moment magnitude (Mw)
++MINIMUM_MAGNITUDE = 5.0
++# years
++INVESTIGATION_TIME = 1.0
++# maximum integration distance (km)
++MAXIMUM_DISTANCE = 200.0
++# bin width of the magnitude frequency distribution
++WIDTH_OF_MFD_BIN = 0.1
++
++
++# (Average Horizontal, Average Horizontal (GMRotI50), Random Horizontal, Greater of Two Horz., Vertical)
++COMPONENT = Average Horizontal
++# (PGA (g), PGD (cm), PGV (cm/s), SA (g))
++INTENSITY_MEASURE_TYPE = PGA
++# seconds, used only for Spectral Acceleration
++PERIOD = 0.0
++# in percent
++DAMPING = 5.0
++# (in the same units of the intensity measure type)
++# TODO make it a comma separated list and adapt code (CalculatorConfigHelper.makeArbitrarilyDiscretizedFunc())
++INTENSITY_MEASURE_LEVELS = 0.001, 0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4
++# (None, 1 Sided, 2 Sided)
++GMPE_TRUNCATION_TYPE = None
++# (1,2,3,...)
++TRUNCATION_LEVEL = 3
++# (Total, Inter-Event, Intra-Event, None (zero), Total (Mag Dependent), Total (PGA Dependent), Intra-Event (Mag Dependent))
++STANDARD_DEVIATION_TYPE = None (zero)
++# (m/s)
++REFERENCE_VS30_VALUE = 760.0
++# The depth to where shear-wave velocity = 2.5 km/sec.
++# Cambpell basin depth. Measure is (km)
++REFERENCE_DEPTH_TO_2PT5KM_PER_SEC_PARAM = 5.0
++
++# Rock, Deep-Soil
++SADIGH_SITE_TYPE = Rock
++# if true compute ground motion fields using correlated model of Jayaram and Baker 2009
++GROUND_MOTION_CORRELATION = true
++
++# true or false
++INCLUDE_AREA_SOURCES = true
++# (Point Sources, Line Sources (random or given strike), Cross Hair Line Sources, 16 Spoked Line Sources)
++TREAT_AREA_SOURCE_AS = Point Sources
++# degrees
++AREA_SOURCE_DISCRETIZATION = 0.01
++# (W&C 1994 Mag-Length Rel.)
++AREA_SOURCE_MAGNITUDE_SCALING_RELATIONSHIP = W&C 1994 Mag-Length Rel.
++
++
++# true or false
++INCLUDE_GRID_SOURCES = false
++# (Point Sources, Line Sources (random or given strike), Cross Hair Line Sources, 16 Spoked Line Sources)
++TREAT_GRID_SOURCE_AS = Point Sources
++# (W&C 1994 Mag-Length Rel.)
++GRID_SOURCE_MAGNITUDE_SCALING_RELATIONSHIP = W&C 1994 Mag-Length Rel.
++
++
++# true or false
++INCLUDE_FAULT_SOURCE = true
++# km
++FAULT_RUPTURE_OFFSET = 5.0
++# km
++FAULT_SURFACE_DISCRETIZATION = 1.0
++# (W&C 1994 Mag-Length Rel.)
++FAULT_MAGNITUDE_SCALING_RELATIONSHIP = W&C 1994 Mag-Length Rel.
++FAULT_MAGNITUDE_SCALING_SIGMA = 0.0
++# (rupture length/rupture width)
++RUPTURE_ASPECT_RATIO = 1.5
++# (Only along strike ( rupture full DDW), Along strike and down dip, Along strike & centered down dip)
++RUPTURE_FLOATING_TYPE = Along strike and down dip
++
++
++# true or false
++INCLUDE_SUBDUCTION_FAULT_SOURCE = true
++# km
++SUBDUCTION_FAULT_RUPTURE_OFFSET = 10.0
++# km
++SUBDUCTION_FAULT_SURFACE_DISCRETIZATION = 10.0
++# (W&C 1994 Mag-Length Rel.)
++SUBDUCTION_FAULT_MAGNITUDE_SCALING_RELATIONSHIP = W&C 1994 Mag-Length Rel.
++SUBDUCTION_FAULT_MAGNITUDE_SCALING_SIGMA = 0.0
++# (rupture length/rupture width)
++SUBDUCTION_RUPTURE_ASPECT_RATIO = 1.5
++# (Only along strike ( rupture full DDW), Along strike and down dip, Along strike & centered down dip)
++SUBDUCTION_RUPTURE_FLOATING_TYPE = Along strike and down dip
++
++NUMBER_OF_LOGIC_TREE_SAMPLES = 1
++# (used if probabilistic event based approach is chosen)
++NUMBER_OF_SEISMICITY_HISTORIES = 1
++
++# List of quantiles to compute
++QUANTILE_LEVELS = 
++
++# Compute mean hazard curve
++COMPUTE_MEAN_HAZARD_CURVE = true
++
++# List of POEs to use for computing hazard maps
++POES =
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case10/expected_results/site1.dat
+@@ -0,0 +1,11 @@
++38.000,-122.000
++0.001,3.87E-02
++0.01,2.19E-02
++0.05,2.97E-03
++0.1,9.22E-04
++0.15,3.59E-04
++0.2,1.31E-04
++0.25,4.76E-05
++0.3,1.72E-05
++0.35,5.38E-06
++0.4,1.18E-06
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case10/expected_results/site2.dat
+@@ -0,0 +1,11 @@
++37.550,-122.000
++0.001,3.87E-02
++0.01,1.82E-02
++0.05,2.96E-03
++0.1,9.21E-04
++0.15,3.59E-04
++0.2,1.31E-04
++0.25,4.76E-05
++0.3,1.72E-05
++0.35,5.37E-06
++0.4,1.18E-06
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case10/expected_results/site3.dat
+@@ -0,0 +1,11 @@
++37.099,-122.000
++0.001,3.87E-02
++0.01,9.32E-03
++0.05,1.39E-03
++0.1,4.41E-04
++0.15,1.76E-04
++0.2,6.47E-05
++0.25,2.27E-05
++0.3,8.45E-06
++0.35,2.66E-06
++0.4,5.84E-07
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case10/expected_results/site4.dat
+@@ -0,0 +1,11 @@
++36.874,-122.000
++0.001,3.83E-02
++0.01,5.33E-03
++0.05,1.25E-04
++0.1,1.63E-06
++0.15,0.0
++0.2,0.0
++0.25,0.0
++0.3,0.0
++0.35,0.0
++0.4,0.0
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case10/gmpe_logic_tree.xml
+@@ -0,0 +1,16 @@
++<?xml version="1.0" encoding="UTF-8"?>
++
++<nrml xmlns:gml="http://www.opengis.net/gml"
++      xmlns="http://openquake.org/xmlns/nrml/0.2"
++      gml:id="n1">
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="gmpeModel" applyToTectonicRegionType="Active Shallow Crust" branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>SadighEtAl_1997_AttenRel</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
++</nrml>
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case10/source_model.xml
+@@ -0,0 +1,139 @@
++<?xml version="1.0" encoding="UTF-8"?>
++
++<nrml xmlns="http://openquake.org/xmlns/nrml/0.2" xmlns:gml="http://www.opengis.net/gml" xmlns:qml="http://quakeml.org/xmlns/quakeml/1.1" gml:id="n1">
++  <sourceModel gml:id="sm1">
++
++    <areaSource gml:id="Src1">
++      <gml:name>PEER test "AREA 1" model</gml:name>
++      <tectonicRegion>Active Shallow Crust</tectonicRegion>
++      <areaBoundary>
++        <gml:Polygon>
++          <gml:exterior>
++            <gml:LinearRing>
++              <gml:posList>
++				-122.000 38.901 
++				-121.920 38.899 
++				-121.840 38.892 
++				-121.760 38.881 
++				-121.682 38.866
++				-121.606 38.846 
++				-121.532 38.822 
++				-121.460 38.794 
++				-121.390 38.762 
++				-121.324 38.727 
++				-121.261 38.688 
++				-121.202 38.645 
++				-121.147 38.600 
++				-121.096 38.551 
++				-121.050 38.500 
++				-121.008 38.446 
++				-120.971 38.390 
++				-120.940 38.333 
++				-120.913 38.273 
++				-120.892 38.213 
++				-120.876 38.151 
++				-120.866 38.089 
++				-120.862 38.026 
++				-120.863 37.963 
++				-120.869 37.900 
++				-120.881 37.838 
++				-120.899 37.777 
++				-120.921 37.717 
++				-120.949 37.658 
++				-120.982 37.601 
++				-121.020 37.545 
++				-121.063 37.492 
++				-121.110 37.442 
++				-121.161 37.394 
++				-121.216 37.349 
++				-121.275 37.308 
++				-121.337 37.269 
++				-121.403 37.234 
++				-121.471 37.203 
++				-121.542 37.176 
++				-121.615 37.153 
++				-121.690 37.133 
++				-121.766 37.118 
++				-121.843 37.108 
++				-121.922 37.101 
++				-122.000 37.099 
++				-122.078 37.101 
++				-122.157 37.108 
++				-122.234 37.118 
++				-122.310 37.133 
++				-122.385 37.153 
++				-122.458 37.176 
++				-122.529 37.203 
++				-122.597 37.234 
++				-122.663 37.269 
++				-122.725 37.308 
++				-122.784 37.349 
++				-122.839 37.394 
++				-122.890 37.442 
++				-122.937 37.492 
++				-122.980 37.545 
++				-123.018 37.601 
++				-123.051 37.658 
++				-123.079 37.717 
++				-123.101 37.777 
++				-123.119 37.838 
++				-123.131 37.900 
++				-123.137 37.963 
++				-123.138 38.026 
++				-123.134 38.089 
++				-123.124 38.151 
++				-123.108 38.213 
++				-123.087 38.273 
++				-123.060 38.333 
++				-123.029 38.390 
++				-122.992 38.446 
++				-122.950 38.500 
++				-122.904 38.551 
++				-122.853 38.600 
++				-122.798 38.645 
++				-122.739 38.688 
++				-122.676 38.727 
++				-122.610 38.762 
++				-122.540 38.794 
++				-122.468 38.822 
++				-122.394 38.846 
++				-122.318 38.866 
++				-122.240 38.881 
++				-122.160 38.892 
++				-122.080 38.899 
++			  </gml:posList>
++            </gml:LinearRing>
++          </gml:exterior>
++        </gml:Polygon>
++      </areaBoundary>
++      <ruptureRateModel>
++        <truncatedGutenbergRichter>
++          <aValueCumulative>3.097</aValueCumulative>
++          <bValue>0.9</bValue>
++          <minMagnitude>5.0</minMagnitude>
++          <maxMagnitude>6.5</maxMagnitude>
++        </truncatedGutenbergRichter>
++        <focalMechanism publicID="smi:f01/11">
++          <qml:nodalPlanes>
++            <qml:nodalPlane1>
++              <qml:strike>
++                <qml:value>0.0</qml:value>
++              </qml:strike>
++              <qml:dip>
++                <qml:value>90.0</qml:value>
++              </qml:dip>
++              <qml:rake>
++                <qml:value>0.0</qml:value>
++              </qml:rake>
++            </qml:nodalPlane1>
++          </qml:nodalPlanes>
++        </focalMechanism>
++      </ruptureRateModel>
++      <ruptureDepthDistribution>
++        <magnitude>6.5</magnitude>
++        <depth>5.0</depth>
++      </ruptureDepthDistribution>
++      <hypocentralDepth>5.0</hypocentralDepth>
++    </areaSource>
++  </sourceModel>
++</nrml>
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case10/source_model_logic_tree.xml
+@@ -0,0 +1,15 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<nrml xmlns:gml="http://www.opengis.net/gml"
++      xmlns="http://openquake.org/xmlns/nrml/0.2"
++      gml:id="n1">
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="sourceModel" branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>source_model.xml</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
++</nrml>
+--- a/smoketests/PeerTestSet1Case2/config.gem
++++ b/smoketests/PeerTestSet1Case2/config.gem
+@@ -12,6 +12,8 @@
+ 
+ [HAZARD]
+ 
++DEPTHTO1PT0KMPERSEC = 100.0
++VS30_TYPE = measured
+ SOURCE_MODEL_LT_RANDOM_SEED = 23
+ GMPE_LT_RANDOM_SEED = 5
+ GMF_RANDOM_SEED = 3
+--- a/smoketests/PeerTestSet1Case2/expected_results/site1.dat
++++ b/smoketests/PeerTestSet1Case2/expected_results/site1.dat
+@@ -1 +1,19 @@
+-38.113,-122.0000.001,1.59E-020.01,1.59E-020.05,1.59E-020.1,1.59E-020.15,1.59E-020.2,1.59E-020.25,1.59E-020.3,1.59E-020.35,1.59E-020.4,1.18E-020.45,8.23E-030.5,5.23E-030.55,2.64E-030.6,3.63E-040.7,0.00E+000.8,0.00E+000.9,0.00E+001.0,0.00E+00
+\ No newline at end of file
++38.113,-122.000
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,1.59E-02
++0.1,1.59E-02
++0.15,1.59E-02
++0.2,1.59E-02
++0.25,1.59E-02
++0.3,1.59E-02
++0.35,1.59E-02
++0.4,1.18E-02
++0.45,8.23E-03
++0.5,5.23E-03
++0.55,2.64E-03
++0.6,3.63E-04
++0.7,0.00E+00
++0.8,0.00E+00
++0.9,0.00E+00
++1.0,0.00E+00
+--- a/smoketests/PeerTestSet1Case2/expected_results/site2.dat
++++ b/smoketests/PeerTestSet1Case2/expected_results/site2.dat
+@@ -1 +1,19 @@
+-38.113,-122.1140.001,1.59E-020.01,1.59E-020.05,1.59E-020.1,1.59E-020.15,1.59E-020.2,1.59E-020.25,0.00E+000.3,0.00E+000.35,0.00E+000.4,0.00E+000.45,0.00E+000.5,0.00E+000.55,0.00E+000.6,0.00E+000.7,0.00E+000.8,0.00E+000.9,0.00E+001.0,0.00E+00
+\ No newline at end of file
++38.113,-122.114
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,1.59E-02
++0.1,1.59E-02
++0.15,1.59E-02
++0.2,1.59E-02
++0.25,0.00E+00
++0.3,0.00E+00
++0.35,0.00E+00
++0.4,0.00E+00
++0.45,0.00E+00
++0.5,0.00E+00
++0.55,0.00E+00
++0.6,0.00E+00
++0.7,0.00E+00
++0.8,0.00E+00
++0.9,0.00E+00
++1.0,0.00E+00
+--- a/smoketests/PeerTestSet1Case2/expected_results/site3.dat
++++ b/smoketests/PeerTestSet1Case2/expected_results/site3.dat
+@@ -1 +1,19 @@
+-38.111,-122.5700.001,1.59E-020.01,1.59E-020.05,0.00E+000.1,0.00E+000.15,0.00E+000.2,0.00E+000.25,0.00E+000.3,0.00E+000.35,0.00E+000.4,0.00E+000.45,0.00E+000.5,0.00E+000.55,0.00E+000.6,0.00E+000.7,0.00E+000.8,0.00E+000.9,0.00E+001.0,0.00E+00
+\ No newline at end of file
++38.111,-122.570
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,0.00E+00
++0.1,0.00E+00
++0.15,0.00E+00
++0.2,0.00E+00
++0.25,0.00E+00
++0.3,0.00E+00
++0.35,0.00E+00
++0.4,0.00E+00
++0.45,0.00E+00
++0.5,0.00E+00
++0.55,0.00E+00
++0.6,0.00E+00
++0.7,0.00E+00
++0.8,0.00E+00
++0.9,0.00E+00
++1.0,0.00E+00
+--- a/smoketests/PeerTestSet1Case2/expected_results/site4.dat
++++ b/smoketests/PeerTestSet1Case2/expected_results/site4.dat
+@@ -1 +1,19 @@
+-38.000,-122.0000.001,1.59E-020.01,1.59E-020.05,1.59E-020.1,1.59E-020.15,1.59E-020.2,1.58E-020.25,1.20E-020.3,8.64E-030.35,5.68E-030.4,3.09E-030.45,1.51E-030.5,6.08E-040.55,1.54E-040.6,2.92E-060.7,0.00E+000.8,0.00E+000.9,0.00E+001.0,0.00E+00
+\ No newline at end of file
++38.000,-122.000
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,1.59E-02
++0.1,1.59E-02
++0.15,1.59E-02
++0.2,1.58E-02
++0.25,1.20E-02
++0.3,8.64E-03
++0.35,5.68E-03
++0.4,3.09E-03
++0.45,1.51E-03
++0.5,6.08E-04
++0.55,1.54E-04
++0.6,2.92E-06
++0.7,0.00E+00
++0.8,0.00E+00
++0.9,0.00E+00
++1.0,0.00E+00
+--- a/smoketests/PeerTestSet1Case2/expected_results/site5.dat
++++ b/smoketests/PeerTestSet1Case2/expected_results/site5.dat
+@@ -1 +1,19 @@
+-37.910,-122.0000.001,1.59E-020.01,1.59E-020.05,1.59E-020.1,1.56E-020.15,7.69E-030.2,1.60E-030.25,0.00E+000.3,0.00E+000.35,0.00E+000.4,0.00E+000.45,0.00E+000.5,0.00E+000.55,0.00E+000.6,0.00E+000.7,0.00E+000.8,0.00E+000.9,0.00E+001.0,0.00E+00
+\ No newline at end of file
++37.910,-122.000
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,1.59E-02
++0.1,1.56E-02
++0.15,7.69E-03
++0.2,1.60E-03
++0.25,0.00E+00
++0.3,0.00E+00
++0.35,0.00E+00
++0.4,0.00E+00
++0.45,0.00E+00
++0.5,0.00E+00
++0.55,0.00E+00
++0.6,0.00E+00
++0.7,0.00E+00
++0.8,0.00E+00
++0.9,0.00E+00
++1.0,0.00E+00
+--- a/smoketests/PeerTestSet1Case2/expected_results/site6.dat
++++ b/smoketests/PeerTestSet1Case2/expected_results/site6.dat
+@@ -1 +1,19 @@
+-38.225,-122.0000.001,1.59E-020.01,1.59E-020.05,1.59E-020.1,1.59E-020.15,1.59E-020.2,1.58E-020.25,1.20E-020.3,8.64E-030.35,5.68E-030.4,3.09E-030.45,1.51E-030.5,6.08E-040.55,1.54E-040.6,2.92E-060.7,0.00E+000.8,0.00E+000.9,0.00E+001.0,0.00E+00
+\ No newline at end of file
++38.225,-122.000
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,1.59E-02
++0.1,1.59E-02
++0.15,1.59E-02
++0.2,1.58E-02
++0.25,1.20E-02
++0.3,8.64E-03
++0.35,5.68E-03
++0.4,3.09E-03
++0.45,1.51E-03
++0.5,6.08E-04
++0.55,1.54E-04
++0.6,2.92E-06
++0.7,0.00E+00
++0.8,0.00E+00
++0.9,0.00E+00
++1.0,0.00E+00
+--- a/smoketests/PeerTestSet1Case2/expected_results/site7.dat
++++ b/smoketests/PeerTestSet1Case2/expected_results/site7.dat
+@@ -1 +1,19 @@
+-38.113,-121.8860.001,1.59E-020.01,1.59E-020.05,1.59E-020.1,1.59E-020.15,1.59E-020.2,1.59E-020.25,0.00E+000.3,0.00E+000.35,0.00E+000.4,0.00E+000.45,0.00E+000.5,0.00E+000.55,0.00E+000.6,0.00E+000.7,0.00E+000.8,0.00E+000.9,0.00E+001.0,0.00E+00
+\ No newline at end of file
++38.113,-121.886
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,1.59E-02
++0.1,1.59E-02
++0.15,1.59E-02
++0.2,1.59E-02
++0.25,0.00E+00
++0.3,0.00E+00
++0.35,0.00E+00
++0.4,0.00E+00
++0.45,0.00E+00
++0.5,0.00E+00
++0.55,0.00E+00
++0.6,0.00E+00
++0.7,0.00E+00
++0.8,0.00E+00
++0.9,0.00E+00
++1.0,0.00E+00
+--- a/smoketests/PeerTestSet1Case2/gmpe_logic_tree.xml
++++ b/smoketests/PeerTestSet1Case2/gmpe_logic_tree.xml
+@@ -3,17 +3,17 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1" tectonicRegion="Active Shallow Crust">
+-            <logicTreeBranchSet branchingLevel="1" uncertaintyType="gmpeModel">
++    <logicTree logicTreeID='lt1'>
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="gmpeModel" branchSetID="bs1"
++                    applyToTectonicRegionType="Active Shallow Crust">
+ 
+-                <logicTreeBranch>
++                <logicTreeBranch branchID="b1">
+                     <uncertaintyModel>SadighEtAl_1997_AttenRel</uncertaintyModel>
+                     <uncertaintyWeight>1.0</uncertaintyWeight>
+                 </logicTreeBranch>
+ 
+             </logicTreeBranchSet>
+-
+-        </logicTree>
+-    </logicTreeSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/PeerTestSet1Case2/source_model_logic_tree.xml
++++ b/smoketests/PeerTestSet1Case2/source_model_logic_tree.xml
+@@ -2,14 +2,15 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1">
+-                <logicTreeBranchSet branchingLevel="1" uncertaintyType="sourceModel">
+-                    <logicTreeBranch>
+-                        <uncertaintyModel>source_model.xml</uncertaintyModel>
+-                        <uncertaintyWeight>1.0</uncertaintyWeight>
+-                    </logicTreeBranch>
+-                </logicTreeBranchSet>
+-        </logicTree>
+-    </logicTreeSet>
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="sourceModel"
++                                branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>source_model.xml</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case5/README.txt
+@@ -0,0 +1,19 @@
++Source model consisting of a single fault (PEER test "FAULT 1" model
++The original data provided in the PEER Report ("Verification of Probabilistic Seismic Hazard Analysis Computer Programs", 
++Patricia Thomas, Ivan Wong, Norman Abrahamson, Pacific Earthquake Engineering Research Center) are the following:
++b value = -0.9
++minimum magnitude = 5.0
++maximum magnitude = 6.5
++slip rate (m/yr) = 2e-3
++rigidity (N/m2) = 3e10
++fault length  (m) = 25*1e3
++fault width (m) = 12*1e3
++From the above data we can calculate the seismic moment rate (N*m/yr):
++seismic moment rate = rigidity * fault length * fault width * slip rate
++The test set 1 case 5 define the magnitude frequency distribution as truncated exponential with minimum magnitude = 5.0 and maximum magnitude = 6.5.
++We can then compute the incremental a value using the formula given in Ward 1994 (eq. 10 pag. 1299) 
++("A multidisciplinary approach to seismic hazard in Southern California", BSSA, Vol.84, No.5, pp.1293-1309, October 1994):
++incremental a value = log10( (log(10) * (1.5 + b value) * seismic moment rate) / (10^((1.5 + b value) * maximum magnitude + 9.05)) )
++from the incremental a value we can then derive the cumulative a value, using the following formula:
++cumulative a value = incremental a value - log10(-b value * log(10))
++the resulting cumulative a value is 3.1292
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case5/config.gem
+@@ -0,0 +1,125 @@
++[general]
++
++CALCULATION_MODE = Classical
++
++# NOTE: The order of the vertices is to be kept!!!
++# lat, lon of polygon vertices (in clock or counter-clock wise order)
++# REGION_VERTEX = 38.113,-122.000, 38.113,-122.000, 38.113,-122.000, 38.113,-122.000
++# degrees
++# REGION_GRID_SPACING = 0.1
++
++SITES = 38.113, -122.000, 38.113, -122.114, 38.111, -122.570, 38.000, -122.000, 37.910, -122.000, 38.225, -122.000, 38.113, -121.886
++
++[HAZARD]
++
++DEPTHTO1PT0KMPERSEC = 100.0
++VS30_TYPE = measured
++SOURCE_MODEL_LT_RANDOM_SEED = 23
++GMPE_LT_RANDOM_SEED = 5
++GMF_RANDOM_SEED = 3
++
++# file containing erf logic tree structure
++SOURCE_MODEL_LOGIC_TREE_FILE = source_model_logic_tree.xml
++# file containing gmpe logic tree structure
++GMPE_LOGIC_TREE_FILE = gmpe_logic_tree.xml
++# output directory - relative to this file
++OUTPUT_DIR = computed_output
++
++
++# moment magnitude (Mw)
++MINIMUM_MAGNITUDE = 5.0
++# years
++INVESTIGATION_TIME = 1.0
++# maximum integration distance (km)
++MAXIMUM_DISTANCE = 200.0
++# bin width of the magnitude frequency distribution
++WIDTH_OF_MFD_BIN = 0.1
++
++
++# (Average Horizontal, Average Horizontal (GMRotI50), Random Horizontal, Greater of Two Horz., Vertical)
++COMPONENT = Average Horizontal
++# (PGA (g), PGD (cm), PGV (cm/s), SA (g))
++INTENSITY_MEASURE_TYPE = PGA
++# seconds, used only for Spectral Acceleration
++PERIOD = 0.0
++# in percent
++DAMPING = 5.0
++# (in the same units of the intensity measure type)
++# TODO make it a comma separated list and adapt code (CalculatorConfigHelper.makeArbitrarilyDiscretizedFunc())
++INTENSITY_MEASURE_LEVELS = 0.001, 0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 1.0
++# (None, 1 Sided, 2 Sided)
++GMPE_TRUNCATION_TYPE = 2 Sided
++# (1,2,3,...)
++TRUNCATION_LEVEL = 3
++# (Total, Inter-Event, Intra-Event, None (zero), Total (Mag Dependent), Total (PGA Dependent), Intra-Event (Mag Dependent))
++STANDARD_DEVIATION_TYPE = None (zero)
++# (m/s)
++REFERENCE_VS30_VALUE = 760.0
++# The depth to where shear-wave velocity = 2.5 km/sec.
++# Cambpell basin depth. Measure is (km)
++REFERENCE_DEPTH_TO_2PT5KM_PER_SEC_PARAM = 5.0
++
++# Rock, Deep-Soil
++SADIGH_SITE_TYPE = Rock
++# if true compute ground motion fields using correlated model of Jayaram and Baker 2009
++GROUND_MOTION_CORRELATION = true
++
++# true or false
++INCLUDE_AREA_SOURCES = true
++# (Point Sources, Line Sources (random or given strike), Cross Hair Line Sources, 16 Spoked Line Sources)
++TREAT_AREA_SOURCE_AS = Point Sources
++# degrees
++AREA_SOURCE_DISCRETIZATION = 0.1
++# (W&C 1994 Mag-Length Rel.)
++AREA_SOURCE_MAGNITUDE_SCALING_RELATIONSHIP = W&C 1994 Mag-Length Rel.
++
++
++# true or false
++INCLUDE_GRID_SOURCES = true
++# (Point Sources, Line Sources (random or given strike), Cross Hair Line Sources, 16 Spoked Line Sources)
++TREAT_GRID_SOURCE_AS = Point Sources
++# (W&C 1994 Mag-Length Rel.)
++GRID_SOURCE_MAGNITUDE_SCALING_RELATIONSHIP = W&C 1994 Mag-Length Rel.
++
++
++# true or false
++INCLUDE_FAULT_SOURCE = true
++# km
++FAULT_RUPTURE_OFFSET = 1.0
++# km
++FAULT_SURFACE_DISCRETIZATION = 1.0
++# (W&C 1994 Mag-Length Rel.)
++FAULT_MAGNITUDE_SCALING_RELATIONSHIP = PEER Tests Mag-Area Rel.
++FAULT_MAGNITUDE_SCALING_SIGMA = 0.0
++# (rupture length/rupture width)
++RUPTURE_ASPECT_RATIO = 2.0
++# (Only along strike ( rupture full DDW), Along strike and down dip, Along strike & centered down dip)
++RUPTURE_FLOATING_TYPE = Along strike and down dip
++
++
++# true or false
++INCLUDE_SUBDUCTION_FAULT_SOURCE = true
++# km
++SUBDUCTION_FAULT_RUPTURE_OFFSET = 10.0
++# km
++SUBDUCTION_FAULT_SURFACE_DISCRETIZATION = 10.0
++# (W&C 1994 Mag-Length Rel.)
++SUBDUCTION_FAULT_MAGNITUDE_SCALING_RELATIONSHIP = W&C 1994 Mag-Length Rel.
++SUBDUCTION_FAULT_MAGNITUDE_SCALING_SIGMA = 0.0
++# (rupture length/rupture width)
++SUBDUCTION_RUPTURE_ASPECT_RATIO = 1.5
++# (Only along strike ( rupture full DDW), Along strike and down dip, Along strike & centered down dip)
++SUBDUCTION_RUPTURE_FLOATING_TYPE = Along strike and down dip
++
++NUMBER_OF_LOGIC_TREE_SAMPLES = 1
++# (used if probabilistic event based approach is chosen)
++NUMBER_OF_SEISMICITY_HISTORIES = 1
++
++# List of quantiles to compute
++QUANTILE_LEVELS = 
++
++# Compute mean hazard curve
++COMPUTE_MEAN_HAZARD_CURVE = true
++
++# List of POEs to use for computing hazard maps
++POES =
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case5/expected_results/site1.dat
+@@ -0,0 +1,19 @@
++38.113,-122.000
++0.001,4.00E-02
++0.01,4.00E-02
++0.05,4.00E-02
++0.1,3.99E-02
++0.15,3.46E-02
++0.2,2.57E-02
++0.25,1.89E-02
++0.3,1.37E-02
++0.35,9.88E-03
++0.4,6.93E-03
++0.45,4.84E-03
++0.5,3.36E-03
++0.55,2.34E-03
++0.6,1.52E-03
++0.7,5.12E-04
++0.8,0.0
++0.9,0.0
++1.0,0.0
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case5/expected_results/site2.dat
+@@ -0,0 +1,19 @@
++38.113,-122.114
++0.001,4.00E-02
++0.01,4.00E-02
++0.05,4.00E-02
++0.1,3.31E-02
++0.15,1.22E-02
++0.2,4.85E-03
++0.25,1.76E-03
++0.3,2.40E-04
++0.35,0.0
++0.4,0.0
++0.45,0.0
++0.5,0.0
++0.55,0.0
++0.6,0.0
++0.7,0.0
++0.8,0.0
++0.9,0.0
++1.0,0.0
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case5/expected_results/site3.dat
+@@ -0,0 +1,19 @@
++38.111,-122.570
++0.001,4.00E-02
++0.01,4.00E-02
++0.05,0.0
++0.1,0.0
++0.15,0.0
++0.2,0.0
++0.25,0.0
++0.3,0.0
++0.35,0.0
++0.4,0.0
++0.45,0.0
++0.5,0.0
++0.55,0.0
++0.6,0.0
++0.7,0.0
++0.8,0.0
++0.9,0.0
++1.0,0.0
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case5/expected_results/site4.dat
+@@ -0,0 +1,19 @@
++38.000,-122.000
++0.001,3.99E-02
++0.01,3.99E-02
++0.05,3.98E-02
++0.1,2.99E-02
++0.15,2.00E-02
++0.2,1.30E-02
++0.25,8.58E-03
++0.3,5.72E-03
++0.35,3.88E-03
++0.4,2.69E-03
++0.45,1.91E-03
++0.5,1.37E-03
++0.55,9.74E-04
++0.6,6.75E-04
++0.7,2.52E-04
++0.8,0.00E+00
++0.9,0.0
++1.0,0.0
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case5/expected_results/site5.dat
+@@ -0,0 +1,19 @@
++37.910,-122.000
++0.001,3.99E-02
++0.01,3.99E-02
++0.05,3.14E-02
++0.1,1.21E-02
++0.15,4.41E-03
++0.2,1.89E-03
++0.25,7.53E-04
++0.3,1.25E-04
++0.35,0.00E+00
++0.4,0.00E+00
++0.45,0.00E+00
++0.5,0.00E+00
++0.55,0.00E+00
++0.6,0.00E+00
++0.7,0.00E+00
++0.8,0.00E+00
++0.9,0.0
++1.0,0.0
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case5/expected_results/site6.dat
+@@ -0,0 +1,19 @@
++38.225,-122.000
++0.001,3.99E-02
++0.01,3.99E-02
++0.05,3.98E-02
++0.1,2.99E-02
++0.15,2.00E-02
++0.2,1.30E-02
++0.25,8.58E-03
++0.3,5.72E-03
++0.35,3.88E-03
++0.4,2.69E-03
++0.45,1.91E-03
++0.5,1.37E-03
++0.55,9.74E-04
++0.6,6.75E-04
++0.7,2.52E-04
++0.8,0.00E+00
++0.9,0.0
++1.0,0.0
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case5/expected_results/site7.dat
+@@ -0,0 +1,19 @@
++38.113,-121.886
++0.001,4.00E-02
++0.01,4.00E-02
++0.05,4.00E-02
++0.1,3.31E-02
++0.15,1.22E-02
++0.2,4.85E-03
++0.25,1.76E-03
++0.3,2.40E-04
++0.35,0.0
++0.4,0.0
++0.45,0.0
++0.5,0.0
++0.55,0.0
++0.6,0.0
++0.7,0.0
++0.8,0.0
++0.9,0.0
++1.0,0.0
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case5/gmpe_logic_tree.xml
+@@ -0,0 +1,16 @@
++<?xml version="1.0" encoding="UTF-8"?>
++
++<nrml xmlns:gml="http://www.opengis.net/gml"
++      xmlns="http://openquake.org/xmlns/nrml/0.2"
++      gml:id="n1">
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="gmpeModel" applyToTectonicRegionType="Active Shallow Crust" branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>SadighEtAl_1997_AttenRel</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
++</nrml>
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case5/source_model.xml
+@@ -0,0 +1,41 @@
++<?xml version='1.0' encoding='utf-8'?>
++<nrml xmlns:gml="http://www.opengis.net/gml" 
++      xmlns:qml="http://quakeml.org/xmlns/quakeml/1.1"
++      xmlns="http://openquake.org/xmlns/nrml/0.2"
++      gml:id="n1">
++
++    <sourceModel gml:id="sm1">
++		
++        <simpleFaultSource gml:id="src01">
++            <gml:name>PEER test "FAULT 1" model</gml:name>
++            
++            <tectonicRegion>Active Shallow Crust</tectonicRegion>
++            <rake>0.0</rake>
++            
++	        <truncatedGutenbergRichter>
++                <aValueCumulative>3.1292</aValueCumulative>
++                <bValue>0.9</bValue>
++                <minMagnitude>5.0</minMagnitude>
++                <maxMagnitude>6.5</maxMagnitude>
++            </truncatedGutenbergRichter>
++
++            <simpleFaultGeometry gml:id="sfg_1">
++
++                <faultTrace>
++                    <gml:LineString srsName="urn:ogc:def:crs:EPSG::4326">
++                        <gml:posList>
++                            -122.0 38.00000  0.0
++                            -122.0 38.22480  0.0
++                        </gml:posList>
++                    </gml:LineString>
++                </faultTrace>
++
++                <dip>90</dip>
++                <upperSeismogenicDepth>0.0</upperSeismogenicDepth>
++                <lowerSeismogenicDepth>12.0</lowerSeismogenicDepth>
++            </simpleFaultGeometry>
++
++        </simpleFaultSource>
++        
++    </sourceModel>
++</nrml>
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case5/source_model_logic_tree.xml
+@@ -0,0 +1,15 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<nrml xmlns:gml="http://www.opengis.net/gml"
++      xmlns="http://openquake.org/xmlns/nrml/0.2"
++      gml:id="n1">
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="sourceModel" branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>source_model.xml</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
++</nrml>
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case8a/README.txt
+@@ -0,0 +1,20 @@
++Source model consisting of a single fault (PEER test "FAULT 1" model)
++The original data provided in the PEER Report ("Verification of Probabilistic Seismic Hazard Analysis Computer Programs", 
++Patricia Thomas, Ivan Wong, Norman Abrahamson, Pacific Earthquake Engineering Research Center) are the following:
++b value = -0.9
++slip rate (m/yr) = 2e-3
++rigidity (N/m2) = 3e10
++fault length  (m) = 25*1e3
++fault width (m) = 12*1e3
++From the above data we can calculate the seismic moment rate (N*m/yr):
++seismic moment rate = rigidity * fault length * fault width * slip rate
++For test set 1 case 8, the magnitude density function is assumed to be a delta function at M = 6.0.
++We can then compute the corresponding occurrence rate, calculating first the incremental a value assuming M=6 as the only possible rupture. 
++By imposing the following equality:
++10^(a incremental + b value * M) * 10(1.5 * M + 9.05) = seismic moment rate
++we can derive the following equation:
++a incremental = log10(seismic moment rate) - (1.5 + b value) * M - 9.05
++from the incremental a value we can then derive the cumulative a value, using the following formula:
++cumulative a value = incremental a value - log10(-b value * log(10))
++the resulting cumulative a value is 3.2828. By defining the magnitude frequency distribution of the fault to have Mmin=Mmax=M=6, 
++we can define a delta function as requested by the test and with the appropriate occurrence rate.
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case8a/config.gem
+@@ -0,0 +1,126 @@
++[general]
++
++CALCULATION_MODE = Classical
++
++# NOTE: The order of the vertices is to be kept!!!
++# lat, lon of polygon vertices (in clock or counter-clock wise order)
++# REGION_VERTEX = 38.225,-122.000,38.225,-122.000,38.225,-122.000,38.225,-122.000
++# degrees
++# REGION_GRID_SPACING = 0.1
++
++SITES = 38.113, -122.000, 38.113, -122.114, 38.111, -122.570, 38.000,-122.000, 37.910, -122.000, 38.225, -122.000, 38.113, -121.886
++
++[HAZARD]
++
++DEPTHTO1PT0KMPERSEC = 100.0
++VS30_TYPE = measured
++SOURCE_MODEL_LT_RANDOM_SEED = 23
++GMPE_LT_RANDOM_SEED = 5
++GMF_RANDOM_SEED = 3
++
++# file containing erf logic tree structure
++SOURCE_MODEL_LOGIC_TREE_FILE = source_model_logic_tree.xml
++# file containing gmpe logic tree structure
++GMPE_LOGIC_TREE_FILE = gmpe_logic_tree.xml
++# output directory - relative to this file
++OUTPUT_DIR = computed_output
++
++
++# moment magnitude (Mw)
++MINIMUM_MAGNITUDE = 5.0
++# years
++INVESTIGATION_TIME = 1.0
++# maximum integration distance (km)
++MAXIMUM_DISTANCE = 200.0
++# bin width of the magnitude frequency distribution
++WIDTH_OF_MFD_BIN = 0.1
++
++
++# (Average Horizontal, Average Horizontal (GMRotI50), Random Horizontal, Greater of Two Horz., Vertical)
++COMPONENT = Average Horizontal
++# (PGA (g), PGD (cm), PGV (cm/s), SA (g))
++INTENSITY_MEASURE_TYPE = PGA
++# seconds, used only for Spectral Acceleration
++PERIOD = 0.0
++# in percent
++DAMPING = 5.0
++# (in the same units of the intensity measure type)
++# TODO make it a comma separated list and adapt code (CalculatorConfigHelper.makeArbitrarilyDiscretizedFunc())
++INTENSITY_MEASURE_LEVELS = 0.001, 0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 1.0
++# (None, 1 Sided, 2 Sided)
++GMPE_TRUNCATION_TYPE = None
++# (1,2,3,...)
++TRUNCATION_LEVEL = 3
++# (Total, Inter-Event, Intra-Event, None (zero), Total (Mag Dependent), Total (PGA Dependent), Intra-Event (Mag Dependent))
++STANDARD_DEVIATION_TYPE = Total
++# (m/s)
++REFERENCE_VS30_VALUE = 760.0
++# The depth to where shear-wave velocity = 2.5 km/sec.
++# Cambpell basin depth. Measure is (km)
++REFERENCE_DEPTH_TO_2PT5KM_PER_SEC_PARAM = 5.0
++
++# Rock, Deep-Soil
++SADIGH_SITE_TYPE = Rock
++# if true compute ground motion fields using correlated model of Jayaram and Baker 2009
++GROUND_MOTION_CORRELATION = true
++
++# true or false
++INCLUDE_AREA_SOURCES = true
++# (Point Sources, Line Sources (random or given strike), Cross Hair Line Sources, 16 Spoked Line Sources)
++TREAT_AREA_SOURCE_AS = Point Sources
++# degrees
++AREA_SOURCE_DISCRETIZATION = 0.1
++# (W&C 1994 Mag-Length Rel.)
++AREA_SOURCE_MAGNITUDE_SCALING_RELATIONSHIP = W&C 1994 Mag-Length Rel.
++
++
++# true or false
++INCLUDE_GRID_SOURCES = true
++# (Point Sources, Line Sources (random or given strike), Cross Hair Line Sources, 16 Spoked Line Sources)
++TREAT_GRID_SOURCE_AS = Point Sources
++# (W&C 1994 Mag-Length Rel.)
++GRID_SOURCE_MAGNITUDE_SCALING_RELATIONSHIP = W&C 1994 Mag-Length Rel.
++
++
++# true or false
++INCLUDE_FAULT_SOURCE = true
++# km
++FAULT_RUPTURE_OFFSET = 1.0
++# km
++FAULT_SURFACE_DISCRETIZATION = 1.0
++# (W&C 1994 Mag-Length Rel.)
++FAULT_MAGNITUDE_SCALING_RELATIONSHIP = PEER Tests Mag-Area Rel.
++FAULT_MAGNITUDE_SCALING_SIGMA = 0.0
++# (rupture length/rupture width)
++RUPTURE_ASPECT_RATIO = 2.0
++# (Only along strike ( rupture full DDW), Along strike and down dip, Along strike & centered down dip)
++RUPTURE_FLOATING_TYPE = Along strike and down dip
++
++
++# true or false
++INCLUDE_SUBDUCTION_FAULT_SOURCE = true
++# km
++SUBDUCTION_FAULT_RUPTURE_OFFSET = 10.0
++# km
++SUBDUCTION_FAULT_SURFACE_DISCRETIZATION = 10.0
++# (W&C 1994 Mag-Length Rel.)
++SUBDUCTION_FAULT_MAGNITUDE_SCALING_RELATIONSHIP = W&C 1994 Mag-Length Rel.
++SUBDUCTION_FAULT_MAGNITUDE_SCALING_SIGMA = 0.0
++# (rupture length/rupture width)
++SUBDUCTION_RUPTURE_ASPECT_RATIO = 1.5
++# (Only along strike ( rupture full DDW), Along strike and down dip, Along strike & centered down dip)
++SUBDUCTION_RUPTURE_FLOATING_TYPE = Along strike and down dip
++
++NUMBER_OF_LOGIC_TREE_SAMPLES = 1
++# (used if probabilistic event based approach is chosen)
++NUMBER_OF_SEISMICITY_HISTORIES = 1
++
++# List of quantiles to compute
++QUANTILE_LEVELS = 
++
++# Compute mean hazard curve
++COMPUTE_MEAN_HAZARD_CURVE = true
++
++# List of POEs to use for computing hazard maps
++POES =
++
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case8a/expected_results/site1.dat
+@@ -0,0 +1,19 @@
++38.113,-122.000
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,1.59E-02
++0.1,1.59E-02
++0.15,1.56E-02
++0.2,1.48E-02
++0.25,1.36E-02
++0.3,1.22E-02
++0.35,1.09E-02
++0.4,9.50E-03
++0.45,8.12E-03
++0.5,6.99E-03
++0.55,5.99E-03
++0.6,5.12E-03
++0.7,3.68E-03
++0.8,2.65E-03
++0.9,1.91E-03
++1,1.40E-03
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case8a/expected_results/site2.dat
+@@ -0,0 +1,19 @@
++38.113,-122.114
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,1.59E-02
++0.1,1.47E-02
++0.15,1.20E-02
++0.2,8.98E-03
++0.25,6.41E-03
++0.3,4.49E-03
++0.35,3.09E-03
++0.4,2.14E-03
++0.45,1.49E-03
++0.5,1.04E-03
++0.55,7.40E-04
++0.6,5.24E-04
++0.7,2.68E-04
++0.8,1.44E-04
++0.9,7.89E-05
++1,4.48E-05
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case8a/expected_results/site3.dat
+@@ -0,0 +1,19 @@
++38.111,-122.570
++0.001,1.59E-02
++0.01,1.57E-02
++0.05,3.42E-03
++0.1,3.19E-04
++0.15,4.15E-05
++0.2,7.37E-06
++0.25,1.61E-06
++0.3,4.03E-07
++0.35,0.0
++0.4,0.0
++0.45,0.0
++0.5,0.0
++0.55,0.0
++0.6,0.0
++0.7,0.0
++0.8,0.0
++0.9,0.0
++1,0.0
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case8a/expected_results/site4.dat
+@@ -0,0 +1,19 @@
++38.000,-122.000
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,1.59E-02
++0.1,1.55E-02
++0.15,1.41E-02
++0.2,1.22E-02
++0.25,1.03E-02
++0.3,8.39E-03
++0.35,6.80E-03
++0.4,5.49E-03
++0.45,4.37E-03
++0.5,3.52E-03
++0.55,2.84E-03
++0.6,2.29E-03
++0.7,1.51E-03
++0.8,1.00E-03
++0.9,6.74E-04
++1,4.58E-04
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case8a/expected_results/site5.dat
+@@ -0,0 +1,19 @@
++37.910,-122.000
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,1.55E-02
++0.1,1.20E-02
++0.15,7.98E-03
++0.2,4.99E-03
++0.25,3.08E-03
++0.3,1.91E-03
++0.35,1.21E-03
++0.4,7.68E-04
++0.45,4.99E-04
++0.5,3.25E-04
++0.55,2.19E-04
++0.6,1.48E-04
++0.7,7.01E-05
++0.8,3.50E-05
++0.9,1.81E-05
++1,9.72E-06
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case8a/expected_results/site6.dat
+@@ -0,0 +1,19 @@
++38.225,-122.000
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,1.59E-02
++0.1,1.55E-02
++0.15,1.40E-02
++0.2,1.22E-02
++0.25,1.02E-02
++0.3,8.38E-03
++0.35,6.79E-03
++0.4,5.48E-03
++0.45,4.36E-03
++0.5,3.51E-03
++0.55,2.83E-03
++0.6,2.28E-03
++0.7,1.50E-03
++0.8,9.97E-04
++0.9,6.71E-04
++1,4.56E-04
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case8a/expected_results/site7.dat
+@@ -0,0 +1,19 @@
++38.113,-121.886
++0.001,1.59E-02
++0.01,1.59E-02
++0.05,1.59E-02
++0.1,1.47E-02
++0.15,1.20E-02
++0.2,8.98E-03
++0.25,6.41E-03
++0.3,4.49E-03
++0.35,3.09E-03
++0.4,2.14E-03
++0.45,1.49E-03
++0.5,1.04E-03
++0.55,7.40E-04
++0.6,5.24E-04
++0.7,2.68E-04
++0.8,1.44E-04
++0.9,7.89E-05
++1,4.48E-05
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case8a/gmpe_logic_tree.xml
+@@ -0,0 +1,16 @@
++<?xml version="1.0" encoding="UTF-8"?>
++
++<nrml xmlns:gml="http://www.opengis.net/gml"
++      xmlns="http://openquake.org/xmlns/nrml/0.2"
++      gml:id="n1">
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="gmpeModel" applyToTectonicRegionType="Active Shallow Crust" branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>SadighEtAl_1997_AttenRel</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
++</nrml>
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case8a/source_model.xml
+@@ -0,0 +1,41 @@
++<?xml version='1.0' encoding='utf-8'?>
++<nrml xmlns:gml="http://www.opengis.net/gml" 
++      xmlns:qml="http://quakeml.org/xmlns/quakeml/1.1"
++      xmlns="http://openquake.org/xmlns/nrml/0.2"
++      gml:id="n1">
++
++    <sourceModel gml:id="sm1">
++		
++        <simpleFaultSource gml:id="src01">
++            <gml:name>PEER test "FAULT 1" model</gml:name>
++            
++            <tectonicRegion>Active Shallow Crust</tectonicRegion>
++            <rake>0.0</rake>
++            
++	        <truncatedGutenbergRichter>
++                <aValueCumulative>3.2828</aValueCumulative>
++                <bValue>0.9</bValue>
++                <minMagnitude>6.0</minMagnitude>
++                <maxMagnitude>6.0</maxMagnitude>
++            </truncatedGutenbergRichter>
++
++            <simpleFaultGeometry gml:id="sfg_1">
++
++                <faultTrace>
++                    <gml:LineString srsName="urn:ogc:def:crs:EPSG::4326">
++                        <gml:posList>
++                            -122.0 38.00000  0.0
++                            -122.0 38.22480  0.0
++                        </gml:posList>
++                    </gml:LineString>
++                </faultTrace>
++
++                <dip>90</dip>
++                <upperSeismogenicDepth>0.0</upperSeismogenicDepth>
++                <lowerSeismogenicDepth>12.0</lowerSeismogenicDepth>
++            </simpleFaultGeometry>
++
++        </simpleFaultSource>
++        
++    </sourceModel>
++</nrml>
+--- /dev/null
++++ b/smoketests/PeerTestSet1Case8a/source_model_logic_tree.xml
+@@ -0,0 +1,15 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<nrml xmlns:gml="http://www.opengis.net/gml"
++      xmlns="http://openquake.org/xmlns/nrml/0.2"
++      gml:id="n1">
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="sourceModel" branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>source_model.xml</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
++</nrml>
+--- a/smoketests/area_source_demo_hazard/config.gem
++++ b/smoketests/area_source_demo_hazard/config.gem
+@@ -10,6 +10,8 @@
+ 
+ [HAZARD]
+ 
++DEPTHTO1PT0KMPERSEC = 100.0
++VS30_TYPE = measured
+ SOURCE_MODEL_LT_RANDOM_SEED = 23
+ GMPE_LT_RANDOM_SEED = 5
+ GMF_RANDOM_SEED = 3
+--- a/smoketests/area_source_demo_hazard/gmpe_logic_tree.xml
++++ b/smoketests/area_source_demo_hazard/gmpe_logic_tree.xml
+@@ -3,17 +3,17 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1" tectonicRegion="Active Shallow Crust">
+-            <logicTreeBranchSet branchingLevel="1" uncertaintyType="gmpeModel">
++    <logicTree logicTreeID='lt1'>
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="gmpeModel" branchSetID="bs1"
++                    applyToTectonicRegionType="Active Shallow Crust">
+ 
+-                <logicTreeBranch>
++                <logicTreeBranch branchID="b1">
+                     <uncertaintyModel>BA_2008_AttenRel</uncertaintyModel>
+                     <uncertaintyWeight>1.0</uncertaintyWeight>
+                 </logicTreeBranch>
+ 
+             </logicTreeBranchSet>
+-
+-        </logicTree>
+-    </logicTreeSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/area_source_demo_hazard/source_model_logic_tree.xml
++++ b/smoketests/area_source_demo_hazard/source_model_logic_tree.xml
+@@ -2,14 +2,15 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1">
+-                <logicTreeBranchSet branchingLevel="1" uncertaintyType="sourceModel">
+-                    <logicTreeBranch>
+-                        <uncertaintyModel>SEAsiaGSHAP.xml</uncertaintyModel>
+-                        <uncertaintyWeight>1.0</uncertaintyWeight>
+-                    </logicTreeBranch>
+-                </logicTreeBranchSet>
+-        </logicTree>
+-    </logicTreeSet>
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="sourceModel"
++                                branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>SEAsiaGSHAP.xml</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/classical_psha_based_risk/config.gem
++++ b/smoketests/classical_psha_based_risk/config.gem
+@@ -10,6 +10,8 @@
+ 
+ [HAZARD]
+ 
++DEPTHTO1PT0KMPERSEC = 100.0
++VS30_TYPE = measured
+ SOURCE_MODEL_LT_RANDOM_SEED = 23
+ GMPE_LT_RANDOM_SEED = 5
+ GMF_RANDOM_SEED = 3
+--- a/smoketests/classical_psha_based_risk/gmpe_logic_tree.xml
++++ b/smoketests/classical_psha_based_risk/gmpe_logic_tree.xml
+@@ -3,17 +3,17 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1" tectonicRegion="Active Shallow Crust">
+-            <logicTreeBranchSet branchingLevel="1" uncertaintyType="gmpeModel">
++    <logicTree logicTreeID='lt1'>
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="gmpeModel" branchSetID="bs1"
++                    applyToTectonicRegionType="Active Shallow Crust">
+ 
+-                <logicTreeBranch>
++                <logicTreeBranch branchID="b1">
+                     <uncertaintyModel>BA_2008_AttenRel</uncertaintyModel>
+                     <uncertaintyWeight>1.0</uncertaintyWeight>
+                 </logicTreeBranch>
+ 
+             </logicTreeBranchSet>
+-
+-        </logicTree>
+-    </logicTreeSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/classical_psha_based_risk/source_model_logic_tree.xml
++++ b/smoketests/classical_psha_based_risk/source_model_logic_tree.xml
+@@ -2,16 +2,15 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-
+-        <logicTree id="lt1">
+-                <logicTreeBranchSet branchingLevel="1" uncertaintyType="sourceModel">
+-                    <logicTreeBranch>
+-                        <uncertaintyModel>dissFaultModel.xml</uncertaintyModel>
+-                        <uncertaintyWeight>1.0</uncertaintyWeight>
+-                    </logicTreeBranch>
+-                </logicTreeBranchSet>
+-        </logicTree>
+-    </logicTreeSet>
+-
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="sourceModel"
++                                branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>dissFaultModel.xml</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/complex_fault_demo_hazard/config.gem
++++ b/smoketests/complex_fault_demo_hazard/config.gem
+@@ -11,6 +11,8 @@
+ 
+ [HAZARD]
+ 
++DEPTHTO1PT0KMPERSEC = 100.0
++VS30_TYPE = measured
+ SOURCE_MODEL_LT_RANDOM_SEED = 23
+ GMPE_LT_RANDOM_SEED = 5
+ GMF_RANDOM_SEED = 3
+--- a/smoketests/complex_fault_demo_hazard/gmpe_logic_tree.xml
++++ b/smoketests/complex_fault_demo_hazard/gmpe_logic_tree.xml
+@@ -3,17 +3,17 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1" tectonicRegion="Subduction Interface">
+-            <logicTreeBranchSet branchingLevel="1" uncertaintyType="gmpeModel">
++    <logicTree logicTreeID='lt1'>
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="gmpeModel" branchSetID="bs1"
++                    applyToTectonicRegionType="Subduction Interface">
+ 
+-                <logicTreeBranch>
++                <logicTreeBranch branchID="b1">
+                     <uncertaintyModel>BA_2008_AttenRel</uncertaintyModel>
+                     <uncertaintyWeight>1.0</uncertaintyWeight>
+                 </logicTreeBranch>
+ 
+             </logicTreeBranchSet>
+-
+-        </logicTree>
+-    </logicTreeSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/complex_fault_demo_hazard/source_model_logic_tree.xml
++++ b/smoketests/complex_fault_demo_hazard/source_model_logic_tree.xml
+@@ -2,14 +2,15 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1">
+-                <logicTreeBranchSet branchingLevel="1" uncertaintyType="sourceModel">
+-                    <logicTreeBranch>
+-                        <uncertaintyModel>CascadiaSubduction.xml</uncertaintyModel>
+-                        <uncertaintyWeight>1.0</uncertaintyWeight>
+-                    </logicTreeBranch>
+-                </logicTreeBranchSet>
+-        </logicTree>
+-    </logicTreeSet>
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="sourceModel"
++                                branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>CascadiaSubduction.xml</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/deterministic_event_based_risk/config.gem
++++ b/smoketests/deterministic_event_based_risk/config.gem
+@@ -10,6 +10,8 @@
+ 
+ [HAZARD]
+ 
++DEPTHTO1PT0KMPERSEC = 100.0
++VS30_TYPE = measured
+ RUPTURE_SURFACE_DISCRETIZATION = 0.1
+ 
+ # (Average Horizontal, Average Horizontal (GMRotI50), Random Horizontal, Greater of Two Horz., Vertical)
+--- a/smoketests/disaggregation/config.gem
++++ b/smoketests/disaggregation/config.gem
+@@ -10,12 +10,14 @@
+ 
+ [HAZARD]
+ 
++DEPTHTO1PT0KMPERSEC = 100.0
++VS30_TYPE = measured
+ # Disaggregation results are Probability Mass Functions (PMFs)
+ # Which are composed of different combinations of the following:
+ # Latitude, Longitude, Magnitude, Distance, Epsilon, Tectonic Region Type
+ # Choose at least one of the following:
+ #   MagPMF, DistPMF, TRTPMF, MagDistPMF, MagDistEpsPMF, LatLonPMF, LatLonMagPMF,
+-#   LatLonMagEpsPMF, FullDisaggMatrix
++#   LatLonMagEpsPMF, MagTRTPMF, LatLonTRTPMF, FullDisaggMatrix
+ DISAGGREGATION_RESULTS = MagPMF, MagDistEpsPMF, FullDisaggMatrix
+ 
+ LATITUDE_BIN_LIMITS = 14.0, 16.0, 18.0, 20.0
+--- a/smoketests/disaggregation/gmpe_logic_tree.xml
++++ b/smoketests/disaggregation/gmpe_logic_tree.xml
+@@ -3,17 +3,17 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1" tectonicRegion="Active Shallow Crust">
+-            <logicTreeBranchSet branchingLevel="1" uncertaintyType="gmpeModel">
++    <logicTree logicTreeID='lt1'>
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="gmpeModel" branchSetID="bs1"
++                    applyToTectonicRegionType="Active Shallow Crust">
+ 
+-                <logicTreeBranch>
++                <logicTreeBranch branchID="b1">
+                     <uncertaintyModel>BA_2008_AttenRel</uncertaintyModel>
+                     <uncertaintyWeight>1.0</uncertaintyWeight>
+                 </logicTreeBranch>
+ 
+             </logicTreeBranchSet>
+-
+-        </logicTree>
+-    </logicTreeSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/disaggregation/source_model_logic_tree.xml
++++ b/smoketests/disaggregation/source_model_logic_tree.xml
+@@ -2,14 +2,15 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1">
+-                <logicTreeBranchSet branchingLevel="1" uncertaintyType="sourceModel">
+-                    <logicTreeBranch>
+-                        <uncertaintyModel>SEAsiaGSHAP.xml</uncertaintyModel>
+-                        <uncertaintyWeight>1.0</uncertaintyWeight>
+-                    </logicTreeBranch>
+-                </logicTreeBranchSet>
+-        </logicTree>
+-    </logicTreeSet>
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="sourceModel"
++                                branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>SEAsiaGSHAP.xml</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/probabilistic_event_based_risk/config.gem
++++ b/smoketests/probabilistic_event_based_risk/config.gem
+@@ -10,6 +10,8 @@
+ 
+ [HAZARD]
+ 
++DEPTHTO1PT0KMPERSEC = 100.0
++VS30_TYPE = measured
+ SOURCE_MODEL_LT_RANDOM_SEED = 23
+ GMPE_LT_RANDOM_SEED = 5
+ 
+--- a/smoketests/probabilistic_event_based_risk/gmpe_logic_tree.xml
++++ b/smoketests/probabilistic_event_based_risk/gmpe_logic_tree.xml
+@@ -3,17 +3,17 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1" tectonicRegion="Active Shallow Crust">
+-            <logicTreeBranchSet branchingLevel="1" uncertaintyType="gmpeModel">
++    <logicTree logicTreeID='lt1'>
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="gmpeModel" branchSetID="bs1"
++                    applyToTectonicRegionType="Active Shallow Crust">
+ 
+-                <logicTreeBranch>
++                <logicTreeBranch branchID="b1">
+                     <uncertaintyModel>BA_2008_AttenRel</uncertaintyModel>
+                     <uncertaintyWeight>1.0</uncertaintyWeight>
+                 </logicTreeBranch>
+ 
+             </logicTreeBranchSet>
+-
+-        </logicTree>
+-    </logicTreeSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/probabilistic_event_based_risk/source_model_logic_tree.xml
++++ b/smoketests/probabilistic_event_based_risk/source_model_logic_tree.xml
+@@ -2,16 +2,15 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-
+-        <logicTree id="lt1">
+-                <logicTreeBranchSet branchingLevel="1" uncertaintyType="sourceModel">
+-                    <logicTreeBranch>
+-                        <uncertaintyModel>dissFaultModel.xml</uncertaintyModel>
+-                        <uncertaintyWeight>1.0</uncertaintyWeight>
+-                    </logicTreeBranch>
+-                </logicTreeBranchSet>
+-        </logicTree>
+-    </logicTreeSet>
+-
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="sourceModel"
++                                branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>dissFaultModel.xml</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/simple_fault_demo_hazard/config.gem
++++ b/smoketests/simple_fault_demo_hazard/config.gem
+@@ -10,6 +10,8 @@
+ 
+ [HAZARD]
+ 
++DEPTHTO1PT0KMPERSEC = 100.0
++VS30_TYPE = measured
+ SOURCE_MODEL_LT_RANDOM_SEED = 23
+ GMPE_LT_RANDOM_SEED = 5
+ GMF_RANDOM_SEED = 3
+--- a/smoketests/simple_fault_demo_hazard/gmpe_logic_tree.xml
++++ b/smoketests/simple_fault_demo_hazard/gmpe_logic_tree.xml
+@@ -3,17 +3,17 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1" tectonicRegion="Active Shallow Crust">
+-            <logicTreeBranchSet branchingLevel="1" uncertaintyType="gmpeModel">
++    <logicTree logicTreeID='lt1'>
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="gmpeModel" branchSetID="bs1"
++                    applyToTectonicRegionType="Active Shallow Crust">
+ 
+-                <logicTreeBranch>
++                <logicTreeBranch branchID="b1">
+                     <uncertaintyModel>BA_2008_AttenRel</uncertaintyModel>
+                     <uncertaintyWeight>1.0</uncertaintyWeight>
+                 </logicTreeBranch>
+ 
+             </logicTreeBranchSet>
+-
+-        </logicTree>
+-    </logicTreeSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
+--- a/smoketests/simple_fault_demo_hazard/source_model_logic_tree.xml
++++ b/smoketests/simple_fault_demo_hazard/source_model_logic_tree.xml
+@@ -2,14 +2,15 @@
+ <nrml xmlns:gml="http://www.opengis.net/gml"
+       xmlns="http://openquake.org/xmlns/nrml/0.2"
+       gml:id="n1">
+-    <logicTreeSet>
+-        <logicTree id="lt1">
+-                <logicTreeBranchSet branchingLevel="1" uncertaintyType="sourceModel">
+-                    <logicTreeBranch>
+-                        <uncertaintyModel>dissFaultModel.xml</uncertaintyModel>
+-                        <uncertaintyWeight>1.0</uncertaintyWeight>
+-                    </logicTreeBranch>
+-                </logicTreeBranchSet>
+-        </logicTree>
+-    </logicTreeSet>
++    <logicTree logicTreeID="lt1">
++        <logicTreeBranchingLevel branchingLevelID="bl1">
++            <logicTreeBranchSet uncertaintyType="sourceModel"
++                                branchSetID="bs1">
++                <logicTreeBranch branchID="b1">
++                    <uncertaintyModel>dissFaultModel.xml</uncertaintyModel>
++                    <uncertaintyWeight>1.0</uncertaintyWeight>
++                </logicTreeBranch>
++            </logicTreeBranchSet>
++        </logicTreeBranchingLevel>
++    </logicTree>
+ </nrml>
