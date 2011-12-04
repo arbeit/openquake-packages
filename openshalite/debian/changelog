@@ -1,3 +1,9 @@
+openshalite (1.2-4) oneiric; urgency=low
+
+  * Upstream release (LP: #898633)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 01 Dec 2011 15:07:56 +0100
+
 openshalite (1.2-3) oneiric; urgency=low
 
   * Changes needed for the new logic tree implementation (LP: #879450)
