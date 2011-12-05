@@ -146,11 +146,11 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
         cd $HDIR && nohup celeryd --purge > /tmp/celeryd.log 2>&1 3>&1 &
     fi
 
-    cd /usr/share/doc/python-oq/examples/smoketests && find . | grep gz$ | xargs gunzip -f
+    cd /usr/share/doc/python-oq/examples/demos && find . | grep gz$ | xargs gunzip -f
     # Last but not least copy the smoke tests into a more prominent place.
     if [ -d $HDIR/demos ]; then
         # Do the existing demos differ from the ones we just installed?
-        if ! diff -qurN $HDIR/demos /usr/share/doc/python-oq/examples/smoketests >/dev/null ; then
+        if ! diff -qurN $HDIR/demos /usr/share/doc/python-oq/examples/demos >/dev/null ; then
             # The demos do differ, move the old demos out of the way.
             tstamp=`date +"%Y-%m-%d-%H-%M-%S"`
             mv  $HDIR/demos $HDIR/demos.backup-from-$tstamp
@@ -159,7 +159,7 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
     # If the $HDIR/demos directory is still in place the old/new demos do not
     # differ i.e. there's no point in installing them again.
     if [ ! -d $HDIR/demos ]; then
-        cp -a /usr/share/doc/python-oq/examples/smoketests $HDIR/demos
+        cp -a /usr/share/doc/python-oq/examples/demos $HDIR
         cd $HDIR/demos && chown -R root.openquake .
         # Make the demo files writable by owner and group.
         cd $HDIR/demos && find . -type f | xargs chmod 664
