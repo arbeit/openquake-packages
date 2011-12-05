@@ -1,0 +1,32 @@
+--- a/openquake/celeryconfig.py
++++ b/openquake/celeryconfig.py
+@@ -45,7 +45,6 @@
+ CELERY_RESULT_BACKEND = "amqp"
+ 
+ 
+-CELERY_IMPORTS = (
+-    "openquake.risk.job", "openquake.hazard.tasks", "tests.utils.tasks")
++CELERY_IMPORTS = ("openquake.risk.job", "openquake.hazard.tasks")
+ 
+ os.environ["DJANGO_SETTINGS_MODULE"] = "openquake.settings"
+--- a/openquake/openquake.cfg
++++ b/openquake/openquake.cfg
+@@ -47,9 +47,6 @@
+ job_superv_password = openquake
+ job_superv_user = oq_job_superv
+ 
+-oqmif_password = openquake
+-oqmif_user = oq_ged4gem
+-
+ reslt_writer_password = openquake
+ reslt_writer_user = oq_reslt_writer
+ 
+@@ -57,8 +54,5 @@
+ # JVM max. memory size (in MB) to be used (per celery worker process!)
+ max_mem = 768
+ 
+-[tasks]
+-block_size = 4096
+-
+ [nfs]
+ base_dir = /var/lib/openquake
