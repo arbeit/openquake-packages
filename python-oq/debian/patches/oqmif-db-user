@@ -1,13 +1,3 @@
---- a/openquake/openquake.cfg
-+++ b/openquake/openquake.cfg
-@@ -49,3 +49,7 @@
- 
- reslt_writer_password = openquake
- reslt_writer_user = oq_reslt_writer
-+
-+[java]
-+# JVM max. memory size (in MB) to be used (per celery worker process!)
-+max_mem = 768
 --- a/openquake/settings.py
 +++ b/openquake/settings.py
 @@ -60,7 +60,6 @@
