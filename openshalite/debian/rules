@@ -10,7 +10,7 @@ build: build-stamp
 
 build-stamp:
 	dh_testdir
-	jh_build --with quilt openshalite.jar src
+	jh_build openshalite.jar src
 	ln -s src/org
 	jar uf openshalite.jar org/opensha/sha/imr/attenRelImpl/as_2008_coeff.txt
 	jar uf openshalite.jar org/opensha/sha/imr/attenRelImpl/campbell_2008_coeff.txt
