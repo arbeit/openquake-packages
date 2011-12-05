@@ -17,7 +17,6 @@
 # version 3 along with OpenQuake.  If not, see
 # <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
 
-
 """
 Constants and helper functions for XML processing,
 including namespaces, and namespace maps.
@@ -25,6 +24,7 @@ including namespaces, and namespace maps.
 
 from lxml import etree
 
+from openquake import nrml
 from openquake import shapes
 
 
@@ -75,6 +75,7 @@ RISK_LOSS_MAP_CONTAINER_TAG = "%slossMap" % NRML
 RISK_LOSS_MAP_LOSS_CONTAINER_TAG = "%sloss" % NRML
 RISK_LOSS_MAP_MEAN_LOSS_TAG = "%smean" % NRML
 RISK_LOSS_MAP_STANDARD_DEVIATION_TAG = "%sstdDev" % NRML
+RISK_LOSS_MAP_VALUE = "%svalue" % NRML
 RISK_LOSS_MAP_LOSS_CATEGORY_ATTR = "lossCategory"
 RISK_LOSS_MAP_UNIT_ATTR = "unit"
 RISK_LOSS_MAP_ASSET_REF_ATTR = "assetRef"
@@ -103,7 +104,7 @@ class XMLMismatchError(Exception):
         self.expected_tag = expected_tag
 
     _HUMANIZE_FILE = {
-        'logicTreeSet': 'logic tree',
+        'logicTree': 'logic tree',
         'sourceModel': 'source model',
         'exposurePortfolio': 'exposure portfolio',
         'vulnerabilityModel': 'vulnerability model',
@@ -120,7 +121,8 @@ class XMLMismatchError(Exception):
         return self.message
 
 
-def validates_against_xml_schema(xml_instance_path, schema_path):
+def validates_against_xml_schema(xml_instance_path,
+        schema_path=nrml.nrml_schema_file()):
     """
     Checks whether an XML file validates against an XML Schema
 

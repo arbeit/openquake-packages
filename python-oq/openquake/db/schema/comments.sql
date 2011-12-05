@@ -194,7 +194,7 @@ COMMENT ON TABLE oqmif.exposure_data IS 'Per-asset risk exposure data';
 COMMENT ON COLUMN oqmif.exposure_data.exposure_model_id IS 'Foreign key to the exposure model';
 COMMENT ON COLUMN oqmif.exposure_data.asset_ref IS 'A unique identifier (within the exposure model) for the asset at hand';
 COMMENT ON COLUMN oqmif.exposure_data.value IS 'The value of the asset at hand';
-COMMENT ON COLUMN oqmif.exposure_data.vf_ref IS 'A reference to the vulnerability function that should be used for the asset at hand';
+COMMENT ON COLUMN oqmif.exposure_data.taxonomy IS 'A reference to the taxonomy that should be used for the asset at hand';
 COMMENT ON COLUMN oqmif.exposure_data.structure_type IS 'An optional structure type for the asset at hand';
 COMMENT ON COLUMN oqmif.exposure_data.retrofitting_cost IS 'An optional cost of retrofitting for the asset at hand';
 COMMENT ON COLUMN oqmif.exposure_data.last_update IS 'Date/time of the last change of the exposure data for the asset at hand';
@@ -213,7 +213,7 @@ COMMENT ON COLUMN oqmif.exposure_model.last_update IS 'Date/time of the last cha
 -- riski schema tables ------------------------------------------
 COMMENT ON TABLE riski.vulnerability_function IS 'A risk vulnerability function';
 COMMENT ON COLUMN riski.vulnerability_function.vulnerability_model_id IS 'A reference to the vulnerability model this function belongs to';
-COMMENT ON COLUMN riski.vulnerability_function.vf_ref IS 'The vulnerability function reference, unique within the vulnerability model.';
+COMMENT ON COLUMN riski.vulnerability_function.taxonomy IS 'The taxonomy, unique within the vulnerability model.';
 COMMENT ON COLUMN riski.vulnerability_function.loss_ratios IS 'Loss ratio values, one per IML value in the vulnerability model.';
 COMMENT ON COLUMN riski.vulnerability_function.covs IS 'Coefficient of variation values, one per IML value in the vulnerability model.';
 COMMENT ON COLUMN riski.vulnerability_function.last_update IS 'Date/time of the last change of the data at hand';
@@ -234,6 +234,7 @@ COMMENT ON COLUMN riskr.loss_map.loss_map_ref IS 'A simple identifier';
 COMMENT ON COLUMN riskr.loss_map.end_branch_label IS 'End branch label';
 COMMENT ON COLUMN riskr.loss_map.category IS 'Loss category (e.g. economic_loss).';
 COMMENT ON COLUMN riskr.loss_map.unit IS 'Unit of measurement';
+COMMENT ON COLUMN riskr.loss_map.timespan IS 'timespan of years (for non deterministic loss maps, i.e. classical/probabilistic)';
 COMMENT ON COLUMN riskr.loss_map.poe IS 'Probability of exceedance (for probabilistic loss maps)';
 
 
@@ -303,24 +304,27 @@ COMMENT ON TABLE uiapi.oq_job IS 'Date related to an OpenQuake job that was crea
 COMMENT ON COLUMN uiapi.oq_job.description IS 'A description of the OpenQuake job, allows users to browse jobs and their inputs/outputs at a later point.';
 COMMENT ON COLUMN uiapi.oq_job.job_pid IS 'The process id (PID) of the OpenQuake engine runner process';
 COMMENT ON COLUMN uiapi.oq_job.supervisor_pid IS 'The process id (PID) of the supervisor for this OpenQuake job';
-COMMENT ON COLUMN uiapi.oq_job.job_type IS 'One of: classical, event_based, deterministic, or disaggregation.';
+COMMENT ON COLUMN uiapi.oq_job.job_type IS 'One of: classical, event_based, deterministic, disaggregation, or uhs.';
 COMMENT ON COLUMN uiapi.oq_job.status IS 'One of: pending, running, failed or succeeded.';
 COMMENT ON COLUMN uiapi.oq_job.duration IS 'The job''s duration in seconds (only available once the jobs terminates).';
 
 
 COMMENT ON TABLE uiapi.job_stats IS 'Tracks various job statistics';
 COMMENT ON COLUMN uiapi.job_stats.num_sites IS 'The number of total sites in the calculation';
+COMMENT ON COLUMN uiapi.job_stats.realizations IS 'The number of logic tree samples in the calculation (for hazard jobs of all types except deterministic)';
 
 
 COMMENT ON TABLE uiapi.oq_params IS 'Holds the parameters needed to invoke the OpenQuake engine.';
-COMMENT ON COLUMN uiapi.oq_params.job_type IS 'One of: classical, event_based, deterministic, or disaggregation.';
+COMMENT ON COLUMN uiapi.oq_params.job_type IS 'One of: classical, event_based, deterministic, disaggregation, or uhs.';
 COMMENT ON COLUMN uiapi.oq_params.histories IS 'Number of seismicity histories';
 COMMENT ON COLUMN uiapi.oq_params.imls IS 'Intensity measure levels';
 COMMENT ON COLUMN uiapi.oq_params.imt IS 'Intensity measure type, one of:
     - peak ground acceleration (pga)
     - spectral acceleration (sa)
     - peak ground velocity (pgv)
-    - peak ground displacement (pgd)';
+    - peak ground displacement (pgd)
+    - Arias Intensity (ia)
+    - relative significant duration (rsd)';
 COMMENT ON COLUMN uiapi.oq_params.poes IS 'Probabilities of exceedence';
 COMMENT ON COLUMN uiapi.oq_params.region IS 'Region of interest for the calculation (Polygon)';
 COMMENT ON COLUMN uiapi.oq_params.region_grid_spacing IS 'Desired cell size (in degrees), used when splitting up the region of interest. This effectively defines the resolution of the calculation. (Smaller grid spacing means more sites and thus more calculations.)';

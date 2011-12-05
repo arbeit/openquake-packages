@@ -41,12 +41,14 @@ from openquake.db.models import (
 from openquake.supervising import supervisor
 from openquake.job.handlers import resolve_handler
 from openquake.job import config as conf
+from openquake.job import params as job_params
 from openquake.job.mixins import Mixin
 from openquake.job.params import (
     PARAMS, CALCULATION_MODE, ENUM_MAP, PATH_PARAMS, INPUT_FILE_TYPES,
     ARRAY_RE)
 from openquake.kvs import mark_job_as_current
 from openquake.logs import LOG
+from openquake.utils import stats
 
 RE_INCLUDE = re.compile(r'^(.*)_INCLUDE')
 
@@ -299,6 +301,9 @@ def prepare_job(params):
     job.oq_params = oqp
     job.save()
 
+    # Reset all progress indication counters for the job at hand.
+    stats.delete_job_counters(job.id)
+
     return job
 
 
@@ -409,8 +414,8 @@ class Job(object):
         self.serialize_results_to = list(serialize_results_to)
 
     def has(self, name):
-        """Return true if this job has the given parameter defined
-        and specified, false otherwise."""
+        """Return false if this job doesn't have the given parameter defined,
+        or parameter's string value otherwise."""
         return name in self.params and self.params[name]
 
     @property
@@ -469,7 +474,12 @@ class Job(object):
                 self.execute()
 
     def __getitem__(self, name):
-        return self.params[name]
+        defined_param = job_params.PARAMS.get(name)
+        if (hasattr(defined_param, 'to_job')
+            and defined_param.to_job is not None
+            and self.params.get(name) is not None):
+            return defined_param.to_job(self.params.get(name))
+        return self.params.get(name)
 
     def __eq__(self, other):
         return self.params == other.params
@@ -542,7 +552,7 @@ class Job(object):
 
     def _extract_coords(self, config_param):
         """Extract from a configuration parameter the list of coordinates."""
-        verts = [float(x) for x in self.params[config_param].split(",")]
+        verts = self[config_param]
         return zip(verts[1::2], verts[::2])
 
     def _sites_for_region(self):
@@ -550,7 +560,7 @@ class Job(object):
         region = shapes.Region.from_coordinates(
             self._extract_coords('REGION_VERTEX'))
 
-        region.cell_size = float(self.params['REGION_GRID_SPACING'])
+        region.cell_size = self['REGION_GRID_SPACING']
         return [site for site in region]
 
     def build_nrml_path(self, nrml_file):
@@ -582,8 +592,9 @@ class Job(object):
     @property
     def imls(self):
         "Return the intensity measure levels as specified in the config file"
-        return self.extract_values_from_config('INTENSITY_MEASURE_LEVELS',
-                                               separator=',')
+        if self.has('INTENSITY_MEASURE_LEVELS'):
+            return self['INTENSITY_MEASURE_LEVELS']
+        return None
 
     def _record_initial_stats(self):
         '''
@@ -592,11 +603,16 @@ class Job(object):
         '''
         oq_job = OqJob.objects.get(id=self.job_id)
 
-        stats = JobStats(oq_job=oq_job)
-        stats.start_time = datetime.utcnow()
-        stats.num_sites = len(self.sites_to_compute())
+        job_stats = JobStats(oq_job=oq_job)
+        job_stats.start_time = datetime.utcnow()
+        job_stats.num_sites = len(self.sites_to_compute())
 
-        stats.save()
+        job_type = CALCULATION_MODE[self['CALCULATION_MODE']]
+        if conf.HAZARD_SECTION in self.sections:
+            if job_type != 'deterministic':
+                job_stats.realizations = self["NUMBER_OF_LOGIC_TREE_SAMPLES"]
+
+        job_stats.save()
 
 
 def read_sites_from_exposure(a_job):
