@@ -1,3 +1,9 @@
+java-oq (0.4.6-1) oneiric; urgency=low
+
+  * Upstream release (LP: #898635)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Sun, 04 Dec 2011 22:46:12 +0100
+
 java-oq (0.4.4-4) oneiric; urgency=low
 
   * java code changes needed for the new logic tree implementation
