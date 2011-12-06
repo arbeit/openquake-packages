@@ -1,3 +1,9 @@
+python-oq (0.4.6-2) oneiric; urgency=low
+
+  * Add missing dependency, python-h5py (LP: #900300)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 05 Dec 2011 15:09:37 +0100
+
 python-oq (0.4.6-1) oneiric; urgency=low
 
   * Upstream release (LP: #898634)
