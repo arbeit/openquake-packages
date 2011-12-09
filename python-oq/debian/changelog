@@ -1,3 +1,10 @@
+python-oq (0.4.6-5) natty; urgency=low
+
+  * Make sure the demos that were broken in 0.4.6 are not installed
+    (LP: #901112)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 09 Dec 2011 16:40:50 +0100
+
 python-oq (0.4.6-4) natty; urgency=low
 
   * Tolerate the failure of chown and/or chmod on /var/lib/openquake

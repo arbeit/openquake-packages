@@ -8,4 +8,3 @@ logsink-cfg.patch
 setuptools.patch
 openquake.patch
 oqmif-db-user
-debian-changes-0.4.6-3
