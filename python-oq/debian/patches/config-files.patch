@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/openquake/celeryconfig.py
-@@ -0,0 +1,50 @@
+@@ -0,0 +1,51 @@
 +# -*- coding: utf-8 -*-
 +# vim: tabstop=4 shiftwidth=4 softtabstop=4
 +
@@ -48,7 +48,8 @@
 +CELERY_RESULT_BACKEND = "amqp"
 +
 +
-+CELERY_IMPORTS = ("openquake.risk.job", "openquake.hazard.tasks")
++CELERY_IMPORTS = ("openquake.risk.job", "openquake.hazard.tasks",
++                  "openquake.hazard.disagg.core")
 +
 +os.environ["DJANGO_SETTINGS_MODULE"] = "openquake.settings"
 --- /dev/null
