@@ -1,3 +1,10 @@
+python-oq (0.4.6-3) natty; urgency=low
+
+  * Remove UHS changes in order to fix python-java-bridge failures
+    (LP: #900617)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 09 Dec 2011 07:51:19 +0100
+
 python-oq (0.4.6-2) oneiric; urgency=low
 
   * Add missing dependency, python-h5py (LP: #900300)
