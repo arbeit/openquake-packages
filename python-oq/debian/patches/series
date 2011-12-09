@@ -1,3 +1,4 @@
+rollback-python-code-to-pr-589.patch
 rm-demo_smoketest.patch
 rm-broken-demos.patch
 config-files.patch
