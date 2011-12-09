@@ -37,6 +37,9 @@ HDIR=/usr/openquake
 IDIR=/usr/share/pyshared/openquake
 mkdir -p $HDIR
 chmod 1777 $HDIR
+VDIR=/var/lib/openquake
+mkdir -p $VDIR
+chmod 1777 $VDIR
 
 rm -f $HDIR/celeryconfig.py.new_in_this_release
 if [ -f $HDIR/celeryconfig.py ]; then
