@@ -1,5 +1,6 @@
+rm-demo_smoketest.patch
+rm-broken-demos.patch
 config-files.patch
-list_to_jdouble_array.patch
 create_oq_schema-fix-sudo.patch
 oqpath.patch
 logsink-cfg.patch
