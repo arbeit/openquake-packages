@@ -1,3 +1,10 @@
+python-oq (0.4.6-4) natty; urgency=low
+
+  * Tolerate the failure of chown and/or chmod on /var/lib/openquake
+    (LP: #902083)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 09 Dec 2011 10:38:46 +0100
+
 python-oq (0.4.6-3) natty; urgency=low
 
   * Remove UHS changes in order to fix python-java-bridge failures

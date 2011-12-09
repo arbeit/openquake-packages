@@ -39,7 +39,10 @@ mkdir -p $HDIR
 chmod 1777 $HDIR
 VDIR=/var/lib/openquake
 mkdir -p $VDIR
-chmod 1777 $VDIR
+# We should tolerate the failure of the next 2 commands, see
+# https://bugs.launchpad.net/openquake/+bug/902083 for details.
+chown -R root.openquake $VDIR 2>/dev/null || echo "Failed to change the $VDIR owner. Please make sure all is proper."
+chmod 1777 $VDIR 2>/dev/null || echo "Failed to change the $VDIR permissions. Please make sure all is proper."
 
 rm -f $HDIR/celeryconfig.py.new_in_this_release
 if [ -f $HDIR/celeryconfig.py ]; then

@@ -3,7 +3,7 @@ Section: python
 Priority: extra
 Maintainer: Muharem Hrnjadovic <mh@foldr3.com>
 Build-Depends: debhelper (>= 7.0.50~), python-support, python (>=2.6), python-setuptools, quilt
-Standards-Version: 3.9.2
+Standards-Version: 3.9.1
 Homepage: http://openquake.org/
 
 Package: python-oq
