@@ -1,3 +1,10 @@
+python-oq (0.4.6-6) oneiric; urgency=low
+
+  * Make sure /var/lib/openquake/disagg-results exists and has an
+    appropriate owner and permissions (LP: #904659)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 15 Dec 2011 12:26:28 +0100
+
 python-oq (0.4.6-5) natty; urgency=low
 
   * Make sure the demos that were broken in 0.4.6 are not installed

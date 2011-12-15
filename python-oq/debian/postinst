@@ -42,7 +42,10 @@ mkdir -p $VDIR
 # We should tolerate the failure of the next 2 commands, see
 # https://bugs.launchpad.net/openquake/+bug/902083 for details.
 chown -R root.openquake $VDIR 2>/dev/null || echo "Failed to change the $VDIR owner. Please make sure all is proper."
-chmod 1777 $VDIR 2>/dev/null || echo "Failed to change the $VDIR permissions. Please make sure all is proper."
+chmod 1770 $VDIR 2>/dev/null || echo "Failed to change the $VDIR permissions. Please make sure all is proper."
+mkdir -p $VDIR/disagg-results
+chown root.openquake $VDIR/disagg-results
+chmod 770 $VDIR/disagg-results
 
 rm -f $HDIR/celeryconfig.py.new_in_this_release
 if [ -f $HDIR/celeryconfig.py ]; then
