@@ -1,3 +1,10 @@
+python-oq (0.4.6-8) oneiric; urgency=low
+
+  * Repackage 0.4.6-6 (no asynchronous classical PSHA code)
+    for oneiric (also fix the postgres-9.1 issues).
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 16 Dec 2011 11:34:47 +0100
+
 python-oq (0.4.6-6) oneiric; urgency=low
 
   * Make sure /var/lib/openquake/disagg-results exists and has an

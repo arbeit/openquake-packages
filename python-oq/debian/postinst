@@ -76,7 +76,7 @@ done
 chown -R root.openquake $SDIR
 
 # Is postgres installed on this system?
-if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
+if [ -f /usr/lib/postgresql/9.1/bin/postgres ]; then
     # postgres is installed, flatten and recreate the database.
 
     # Restart postgres in order to get rid of idle/open connections
@@ -118,7 +118,7 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
         exit 1
     fi
 
-    PG_ROOT=/etc/postgresql/8.4/main
+    PG_ROOT=/etc/postgresql/9.1/main
     # Do we already have oq_* database users configured and how many?
     oq_config_lines=`grep oq_ $PG_ROOT/pg_hba.conf | grep -v '^#' | wc -l`
     # Do we already have oq_* database users *auto-configured* and how many?
