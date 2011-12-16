@@ -1,3 +1,9 @@
+python-oq (0.4.6-7) oneiric; urgency=low
+
+  * Package the asynchronous classical PSHA code (LP: #904945)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 15 Dec 2011 21:54:15 +0100
+
 python-oq (0.4.6-6) oneiric; urgency=low
 
   * Make sure /var/lib/openquake/disagg-results exists and has an

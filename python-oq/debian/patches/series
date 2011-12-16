@@ -1,4 +1,5 @@
 rollback-python-code-to-pr-589.patch
+async-hazard-calc.patch
 rm-demo_smoketest.patch
 rm-broken-demos.patch
 config-files.patch
