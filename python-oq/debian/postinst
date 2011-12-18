@@ -37,15 +37,13 @@ HDIR=/usr/openquake
 IDIR=/usr/share/pyshared/openquake
 mkdir -p $HDIR
 chmod 1777 $HDIR
-VDIR=/var/lib/openquake
-mkdir -p $VDIR
-# We should tolerate the failure of the next 2 commands, see
-# https://bugs.launchpad.net/openquake/+bug/902083 for details.
-chown -R root.openquake $VDIR 2>/dev/null || echo "Failed to change the $VDIR owner. Please make sure all is proper."
-chmod 1770 $VDIR 2>/dev/null || echo "Failed to change the $VDIR permissions. Please make sure all is proper."
-mkdir -p $VDIR/disagg-results
-chown root.openquake $VDIR/disagg-results
-chmod 770 $VDIR/disagg-results
+for vdir in /var/lib/openquake /var/lib/openquake/disagg-results; do
+    if [ ! -d $vdir ]; then
+        mkdir -p $vdir 2>/dev/null || echo "Failed to create $vdir, please make sure all is proper."
+    fi
+    chown -R root.openquake $vdir 2>/dev/null || echo "Failed to change the $vdir owner, please make sure all is proper."
+    chmod 1770 $vdir 2>/dev/null || echo "Failed to change the $vdir permissions, please make sure all is proper."
+done
 
 rm -f $HDIR/celeryconfig.py.new_in_this_release
 if [ -f $HDIR/celeryconfig.py ]; then
