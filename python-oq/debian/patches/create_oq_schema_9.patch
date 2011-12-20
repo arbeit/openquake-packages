@@ -157,8 +157,8 @@
 +        test -d "$full_tspace_path"
 +        if [ $? -ne 0 ]; then
 +            echo ".. Creating table space path $full_tspace_path .."
-+            sudo mkdir -p $full_tspace_path
-+            sudo chown -R postgres.postgres $full_tspace_path
++            mkdir -p $full_tspace_path
++            chown -R postgres.postgres $full_tspace_path
 +        fi
 +
 +        # Create the actual table space.
