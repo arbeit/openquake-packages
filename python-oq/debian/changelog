@@ -1,3 +1,10 @@
+python-oq (0.4.6-9) oneiric; urgency=low
+
+  * add a debian/preinst script that makes sure we have no garbage
+    from previous package installation lying around (LP: #906613).
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 20 Dec 2011 10:43:12 +0100
+
 python-oq (0.4.6-8) oneiric; urgency=low
 
   * Repackage 0.4.6-6 (no asynchronous classical PSHA code)
