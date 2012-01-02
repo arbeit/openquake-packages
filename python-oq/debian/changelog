@@ -1,3 +1,9 @@
+python-oq (0.4.6-10) oneiric; urgency=low
+
+  * Only use one amqp log handler per celery worker (LP: #907360).
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 02 Jan 2012 13:10:50 +0100
+
 python-oq (0.4.6-9) oneiric; urgency=low
 
   * add a debian/preinst script that makes sure we have no garbage

@@ -1,5 +1,6 @@
 create_oq_schema_9.patch
 rollback-python-code-to-pr-589.patch
+single-amqp-handler.patch
 rm-demo_smoketest.patch
 rm-broken-demos.patch
 config-files.patch
@@ -9,3 +10,4 @@ logsink-cfg.patch
 setuptools.patch
 openquake.patch
 oqmif-db-user
+debian-changes-0.4.6-10
