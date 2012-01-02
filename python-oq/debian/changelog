@@ -1,3 +1,10 @@
+python-oq (0.4.6-11) oneiric; urgency=low
+
+  * Facilitate java-side kvs connection caching
+    (LP: #894261, #907760, #907993).
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 02 Jan 2012 13:42:42 +0100
+
 python-oq (0.4.6-10) oneiric; urgency=low
 
   * Only use one amqp log handler per celery worker (LP: #907360).
