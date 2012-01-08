@@ -1,9 +1,0 @@
---- a/bin/demo_smoketest.sh
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#!/bin/sh
--
--DATA_DIR=../smoketests/endtoend
--
--echo "Running smoketest..."
--python bin/openquake --config_file $DATA_DIR/config.gem $@

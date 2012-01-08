@@ -1,12 +1,4 @@
-create_oq_schema_9.patch
-rollback-python-code-to-pr-589.patch
-single-amqp-handler.patch
-cache-kvs-connections.patch
-configurable-java-kvs-conn-caching.patch
-rm-demo_smoketest.patch
-rm-broken-demos.patch
 config-files.patch
-create_oq_schema-fix-sudo.patch
 oqpath.patch
 logsink-cfg.patch
 setuptools.patch
