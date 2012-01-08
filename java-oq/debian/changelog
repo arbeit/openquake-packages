@@ -1,3 +1,9 @@
+java-oq (0.5.0-1) oneiric; urgency=low
+
+  * Prepare rel. 0.5.0 of java-oq (LP: #913540)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Sun, 08 Jan 2012 23:14:18 +0100
+
 java-oq (0.4.6-2) natty; urgency=low
 
   * Rolled back the UHS changes (LP: #900617)
