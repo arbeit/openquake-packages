@@ -20,7 +20,7 @@ export DH_OPTIONS
 override_dh_quilt_patch:
 	dh_quilt_patch
 	[ -f bin/oq_cache_gc ] || mv bin/cache_gc.py bin/oq_cache_gc
-	[ -f bin/oq_create_db ] || mv bin/create_oq_schema bin/oq_create_db
+	[ -f bin/oq_create_db ] || mv bin/create_oq_schema_9 bin/oq_create_db
 	[ -f bin/oq_monitor ] || mv bin/openquake_supervisor bin/oq_monitor
 	[ -f bin/oq_check_monitors ] || mv bin/openquake_supersupervisor bin/oq_check_monitors
 	[ -f bin/oq_log_sink ] || mv bin/openquake_messages_collector.py bin/oq_log_sink
@@ -29,7 +29,7 @@ override_dh_quilt_patch:
 
 override_dh_quilt_unpatch:
 	[ -f bin/cache_gc.py ] || mv bin/oq_cache_gc bin/cache_gc.py
-	[ -f bin/create_oq_schema ] || mv bin/oq_create_db bin/create_oq_schema
+	[ -f bin/create_oq_schema_9 ] || mv bin/oq_create_db bin/create_oq_schema_9
 	[ -f bin/openquake_supervisor ] || mv bin/oq_monitor bin/openquake_supervisor
 	[ -f bin/openquake_supersupervisor ] || mv bin/oq_check_monitors bin/openquake_supersupervisor
 	[ -f bin/openquake_messages_collector.py ] || mv bin/oq_log_sink bin/openquake_messages_collector.py
