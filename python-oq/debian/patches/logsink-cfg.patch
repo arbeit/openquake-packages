@@ -19,7 +19,7 @@
  def main():
 -    logging.config.fileConfig(os.path.join(openquake.OPENQUAKE_ROOT,
 -                                           'logging.cfg'))
-+    logging.config.fileConfig("etc/openquake/logging.cfg")
++    logging.config.fileConfig("/etc/openquake/logging.cfg")
  
      # any job
      collector = signalling.Collector('*', logging.getLogger('collector'))

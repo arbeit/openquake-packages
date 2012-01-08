@@ -54,7 +54,7 @@
 +os.environ["DJANGO_SETTINGS_MODULE"] = "openquake.settings"
 --- /dev/null
 +++ b/openquake/openquake.cfg
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,70 @@
 +# Copyright (c) 2010-2011, GEM Foundation.
 +#
 +# OpenQuake is free software: you can redistribute it and/or modify
