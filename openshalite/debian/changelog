@@ -1,3 +1,10 @@
+openshalite (1.2-6) oneiric; urgency=low
+
+  * Re-upload this package so that users can install OpenQuake on
+    natty and oneiric from the same PPA (LP: #911628)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Sun, 08 Jan 2012 16:10:52 +0100
+
 openshalite (1.2-5) oneiric; urgency=low
 
   * Correct source/format, make sure quilt patches are applied.
