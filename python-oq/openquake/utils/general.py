@@ -29,12 +29,12 @@ def singleton(cls):
     """This class decorator facilitates the definition of singletons."""
     instances = {}
 
-    def getinstance():
+    def getinstance(*args, **kwargs):
         """
         Return an instance from the cache if present, create one otherwise.
         """
         if cls not in instances:
-            instances[cls] = cls()
+            instances[cls] = cls(*args, **kwargs)
         return instances[cls]
     return getinstance
 
@@ -52,3 +52,8 @@ class MemoizeMutable:
             self.memo[key] = self.fun(*args, **kwds)
 
         return self.memo[key]
+
+
+def str2bool(value):
+    """Convert a string representation of a boolean value to a bool."""
+    return value.lower() in ("true", "yes", "t", "1")

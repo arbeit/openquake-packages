@@ -458,6 +458,7 @@ class Input(models.Model):
         (u'lt_gmpe', u'GMPE Logic Tree'),
         (u'exposure', u'Exposure'),
         (u'vulnerability', u'Vulnerability'),
+        (u'vulnerability_retrofitted', u'Vulnerability Retroffited'),
         (u'rupture', u'Rupture'),
     )
     input_type = models.TextField(choices=INPUT_TYPE_CHOICES)
@@ -469,21 +470,13 @@ class Input(models.Model):
         db_table = 'uiapi\".\"input'
 
 
-class OqJob(models.Model):
+class OqCalculation(models.Model):
     '''
     An OpenQuake engine run started by the user
     '''
     owner = models.ForeignKey('OqUser')
     description = models.TextField()
     path = models.TextField(null=True, unique=True)
-    JOB_TYPE_CHOICES = (
-        (u'classical', u'Classical PSHA'),
-        (u'event_based', u'Probabilistic Event-Based'),
-        (u'deterministic', u'Deterministic'),
-        (u'disaggregation', u'Disaggregation'),
-        (u'uhs', u'UHS'),  # Uniform Hazard Spectra
-    )
-    job_type = models.TextField(choices=JOB_TYPE_CHOICES)
     STATUS_CHOICES = (
         (u'pending', u'Pending'),
         (u'running', u'Running'),
@@ -498,38 +491,43 @@ class OqJob(models.Model):
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
 
     class Meta:  # pylint: disable=C0111,W0232
-        db_table = 'uiapi\".\"oq_job'
+        db_table = 'uiapi\".\"oq_calculation'
 
 
-class JobStats(models.Model):
+class CalcStats(models.Model):
     '''
     Capture various statistics about a job.
     '''
-    oq_job = models.ForeignKey('OqJob')
+    oq_calculation = models.ForeignKey('OqCalculation')
     start_time = models.DateTimeField(editable=False)
     stop_time = models.DateTimeField(editable=False)
     # The number of total sites in job
     num_sites = models.IntegerField()
     # The number of logic tree samples
-    # (for hazard jobs of all types except deterministic)
+    # (for hazard jobs of all types except scenario)
     realizations = models.IntegerField(null=True)
 
     class Meta:  # pylint: disable=C0111,W0232
-        db_table = 'uiapi\".\"job_stats'
+        db_table = 'uiapi\".\"calc_stats'
 
 
 class OqParams(models.Model):
     '''
     Parameters needed to run an OpenQuake job
     '''
-    JOB_TYPE_CHOICES = (
+    CALC_MODE_CHOICES = (
         (u'classical', u'Classical PSHA'),
         (u'event_based', u'Probabilistic Event-Based'),
-        (u'deterministic', u'Deterministic'),
+        (u'scenario', u'Scenario'),
         (u'disaggregation', u'Disaggregation'),
         (u'uhs', u'UHS'),  # Uniform Hazard Spectra
+        # Benefit-cost ratio calculator based on Classical PSHA risk calc
+        (u'classical_bcr', u'Classical BCR'),
+        # Benefit-cost ratio calculator based on Event Based risk calc
+        (u'event_based_bcr', u'Probabilistic Event-Based BCR'),
     )
-    job_type = models.TextField(choices=JOB_TYPE_CHOICES)
+    calc_mode = models.TextField(choices=CALC_MODE_CHOICES)
+    job_type = CharArrayField()
     input_set = models.ForeignKey('InputSet')
     min_magnitude = models.FloatField(null=True)
     investigation_time = models.FloatField(null=True)
@@ -677,6 +675,8 @@ class OqParams(models.Model):
     )
     vs30_type = models.TextField(choices=VS30_TYPE_CHOICES, default="measured")
     depth_to_1pt_0km_per_sec = models.FloatField(default=100.0)
+    asset_life_expectancy = models.FloatField(null=True)
+    interest_rate = models.FloatField(null=True)
 
     class Meta:  # pylint: disable=C0111,W0232
         db_table = 'uiapi\".\"oq_params'
@@ -688,7 +688,7 @@ class Output(models.Model):
     The data may reside in a file or in the database.
     '''
     owner = models.ForeignKey('OqUser')
-    oq_job = models.ForeignKey('OqJob')
+    oq_calculation = models.ForeignKey('OqCalculation')
     path = models.TextField(null=True, unique=True)
     display_name = models.TextField()
     db_backed = models.BooleanField(default=False)
@@ -721,7 +721,7 @@ class ErrorMsg(models.Model):
     '''
     Error information associated with a job failure
     '''
-    oq_job = models.ForeignKey('OqJob')
+    oq_calculation = models.ForeignKey('OqCalculation')
     brief = models.TextField()
     detailed = models.TextField()
 
@@ -815,7 +815,7 @@ class LossMap(models.Model):
     '''
 
     output = models.ForeignKey("Output")
-    deterministic = models.BooleanField()
+    scenario = models.BooleanField()
     loss_map_ref = models.TextField(null=True)
     end_branch_label = models.TextField(null=True)
     category = models.TextField(null=True)
@@ -830,7 +830,7 @@ class LossMap(models.Model):
 class LossMapData(models.Model):
     '''
     Holds an asset, its position and a value plus (for
-    non-deterministic maps) the standard deviation for its loss
+    non-scenario maps) the standard deviation for its loss
     '''
 
     loss_map = models.ForeignKey("LossMap")

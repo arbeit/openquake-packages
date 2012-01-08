@@ -36,8 +36,8 @@ from openquake import shapes
 from openquake import xml
 from openquake.parser import exposure
 from openquake.db.models import (
-    OqJob, OqParams, OqUser, JobStats, FloatArrayField, CharArrayField,
-    InputSet, Input)
+    OqCalculation, OqParams, OqUser, CalcStats, FloatArrayField,
+    CharArrayField, InputSet, Input)
 from openquake.supervising import supervisor
 from openquake.job.handlers import resolve_handler
 from openquake.job import config as conf
@@ -92,7 +92,7 @@ def run_job(job_file, output_type):
     if not supervisor_pid:
         # supervisor process
         supervisor_pid = os.getpid()
-        job = OqJob.objects.get(id=a_job.job_id)
+        job = OqCalculation.objects.get(id=a_job.job_id)
         job.supervisor_pid = supervisor_pid
         job.job_pid = job_pid
         job.save()
@@ -156,7 +156,7 @@ def prepare_config_parameters(params, sections):
     Pre-process configuration parameters removing unknown ones.
     """
 
-    job_type = CALCULATION_MODE[params['CALCULATION_MODE']]
+    calc_mode = CALCULATION_MODE[params['CALCULATION_MODE']]
     new_params = dict()
 
     for name, value in params.items():
@@ -166,9 +166,9 @@ def prepare_config_parameters(params, sections):
             print 'Ignoring unknown parameter %r' % name
             continue
 
-        if job_type not in param.modes:
+        if calc_mode not in param.modes:
             msg = "Ignoring %s in %s, it's meaningful only in "
-            msg %= (name, job_type)
+            msg %= (name, calc_mode)
             print msg, ', '.join(param.modes)
             continue
 
@@ -237,11 +237,11 @@ def _insert_input_files(params, input_set):
             in_model.save()
 
 
-def _store_input_parameters(params, job_type, oqp):
+def _store_input_parameters(params, calc_mode, oqp):
     """Store parameters in uiapi.oq_params columns"""
 
     for name, param in PARAMS.items():
-        if job_type in param.modes and param.default is not None:
+        if calc_mode in param.modes and param.default is not None:
             setattr(oqp, param.column, param.default)
 
     for name, value in params.items():
@@ -275,11 +275,16 @@ def _store_input_parameters(params, job_type, oqp):
 
 
 @transaction.commit_on_success(using='job_init')
-def prepare_job(params):
+def prepare_job(params, sections):
     """
-    Create a new OqJob and fill in the related OpParams entry.
+    Create a new OqCalculation and fill in the related OpParams entry.
 
     Returns the newly created job object.
+
+    :param dict params:
+        The job config params.
+    :params sections:
+        The job config file sections, as a list of strings.
     """
     # TODO specify the owner as a command line parameter
     owner = OqUser.objects.get(user_name='openquake')
@@ -287,14 +292,16 @@ def prepare_job(params):
     input_set = InputSet(upload=None, owner=owner)
     input_set.save()
 
-    job_type = CALCULATION_MODE[params['CALCULATION_MODE']]
-    job = OqJob(owner=owner, path=None, job_type=job_type)
+    calc_mode = CALCULATION_MODE[params['CALCULATION_MODE']]
+    job_type = [s.lower() for s in sections
+        if s.upper() in [conf.HAZARD_SECTION, conf.RISK_SECTION]]
 
-    oqp = OqParams(input_set=input_set)
-    oqp.job_type = job_type
+    job = OqCalculation(owner=owner, path=None)
+
+    oqp = OqParams(input_set=input_set, calc_mode=calc_mode, job_type=job_type)
 
     _insert_input_files(params, input_set)
-    _store_input_parameters(params, job_type, oqp)
+    _store_input_parameters(params, calc_mode, oqp)
 
     oqp.save()
 
@@ -359,7 +366,7 @@ class Job(object):
             job_id = params.get('OPENQUAKE_JOB_ID')
             if not job_id:
                 # create the database record for this job
-                job_id = prepare_job(params).id
+                job_id = prepare_job(params, sections).id
 
             if output_type == 'db':
                 serialize_results_to = ['db']
@@ -381,7 +388,7 @@ class Job(object):
 
         :returns: one of strings 'pending', 'running', 'succeeded', 'failed'.
         """
-        return OqJob.objects.get(id=job_id).status
+        return OqCalculation.objects.get(id=job_id).status
 
     @staticmethod
     def is_job_completed(job_id):
@@ -397,7 +404,7 @@ class Job(object):
                  serialize_results_to=list()):
         """
         :param dict params: Dict of job config params.
-        :param int job_id: ID of the corresponding oq_job db record.
+        :param int job_id: ID of the corresponding oq_calculation db record.
         :param list sections: List of config file sections. Example::
             ['HAZARD', 'RISK']
         :param str base_path: base directory containing job input files
@@ -435,7 +442,7 @@ class Job(object):
         :param status: one of 'pending', 'running', 'succeeded', 'failed'
         :type status: string
         """
-        job = OqJob.objects.get(id=self.job_id)
+        job = OqCalculation.objects.get(id=self.job_id)
         job.status = status
         job.save()
 
@@ -599,20 +606,20 @@ class Job(object):
     def _record_initial_stats(self):
         '''
         Report initial job stats (such as start time) by adding a
-        uiapi.job_stats record to the db.
+        uiapi.calc_stats record to the db.
         '''
-        oq_job = OqJob.objects.get(id=self.job_id)
+        oq_calculation = OqCalculation.objects.get(id=self.job_id)
 
-        job_stats = JobStats(oq_job=oq_job)
-        job_stats.start_time = datetime.utcnow()
-        job_stats.num_sites = len(self.sites_to_compute())
+        calc_stats = CalcStats(oq_calculation=oq_calculation)
+        calc_stats.start_time = datetime.utcnow()
+        calc_stats.num_sites = len(self.sites_to_compute())
 
-        job_type = CALCULATION_MODE[self['CALCULATION_MODE']]
+        calc_mode = CALCULATION_MODE[self['CALCULATION_MODE']]
         if conf.HAZARD_SECTION in self.sections:
-            if job_type != 'deterministic':
-                job_stats.realizations = self["NUMBER_OF_LOGIC_TREE_SAMPLES"]
+            if calc_mode != 'scenario':
+                calc_stats.realizations = self["NUMBER_OF_LOGIC_TREE_SAMPLES"]
 
-        job_stats.save()
+        calc_stats.save()
 
 
 def read_sites_from_exposure(a_job):
