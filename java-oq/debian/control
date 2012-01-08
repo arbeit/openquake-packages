@@ -3,7 +3,7 @@ Section: java
 Priority: optional
 Maintainer: Muharem Hrnjadovic <Muharem Hrnjadovic <mh@foldr3.com>>
 Build-Depends: debhelper (>> 7), javahelper (>= 0.32), quilt
-Build-Depends-Indep: default-jdk, libopenshalite-java (>= 1.2-5), libjredis-java, libgson-java, libcommons-logging-java, libcommons-math-java, libdom4j-java, libcommons-configuration-java, libcommons-io-java, libcommons-collections-java, libcommons-lang-java
+Build-Depends-Indep: default-jdk, libopenshalite-java (>= 1.2-7), libjredis-java, libgson-java, libcommons-logging-java, libcommons-math-java, libdom4j-java, libcommons-configuration-java, libcommons-io-java, libcommons-collections-java, libcommons-lang-java
 Standards-Version: 3.9.2
 Homepage: http://openquake.org/
 
