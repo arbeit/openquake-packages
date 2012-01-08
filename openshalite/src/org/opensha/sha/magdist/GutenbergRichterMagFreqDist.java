@@ -2,13 +2,13 @@
  * Copyright 2009 OpenSHA.org in partnership with the Southern California
  * Earthquake Center (SCEC, http://www.scec.org) at the University of Southern
  * California and the UnitedStates Geological Survey (USGS; http://www.usgs.gov)
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
  * the License at
- *
+ * 
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -32,7 +32,7 @@ import org.opensha.commons.exceptions.MagFreqDistException;
  * Note that magLower and magUpper must exactly equal one of the descrete x-axis
  * values.
  * </p>
- *
+ * 
  * @author Nitin Gupta & Vipin Gupta Date: Aug 8, 2002
  * @version 1.0
  */
@@ -52,7 +52,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
 
     /**
      * constructor : this is same as parent class constructor
-     *
+     * 
      * @param min
      * @param num
      * @param delta
@@ -63,13 +63,12 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
     public GutenbergRichterMagFreqDist(double min, int num, double delta)
             throws InvalidRangeException {
         super(min, num, delta);
-        this.magLower = this.minX;
-        this.magUpper = this.maxX;
+        this.magLower = min;
     }
 
     /**
      * constructor: this is sameas parent class constructor
-     *
+     * 
      * @param min
      * @param max
      * @param num
@@ -84,7 +83,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
 
     /**
      * constructor: this is sameas parent class constructor
-     *
+     * 
      * @param min
      * @param max
      * @param num
@@ -101,7 +100,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
     /**
      * constructor: this constructor assumes magLower is minX and magUpper to be
      * maxX
-     *
+     * 
      * @param min
      * @param num
      * @param delta
@@ -120,7 +119,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
 
     /**
      * constructor:
-     *
+     * 
      * @param min
      * @param num
      * @param delta
@@ -142,94 +141,8 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
     }
 
     /**
-     * Add provided value to magUpper keeping total moment rate the same.
-     *
-     * @param magUpperIncrement
-     *           : value to add to magUpper
-     */
-    public void incrementMagUpper(double magUpperIncrement) {
-        // get old total moment rate
-        double totMoRate = getTotalMomentRate();
-
-        // calculate new magUpper with respect to existing delta
-        double newMagUpper = magUpper + magUpperIncrement;
-        newMagUpper = Math.round((newMagUpper - magLower) / delta) * delta + magLower;
-
-        // calculate new number of magnitude values
-        int numVal = (int) Math.round((newMagUpper - magLower) / delta + 1);
-
-        // changing the bins array
-        set(magLower, newMagUpper, numVal);
-
-        // preserving the same total moment rate
-        setAllButTotCumRate(magLower, newMagUpper, totMoRate, bValue);
-    }
-
-    /**
-     * Replace magUpper with a provided value.
-     *
-     * @param newMagUpper
-     *           : value to replace magUpper with, not shifted to a bin center.
-     */
-    public void setMagUpper(double newMagUpper) {
-    	double oldA = get_aValue();
-
-    	double totCumRate = Math.pow(10, oldA - bValue * (magLower - delta/2))
-    						- Math.pow(10, oldA - bValue * newMagUpper);
-
-    	newMagUpper -= delta / 2;
-    	// rounding with respect to delta
-    	newMagUpper = Math.round((newMagUpper - magLower) / delta) * delta + magLower;
-
-    	// calculate new number of magnitude values
-        int numVal = (int) Math.round((newMagUpper - magLower) / delta) + 1;
-
-        // changing the bins array
-        set(magLower, newMagUpper, numVal);
-
-    	setAllButTotMoRate(magLower, newMagUpper, totCumRate, bValue);
-    }
-
-    /**
-     * Replace values of a and b with provided numbers.
-     *
-     * @param newA
-     *           : new value for a
-     * @param newB
-     *           : new value for b
-     */
-    public void setAB(double newA, double newB) {
-        // compute total cumulative rate between minimum and maximum magnitude
-        double totCumRate;
-        if (magLower != magUpper) {
-            totCumRate =
-                    Math.pow(10, newA - newB * (magLower - delta/2))
-                            - Math.pow(10, newA - newB * (magUpper + delta/2));
-        } else {
-            // compute incremental a value and calculate rate corresponding to
-            // minimum magnitude
-            double aIncr = newA + Math.log10(newB * Math.log(10));
-            totCumRate = Math.pow(10, aIncr - newB * magLower);
-        }
-        setAllButTotMoRate(magLower, magUpper, totCumRate, newB);
-    }
-
-    /**
-     * Increment b value by provided number keeping the total moment rate
-     * the same.
-     *
-     * @param bValueIncrement
-     *           : increment value for b
-     */
-    public void incrementB(double bValueIncrement) {
-        double newBValue = bValue + bValueIncrement;
-        double totMoRate = getTotalMomentRate();
-        setAllButTotCumRate(magLower, magUpper, totMoRate, newBValue);
-    }
-
-    /**
      * Set all values except Cumulative Rate
-     *
+     * 
      * @param magLower
      *            : lowest magnitude that has non zero rate
      * @param magUpper
@@ -251,7 +164,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
 
     /**
      * Set all values except total moment rate
-     *
+     * 
      * @param magLower
      *            : lowest magnitude that has non zero rate
      * @param magUpper
@@ -274,7 +187,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
 
     /**
      * Set All but magUpper
-     *
+     * 
      * @param magLower
      *            : lowest magnitude that has non zero rate
      * @param totMoRate
@@ -372,7 +285,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
      * the EvenlyDiscretizedFunc class by making a objects of the
      * GutenbergRitcherMagFreqDist class and calling the set functions of this
      * from outside
-     *
+     * 
      * @param point
      * @throws MagFreqDistException
      */
@@ -389,7 +302,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
      * the EvenlyDiscretizedFunc class by making a objects of the
      * GutenbergRitcherMagFreqDist class and calling the set functions of this
      * from outside
-     *
+     * 
      * @param x
      * @param y
      * @throws MagFreqDistException
@@ -407,7 +320,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
      * the EvenlyDiscretizedFunc class by making a objects of the
      * GutenbergRitcherMagFreqDist class and calling the set functions of this
      * from outside.
-     *
+     * 
      * @param index
      * @param y
      * @throws MagFreqDistException
@@ -453,7 +366,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
     }
 
     /**
-     *
+     * 
      * @returns the cumulative rate at magLower
      */
 
@@ -462,7 +375,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
     }
 
     /**
-     * @returns the bValue for this distribution
+     * @returns th bValue for this distribution
      */
 
     public double get_bValue() {
@@ -470,22 +383,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
     }
 
     /**
-     * @returns the computed aValue for this distribution
-     */
-    public double get_aValue() {
-    	double TMR = getTotalMomentRate();
-    	double mMax = magUpper + delta/2;
-    	double mMin = magLower - delta/2;
-
-    	double mb = 1.5 - bValue;
-
-    	return Math.log10(TMR * mb / (Math.pow(10, mb * mMax) - Math.pow(10, mb * mMin)))
-    		   - 9.05
-    		   - Math.log10(bValue);
-    }
-
-    /**
-     *
+     * 
      * @returns the magLower : lowest magnitude that has non zero rate
      */
     public double getMagLower() {
@@ -493,7 +391,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
     }
 
     /**
-     *
+     * 
      * @returns the magUpper : highest magnitude that has non zero rate
      */
     public double getMagUpper() {
@@ -502,7 +400,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
 
     /**
      * returns the name of this class
-     *
+     * 
      * @return
      */
 
@@ -512,7 +410,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
 
     /**
      * this function returns String for drawing Legen in JFreechart
-     *
+     * 
      * @return : returns the String which is needed for Legend in graph
      */
     public String getDefaultInfo() throws DataPoint2DException {
@@ -525,7 +423,7 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
     /** Returns a rcopy of this and all points in this GutenbergRichter */
     /*
      * public DiscretizedFuncAPI deepClone() throws DataPoint2DException {
-     *
+     * 
      * GutenbergRichterMagFreqDist f = new GutenbergRichterMagFreqDist(minX,
      * num, delta); f.setAllButTotMoRate(this.magLower, this.magUpper,
      * this.getTotCumRate(), this.bValue); f.tolerance = tolerance; return f; }
@@ -533,20 +431,20 @@ public class GutenbergRichterMagFreqDist extends IncrementalMagFreqDist {
 
     /**
      * this method (defined in parent) is deactivated here (name is finalized)
-     *
+     * 
      * public void setName(String name) throws UnsupportedOperationException{
      * throw new
      * UnsupportedOperationException("setName not allowed for MagFreqDist.");
-     *
+     * 
      * }
-     *
-     *
+     * 
+     * 
      * this method (defined in parent) is deactivated here (name is finalized)
-     *
+     * 
      * public void setInfo(String info)throws UnsupportedOperationException{
      * throw new
      * UnsupportedOperationException("setInfo not allowed for MagFreqDist.");
-     *
+     * 
      * }
      */
 

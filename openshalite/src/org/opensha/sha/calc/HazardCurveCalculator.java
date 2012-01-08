@@ -18,6 +18,7 @@
 
 package org.opensha.sha.calc;
 
+import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.ListIterator;
@@ -26,19 +27,25 @@ import java.util.Map;
 import org.opensha.commons.data.Site;
 import org.opensha.commons.data.function.ArbitrarilyDiscretizedFunc;
 import org.opensha.commons.data.function.DiscretizedFuncAPI;
+import org.opensha.commons.geo.Location;
 import org.opensha.commons.param.ArbitrarilyDiscretizedFuncParameter;
 import org.opensha.commons.param.BooleanParameter;
 import org.opensha.commons.param.DoubleParameter;
 import org.opensha.commons.param.IntegerParameter;
+import org.opensha.commons.param.ParameterAPI;
 import org.opensha.commons.param.ParameterList;
 import org.opensha.commons.param.event.ParameterChangeWarningEvent;
 import org.opensha.commons.param.event.ParameterChangeWarningListener;
+import org.opensha.sha.earthquake.EqkRupForecast;
 import org.opensha.sha.earthquake.EqkRupForecastAPI;
 import org.opensha.sha.earthquake.EqkRupture;
 import org.opensha.sha.earthquake.ProbEqkRupture;
 import org.opensha.sha.earthquake.ProbEqkSource;
+// import
+// org.opensha.sha.earthquake.rupForecastImpl.Frankel96.Frankel96_EqkRupForecast;
 import org.opensha.sha.imr.AttenuationRelationship;
 import org.opensha.sha.imr.ScalarIntensityMeasureRelationshipAPI;
+// import org.opensha.sha.imr.attenRelImpl.BJF_1997_AttenRel;
 import org.opensha.sha.util.TRTUtils;
 import org.opensha.sha.util.TectonicRegionType;
 
@@ -106,11 +113,14 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
             "Number of stochastic event sets for those types of calculations";
     public final int NUM_STOCH_EVENT_SETS_PARAM_MIN = 1;
     public final int NUM_STOCH_EVENT_SETS_PARAM_MAX = Integer.MAX_VALUE;
-    public final static Integer NUM_STOCH_EVENT_SETS_PARAM_DEFAULT = 1;
+    public final static Integer NUM_STOCH_EVENT_SETS_PARAM_DEFAULT =
+            new Integer(1);
 
     private ParameterList adjustableParams;
 
     // misc counting and index variables
+    protected int currRuptures = -1;
+    protected int totRuptures = 0;
     protected int sourceIndex;
     protected int numSources;
 
@@ -305,12 +315,17 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
                     EqkRupForecastAPI eqkRupForecast)
                     throws java.rmi.RemoteException {
 
+        // System.out.println("Haz Curv Calc: maxDistanceParam.getValue()="+maxDistanceParam.getValue().toString());
+        // System.out.println("Haz Curv Calc: numStochEventSetRealizationsParam.getValue()="+numStochEventSetRealizationsParam.getValue().toString());
+        // System.out.println("Haz Curv Calc: includeMagDistFilterParam.getValue()="+includeMagDistFilterParam.getValue().toString());
         if (includeMagDistFilterParam.getValue())
             System.out.println("Haz Curv Calc: magDistCutoffParam.getValue()="
                     + magDistCutoffParam.getValue().toString());
 
+        this.currRuptures = -1;
+
         /*
-         * this determines how the calculations are done (doing it the way it's
+         * this determines how the calucations are done (doing it the way it's
          * outlined in our original SRL paper gives probs greater than 1 if the
          * total rate of events for the source exceeds 1.0, even if the rates of
          * individual ruptures are << 1).
@@ -322,7 +337,7 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
         ArbitrarilyDiscretizedFunc sourceHazFunc =
                 (ArbitrarilyDiscretizedFunc) hazFunction.deepClone();
 
-        // declare some variables used in the calculation
+        // declare some varibles used in the calculation
         double qkProb, distance;
         int k;
 
@@ -344,6 +359,21 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
 
         // get total number of sources
         numSources = eqkRupForecast.getNumSources();
+        // System.out.println("Number of Sources: "+numSources);
+        // System.out.println("ERF info: "+
+        // eqkRupForecast.getClass().getName());
+
+        // compute the total number of ruptures for updating the progress bar
+        totRuptures = 0;
+        sourceIndex = 0;
+        for (sourceIndex = 0; sourceIndex < numSources; ++sourceIndex)
+            totRuptures +=
+                    eqkRupForecast.getSource(sourceIndex).getNumRuptures();
+        // System.out.println("Total number of ruptures:"+ totRuptures);
+
+        // init the current rupture number (also for progress bar)
+        currRuptures = 0;
+        int numRupRejected = 0;
 
         // initialize the hazard function to 1.0
         initDiscretizeValues(hazFunction, 1.0);
@@ -365,7 +395,8 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
             // set the IMR according to the tectonic region of the source (if
             // there is more than one)
             TectonicRegionType trt = source.getTectonicRegionType();
-            ScalarIntensityMeasureRelationshipAPI imr = imrMap.get(trt);
+            ScalarIntensityMeasureRelationshipAPI imr =
+                    TRTUtils.getIMRForTRT(imrMap, trt);
 
             // compute the source's distance from the site and skip if it's too
             // far away
@@ -373,8 +404,11 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
 
             // apply distance cutoff to source
             if (distance > maxDistance) {
+                currRuptures += source.getNumRuptures(); // update progress bar
+                                                         // for skipped ruptures
                 continue;
             }
+            // System.out.println(" dist: " + distance);
 
             // get magThreshold if we're to use the mag-dist cutoff filter
             if (includeMagDistFilter) {
@@ -395,7 +429,7 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
             int numRuptures = source.getNumRuptures();
 
             // loop over these ruptures
-            for (int n = 0; n < numRuptures; n++) {
+            for (int n = 0; n < numRuptures; n++, ++currRuptures) {
 
                 EqkRupture rupture = source.getRupture(n);
 
@@ -404,6 +438,7 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
 
                 // apply magThreshold if we're to use the mag-dist cutoff filter
                 if (includeMagDistFilter && rupture.getMag() < magThresh) {
+                    numRupRejected += 1;
                     continue;
                 }
 
@@ -469,6 +504,8 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
             System.out.println(C + "hazFunction.toString"
                     + hazFunction.toString());
 
+        // System.out.println("numRupRejected="+numRupRejected);
+
         return hazFunction;
     }
 
@@ -517,10 +554,18 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
         hazCurve = hazFunction.deepClone();
         initDiscretizeValues(hazFunction, 0);
         int numPts = hazCurve.getNum();
+        // for progress bar
+        currRuptures = 0;
+        // totRuptures=numEventSets;
 
         for (int i = 0; i < numEventSets; i++) {
             ArrayList<EqkRupture> events = eqkRupForecast.drawRandomEventSet();
-            getEventSetHazardCurve(hazCurve, site, imr, events);
+            if (i == 0)
+                totRuptures = events.size() * numEventSets; // this is an
+                                                            // approximate total
+                                                            // number of events
+            currRuptures += events.size();
+            getEventSetHazardCurve(hazCurve, site, imr, events, false);
             for (int x = 0; x < numPts; x++)
                 hazFunction.set(x, hazFunction.getY(x) + hazCurve.getY(x));
         }
@@ -548,12 +593,15 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
      *            : selected IMR object
      * @param eqkRupForecast
      *            : selected Earthquake rup forecast
+     * @param updateCurrRuptures
+     *            : tells whether to update current ruptures (for the
+     *            getCurrRuptures() method used for progress bars)
      * @return
      */
     public DiscretizedFuncAPI getEventSetHazardCurve(
             DiscretizedFuncAPI hazFunction, Site site,
             ScalarIntensityMeasureRelationshipAPI imr,
-            ArrayList<EqkRupture> eqkRupList)
+            ArrayList<EqkRupture> eqkRupList, boolean updateCurrRuptures)
             throws java.rmi.RemoteException {
 
         ArbitrarilyDiscretizedFunc condProbFunc =
@@ -566,7 +614,8 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
         // parameter changes.
         ((AttenuationRelationship) imr).resetParameterEventListeners();
 
-        // declare some variables used in the calculation
+        // declare some varibles used in the calculation
+        double distance;
         int k;
 
         // get the number of points
@@ -574,11 +623,19 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
 
         // define distance filtering stuff
         double maxDistance = maxDistanceParam.getValue();
+        boolean includeMagDistFilter = includeMagDistFilterParam.getValue();
 
         // set the maximum distance in the attenuation relationship
         imr.setUserMaxDistance(maxDistance);
 
         int totRups = eqkRupList.size();
+        // progress bar stuff
+        if (updateCurrRuptures) {
+            totRuptures = totRups;
+            currRuptures = 0;
+        }
+
+        int numRupRejected = 0;
 
         // initialize the hazard function to 1.0 (initial total non-exceedance
         // probability)
@@ -590,10 +647,23 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
         if (D)
             System.out.println(C + ": starting hazard curve calculation");
 
+        // System.out.println("totRuptures="+totRuptures);
+
         // loop over ruptures
         for (int n = 0; n < totRups; n++) {
 
+            if (updateCurrRuptures)
+                ++currRuptures;
+
             EqkRupture rupture = eqkRupList.get(n);
+
+            /*
+             * // apply mag-dist cutoff filter if(includeMagDistFilter) {
+             * //distance=??; // NEED TO COMPUTE THIS DISTANCE
+             * if(rupture.getMag() <
+             * magDistCutoffParam.getValue().getInterpolatedY(distance) {
+             * numRupRejected += 1; continue; }
+             */
 
             // set the EqkRup in the IMR
             imr.setEqkRupture(rupture);
@@ -611,9 +681,15 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
 
         }
 
+        // System.out.println(C+"hazFunction.toString"+hazFunction.toString());
+
         // now convert from total non-exceed prob to total exceed prob
         for (int i = 0; i < numPoints; ++i)
             hazFunction.set(i, 1.0 - hazFunction.getY(i));
+
+        // System.out.println(C+"hazFunction.toString"+hazFunction.toString());
+
+        // System.out.println("numRupRejected="+numRupRejected);
 
         return hazFunction;
     }
@@ -680,6 +756,25 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
     }
 
     /**
+     * 
+     * @returns the current rupture being traversed
+     * @throws java.rmi.RemoteException
+     */
+    public int getCurrRuptures() throws java.rmi.RemoteException {
+        return this.currRuptures;
+    }
+
+    /**
+     * 
+     * @returns the total number of ruptures in the earthquake rupture forecast
+     *          model
+     * @throws java.rmi.RemoteException
+     */
+    public int getTotRuptures() throws java.rmi.RemoteException {
+        return this.totRuptures;
+    }
+
+    /**
      * stops the Hazard Curve calculations.
      * 
      * @throws java.rmi.RemoteException
@@ -739,8 +834,107 @@ public class HazardCurveCalculator extends UnicastRemoteObject implements
         return adjustableParams.getParametersIterator();
     }
 
+    // /**
+    // * This tests whether the average over many curves from getEventSetCurve
+    // * equals what is given by getHazardCurve.
+    // */
+    // public void testEventSetHazardCurve(int numIterations) {
+    // // set distance filter large since these are handled slightly differently
+    // in each calc
+    // maxDistanceParam.setValue(300);
+    // // do not apply mag-dist fileter
+    // includeMagDistFilterParam.setValue(false);
+    // numStochEventSetRealizationsParam.setValue(numIterations);
+    //
+    // ScalarIntensityMeasureRelationshipAPI imr = new BJF_1997_AttenRel(this);
+    // imr.setParamDefaults();
+    // imr.setIntensityMeasure("PGA");
+    //
+    // Site site = new Site();
+    // ListIterator it = imr.getSiteParamsIterator();
+    // while(it.hasNext())
+    // site.addParameter((ParameterAPI)it.next());
+    // site.setLocation(new Location(34,-118));
+    //
+    // EqkRupForecast eqkRupForecast = new Frankel96_EqkRupForecast();
+    // eqkRupForecast.updateForecast();
+    //
+    // ArbitrarilyDiscretizedFunc hazCurve = new ArbitrarilyDiscretizedFunc();
+    // hazCurve.set(-3.,1); // log(0.001)
+    // hazCurve.set(-2.,1);
+    // hazCurve.set(-1.,1);
+    // hazCurve.set(1.,1);
+    // hazCurve.set(2.,1); // log(10)
+    //
+    // hazCurve.setName("Hazard Curve");
+    //
+    // try {
+    // this.getHazardCurve(hazCurve, site, imr, eqkRupForecast);
+    // } catch (RemoteException e) {
+    // // TODO Auto-generated catch block
+    // e.printStackTrace();
+    // }
+    //
+    // System.out.println(hazCurve.toString());
+    //
+    // ArbitrarilyDiscretizedFunc aveCurve = hazCurve.deepClone();
+    // try {
+    // getAverageEventSetHazardCurve(aveCurve,site, imr,eqkRupForecast);
+    // } catch (RemoteException e1) {
+    // // TODO Auto-generated catch block
+    // e1.printStackTrace();
+    // }
+    //
+    // /*
+    // this.initDiscretizeValues(aveCurve, 0.0);
+    // ArbitrarilyDiscretizedFunc curve = hazCurve.deepClone();
+    // for(int i=0; i<numIterations;i++) {
+    // try {
+    // getEventSetHazardCurve(curve, site, imr,
+    // eqkRupForecast.drawRandomEventSet());
+    // for(int x=0; x<curve.getNum();x++) aveCurve.set(x,
+    // aveCurve.getY(x)+curve.getY(x));
+    // } catch (RemoteException e) {
+    // // TODO Auto-generated catch block
+    // e.printStackTrace();
+    // }
+    // }
+    // for(int x=0; x<curve.getNum();x++) aveCurve.set(x,
+    // aveCurve.getY(x)/numIterations);
+    // */
+    //
+    // aveCurve.setName("Ave from "+numIterations+" event sets");
+    // System.out.println(aveCurve.toString());
+    //
+    // }
+
     // added this and the associated API implementation to instantiate
     // BJF_1997_AttenRel in the above
     public void parameterChangeWarning(ParameterChangeWarningEvent event) {
     };
+
+    // // this is temporary for testing purposes
+    // public static void main(String[] args) {
+    // HazardCurveCalculator calc;
+    // try {
+    // calc = new HazardCurveCalculator();
+    // calc.testEventSetHazardCurve(1000);
+    // } catch (RemoteException e) {
+    // // TODO Auto-generated catch block
+    // e.printStackTrace();
+    // }
+    //
+    // /*
+    // double temp1, temp2, temp3, temp4;
+    // boolean OK;
+    // for(double n=1; n<2;n += 0.02) {
+    // temp1 = Math.pow(10,n);
+    // temp2 = 1.0-Math.exp(-temp1);
+    // temp3 = Math.log(1.0-temp2);
+    // temp4 = (temp3+temp1)/temp1;
+    // OK = temp1<=30;
+    // System.out.println((float)n+"\t"+temp1+"\t"+temp2+"\t"+temp3+"\t"+temp4+"\t"+OK);
+    // }
+    // */
+    // }
 }

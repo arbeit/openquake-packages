@@ -760,7 +760,7 @@ NamedObjectAPI {
 		 */
 
 		protected final static String C = "SCEMY_1997_AttenRelCoefficients";
-		protected final static boolean D = false;
+		protected final static boolean D = true;
 		/** For serialization. */
 		private static final long serialVersionUID = 1234567890987654328L;
 

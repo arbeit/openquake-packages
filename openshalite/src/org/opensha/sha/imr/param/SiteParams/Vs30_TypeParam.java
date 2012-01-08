@@ -32,10 +32,8 @@ public class Vs30_TypeParam extends StringParameter {
     public final static String NAME = "Vs30 Type";
     public final static String INFO = "Indicates how Vs30 was obtained";
     // Options for constraint:
-    public static enum Vs30Type {
-        Measured,
-        Inferred,
-    }
+    public final static String VS30_TYPE_MEASURED = "Measured";
+    public final static String VS30_TYPE_INFERRED = "Inferred";
 
     /**
      * This provides maximum flexibility in terms of setting the options and the
@@ -55,14 +53,13 @@ public class Vs30_TypeParam extends StringParameter {
     public Vs30_TypeParam() {
         super(NAME);
         StringConstraint options = new StringConstraint();
-        for (Vs30Type t : Vs30Type.values()) {
-            options.addString(t.toString());
-        }
+        options.addString(VS30_TYPE_MEASURED);
+        options.addString(VS30_TYPE_INFERRED);
         options.setNonEditable();
-        setValue(Vs30Type.Inferred.toString()); // need to do this so next line succeeds
+        setValue(VS30_TYPE_INFERRED); // need to do this so next line succeeds
         setConstraint(options);
         setInfo(INFO);
-        setDefaultValue(Vs30Type.Inferred.toString());
+        setDefaultValue(VS30_TYPE_INFERRED);
         setNonEditable();
     }
 }

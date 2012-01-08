@@ -1353,7 +1353,7 @@ public class AS_1997_AttenRel extends AttenuationRelationship implements
     class AS_1997_AttenRelCoefficients implements NamedObjectAPI {
 
         protected final static String C = "AS_1997_AttenRelCoefficients";
-        protected final static boolean D = false;
+        protected final static boolean D = true;
 
         /** For serialization. */
         private static final long serialVersionUID = 1234567890987654322L;
