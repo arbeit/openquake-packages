@@ -3,7 +3,11 @@
 export JAVA_HOME=/usr/lib/jvm/default-java
 export CLASSPATH=/usr/share/java/commons-math.jar:/usr/share/java/dom4j.jar:/usr/share/java/commons-lang.jar
 
+build-arch: build
+build-indep: build
+
 build: build-stamp
+
 build-stamp:
 	dh_testdir
 	jh_build openshalite.jar src

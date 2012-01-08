@@ -30,7 +30,7 @@
 +
 +setup(
 +    name = "openquake",
-+    version = "0.4.4",
++    version = "0.4.6",
 +    author = "The OpenQuake team",
 +    author_email = "info@openquake.org",
 +    description = ("Computes hazard, risk and socio-economic impact of "

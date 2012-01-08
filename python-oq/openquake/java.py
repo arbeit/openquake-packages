@@ -24,11 +24,15 @@ import sys
 import traceback
 import logging
 
-from celery.decorators import task as celery_task
-
 from functools import wraps
 
 from openquake import nrml
+from openquake.utils import config
+
+
+# JVM max. memory size (in MB) to be used (per celery worker process!)
+DEFAULT_JVM_MAX_MEM = 768
+
 
 JAVA_CLASSES = {
     'LogicTreeProcessor': "org.gem.engine.LogicTreeProcessor",
@@ -71,6 +75,8 @@ JAVA_CLASSES = {
         "org.opensha.sha.faultSurface.ApproxEvenlyGriddedSurface",
     "LocationListFormatter": "org.gem.LocationListFormatter",
     "PythonBridgeAppender": "org.gem.log.PythonBridgeAppender",
+    "DisaggregationCalculator": "org.gem.calc.DisaggregationCalculator",
+    "UHSCalculator": "org.gem.calc.UHSCalculator",
 }
 
 
@@ -173,15 +179,56 @@ def _init_logs():
     jpype.JClass("org.apache.log4j.PropertyConfigurator").configure(props)
 
 
+def get_jvm_max_mem():
+    """
+    Determine what the JVM maximum memory size should be.
+
+    :returns: the maximum JVM memory size considering the possible sources in
+        the following order
+        * the value of the `OQ_JVM_MAXMEM` environment variable
+        * the setting in the config file
+        * a fixed default (`768` MB).
+    """
+
+    def str2int(a_dict, key):
+        """Return `False` unless int(a_dict[key]) yields a valid integer."""
+        if not a_dict:
+            return False
+        val = a_dict.get(key)
+        if val is None:
+            return False
+        val = val.strip()
+        try:
+            val = int(val)
+        except ValueError:
+            return False
+        else:
+            return val
+
+    result = str2int(os.environ, "OQ_JVM_MAXMEM")
+    if result:
+        return result
+
+    result = str2int(config.get_section("java"), "max_mem")
+    if result:
+        return result
+
+    return DEFAULT_JVM_MAX_MEM
+
+
 def jvm():
-    """Return the jpype module, after guaranteeing the JVM is running and
-    the classpath has been loaded properly."""
+    """
+    Return the jpype module, after guaranteeing the JVM is running and
+    the classpath has been loaded properly.
+    """
     jarpaths = (os.path.abspath(
                     os.path.join(os.path.dirname(__file__), "../dist")),
                 '/usr/share/java')
 
     if not jpype.isJVMStarted():
+        max_mem = get_jvm_max_mem()
         jpype.startJVM(jpype.getDefaultJVMPath(),
+            "-Xmx%sM" % max_mem,
             "-Djava.ext.dirs=%s:%s" % jarpaths,
             # setting Schema path here is ugly, but it's better than
             # doing it before all XML parsing calls
@@ -268,12 +315,15 @@ class JavaException(Exception):
         return trace
 
 
-def jexception(func):
+def unpack_exception(func):
     """
     Decorator to extract the stack trace from a Java exception.
 
     Re-throws a pickleable :class:`JavaException` object containing the
     exception message and Java stack trace.
+
+    This decorator can be used with the celery @task decorator (though the
+    celery @task decorator must be the outermost decorator).
     """
     @wraps(func)
     def unwrap_exception(*targs, **tkwargs):  # pylint: disable=C0111
@@ -287,52 +337,3 @@ def jexception(func):
             raise JavaException(e), None, trace
 
     return unwrap_exception
-
-
-# alternative implementation using the decorator module; this can be composed
-# with the Celery task decorator
-# import decorator
-#
-# def jexception(func):
-#     @wraps(func)
-#     def unwrap_exception(func, *targs, **tkwargs):
-#         jvm_instance = jvm()
-#
-#         try:
-#             return func(*targs, **tkwargs)
-#         except jvm_instance.JavaException, e:
-#             trace = sys.exc_info()[2]
-#
-#             raise JavaException(e), None, trace
-#
-#     return decorator.decorator(unwrap_exception, func)
-
-
-# Java-exception-aware task decorator for celery
-def jtask(func, *args, **kwargs):
-    """
-    Java-exception aware task decorator for Celery.
-
-    Re-throws the exception as a pickleable :class:`JavaException` object.
-    """
-    task = celery_task(func, *args, **kwargs)
-    run = task.run
-
-    @wraps(run)
-    def call_task(*targs, **tkwargs):  # pylint: disable=C0111
-        jvm_instance = jvm()
-
-        try:
-            return run(*targs, **tkwargs)
-        except jvm_instance.JavaException, e:
-            trace = sys.exc_info()[2]
-
-            raise JavaException(e), None, trace
-
-    # overwrite the run method of the instance with our wrapper; we
-    # can't just pass call_task to celery_task because it does not
-    # have the right signature (we would need the decorator module as
-    # in the example below)
-    task.run = call_task
-
-    return task

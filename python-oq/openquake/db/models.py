@@ -17,6 +17,7 @@
 # version 3 along with OpenQuake.  If not, see
 # <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
 
+# pylint: disable=C0302
 
 '''
 Model representations of the OpenQuake DB tables.
@@ -480,6 +481,7 @@ class OqJob(models.Model):
         (u'event_based', u'Probabilistic Event-Based'),
         (u'deterministic', u'Deterministic'),
         (u'disaggregation', u'Disaggregation'),
+        (u'uhs', u'UHS'),  # Uniform Hazard Spectra
     )
     job_type = models.TextField(choices=JOB_TYPE_CHOICES)
     STATUS_CHOICES = (
@@ -508,6 +510,9 @@ class JobStats(models.Model):
     stop_time = models.DateTimeField(editable=False)
     # The number of total sites in job
     num_sites = models.IntegerField()
+    # The number of logic tree samples
+    # (for hazard jobs of all types except deterministic)
+    realizations = models.IntegerField(null=True)
 
     class Meta:  # pylint: disable=C0111,W0232
         db_table = 'uiapi\".\"job_stats'
@@ -522,6 +527,7 @@ class OqParams(models.Model):
         (u'event_based', u'Probabilistic Event-Based'),
         (u'deterministic', u'Deterministic'),
         (u'disaggregation', u'Disaggregation'),
+        (u'uhs', u'UHS'),  # Uniform Hazard Spectra
     )
     job_type = models.TextField(choices=JOB_TYPE_CHOICES)
     input_set = models.ForeignKey('InputSet')
@@ -537,6 +543,9 @@ class OqParams(models.Model):
        (u'sa', u'Spectral Acceleration'),
        (u'pgv', u'Peak Ground Velocity'),
        (u'pgd', u'Peak Ground Displacement'),
+       (u'ia', u'Arias Intensity'),
+       (u'rsd', u'Relative Significant Duration'),
+       (u'mmi', u'Modified Mercalli Intensity'),
     )
     imt = models.TextField(choices=IMT_CHOICES)
     period = models.FloatField(null=True)
@@ -551,7 +560,8 @@ class OqParams(models.Model):
     # the default is 3.0 and document it. I definitely don't remember why it's
     # 3.0.
     truncation_level = models.FloatField(default=3.0)
-    reference_vs30_value = models.FloatField()
+    reference_vs30_value = models.FloatField(
+        "Average shear-wave velocity in the upper 30 meters of a site")
     imls = FloatArrayField(null=True)
     poes = FloatArrayField(null=True)
     realizations = models.IntegerField(null=True)
@@ -647,17 +657,26 @@ class OqParams(models.Model):
     # constraint checking for disagg_results. For now, I'm just going to let
     # the database check the constraints.
     # The following are the valid options for each element of this array field:
-    #   magpmf (Magnitude Probability Mass Function)
-    #   distpmf (Distance PMF)
-    #   trtpmf (Tectonic Region Type PMF)
-    #   magdistpmf (Magnitude-Distance PMF)
-    #   magdistepspmf (Magnitude-Distance-Epsilon PMF)
-    #   latlonpmf (Latitude-Longitude PMF)
-    #   latlonmagpmf (Latitude-Longitude-Magnitude PMF)
-    #   latlonmagepspmf (Latitude-Longitude-Magnitude-Epsilon PMF)
-    #   fulldisaggmatrix (The full disaggregation matrix; includes
+    #   MagPMF (Magnitude Probability Mass Function)
+    #   DistPMF (Distance PMF)
+    #   TRTPMF (Tectonic Region Type PMF)
+    #   MagDistPMF (Magnitude-Distance PMF)
+    #   MagDistEpsPMF (Magnitude-Distance-Epsilon PMF)
+    #   LatLonPMF (Latitude-Longitude PMF)
+    #   LatLonMagPMF (Latitude-Longitude-Magnitude PMF)
+    #   LatLonMagEpsPMF (Latitude-Longitude-Magnitude-Epsilon PMF)
+    #   MagTRTPMF (Magnitude-Tectonic Region Type PMF)
+    #   LatLonTRTPMF (Latitude-Longitude-Tectonic Region Type PMF)
+    #   FullDisaggMatrix (The full disaggregation matrix; includes
     #       Lat, Lon, Magnitude, Epsilon, and Tectonic Region Type)
     disagg_results = CharArrayField(null=True)
+    uhs_periods = FloatArrayField(null=True)
+    VS30_TYPE_CHOICES = (
+       (u"measured", u"Value obtained from on-site measurements"),
+       (u"inferred", u"Estimated value"),
+    )
+    vs30_type = models.TextField(choices=VS30_TYPE_CHOICES, default="measured")
+    depth_to_1pt_0km_per_sec = models.FloatField(default=100.0)
 
     class Meta:  # pylint: disable=C0111,W0232
         db_table = 'uiapi\".\"oq_params'
@@ -801,6 +820,7 @@ class LossMap(models.Model):
     end_branch_label = models.TextField(null=True)
     category = models.TextField(null=True)
     unit = models.TextField(null=True)
+    timespan = models.FloatField(null=True)
     poe = models.FloatField(null=True)
 
     class Meta:  # pylint: disable=C0111,W0232
@@ -946,7 +966,7 @@ class ExposureData(models.Model):
     exposure_model = models.ForeignKey("ExposureModel")
     asset_ref = models.TextField()
     value = models.FloatField()
-    vf_ref = models.TextField()
+    taxonomy = models.TextField()
     structure_type = models.TextField(null=True)
     retrofitting_cost = models.FloatField(null=True)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
@@ -967,13 +987,7 @@ class VulnerabilityModel(models.Model):
     owner = models.ForeignKey("OqUser")
     name = models.TextField()
     description = models.TextField(null=True)
-    IMT_CHOICES = (
-        ('pga', 'Peak Ground Acceleration'),
-        ('sa', 'Spectral Acceleration'),
-        ('pgv', 'Peak Ground Velocity'),
-        ('pgd', 'Peak Ground Displacement'),
-    )
-    imt = models.TextField(choices=IMT_CHOICES)
+    imt = models.TextField(choices=OqParams.IMT_CHOICES)
     imls = FloatArrayField()
     category = models.TextField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
@@ -988,7 +1002,7 @@ class VulnerabilityFunction(models.Model):
     '''
 
     vulnerability_model = models.ForeignKey("VulnerabilityModel")
-    vf_ref = models.TextField()
+    taxonomy = models.TextField()
     loss_ratios = FloatArrayField()
     covs = FloatArrayField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)

@@ -17,7 +17,6 @@
 # version 3 along with OpenQuake.  If not, see
 # <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
 
-
 """Collection of base classes for processing spatially-related data."""
 
 import hashlib
@@ -29,15 +28,18 @@ from itertools import izip
 from numpy import zeros
 from numpy import empty
 from numpy import allclose
+from numpy import sin, cos, arctan2, sqrt, radians
 
 from shapely import geometry
 from scipy.interpolate import interp1d
 
-from openquake import flags
 from openquake import java
 from openquake.utils import round_float
+from openquake import logs
 
-FLAGS = flags.FLAGS
+LOGGER = logs.LOG
+
+logs.set_logger_level(LOGGER, logs.LEVELS.get('debug'))
 
 LineString = geometry.LineString  # pylint: disable=C0103
 Point = geometry.Point            # pylint: disable=C0103
@@ -237,7 +239,15 @@ class Grid(object):
 
     def check_site(self, site):
         """Confirm that the site is contained by the region"""
-        return self.check_point(site.point)
+        check = False
+
+        try:
+            check = self.check_point(site.point)
+        except BoundsException:
+            LOGGER.debug("Site %s %s isn't on region" %
+                (site.point.site.longitude, site.point.site.latitude))
+
+        return check
 
     def check_point(self, point):
         """ Confirm that the point is within the polygon
@@ -292,8 +302,10 @@ class Grid(object):
                     self.check_gridpoint(point)
                     yield point
                 except BoundsException:
-                    print "Point (col %s row %s) at %s %s isnt on grid" % \
-                        (col, row, point.site.longitude, point.site.latitude)
+                    LOGGER.debug(
+                            "Point (col %s row %s) at %s %s isn't on grid"
+                            % (col, row, point.site.longitude,
+                                point.site.latitude))
 
 
 def c_mul(val_a, val_b):
@@ -876,3 +888,28 @@ def polygon_ewkt_from_coords(coords):
     ewkt %= (', '.join(vertices), vertices[0])
 
     return ewkt
+
+
+def hdistance(lat1, lon1, lat2, lon2):
+    """Compute the great circle surface distance between two points
+    using the Haversine formula.
+
+    :param lat1, lon1: first point coordinates
+    :param lat2, lon2: second point coordinates
+    :rtype: float
+    """
+
+    lat1 = radians(lat1)
+    lat2 = radians(lat2)
+
+    lon1 = radians(lon1)
+    lon2 = radians(lon2)
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = (sin(dlat / 2)) ** 2 + cos(lat1) * cos(lat2) * (sin(dlon / 2.0)) ** 2
+    c = 2.0 * arctan2(sqrt(a), sqrt(1.0 - a))
+
+    # earth's mean radius
+    return 6371.0072 * c

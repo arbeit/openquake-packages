@@ -1,0 +1,120 @@
+--- /dev/null
++++ b/openquake/celeryconfig.py
+@@ -0,0 +1,51 @@
++# -*- coding: utf-8 -*-
++# vim: tabstop=4 shiftwidth=4 softtabstop=4
++
++# Copyright (c) 2010-2011, GEM Foundation.
++#
++# OpenQuake is free software: you can redistribute it and/or modify
++# it under the terms of the GNU Lesser General Public License version 3
++# only, as published by the Free Software Foundation.
++#
++# OpenQuake is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU Lesser General Public License version 3 for more details
++# (a copy is included in the LICENSE file that accompanied this code).
++#
++# You should have received a copy of the GNU Lesser General Public License
++# version 3 along with OpenQuake.  If not, see
++# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
++
++
++"""
++Config for all installed OpenQuake binaries and modules.
++Should be installed by setup.py into /etc/openquake
++eventually.
++"""
++
++import os
++import sys
++
++from openquake.utils import config
++
++
++config.abort_if_no_config_available()
++
++sys.path.insert(0, os.path.dirname(__file__))
++
++amqp = config.get_section("amqp")
++
++BROKER_HOST = amqp.get("host")
++BROKER_PORT = int(amqp.get("port"))
++BROKER_USER = amqp.get("user")
++BROKER_PASSWORD = amqp.get("password")
++BROKER_VHOST = amqp.get("vhost")
++
++CELERY_RESULT_BACKEND = "amqp"
++
++
++CELERY_IMPORTS = ("openquake.risk.job", "openquake.hazard.tasks",
++                  "openquake.hazard.disagg.core")
++
++os.environ["DJANGO_SETTINGS_MODULE"] = "openquake.settings"
+--- /dev/null
++++ b/openquake/openquake.cfg
+@@ -0,0 +1,63 @@
++# Copyright (c) 2010-2011, GEM Foundation.
++#
++# OpenQuake is free software: you can redistribute it and/or modify
++# it under the terms of the GNU Lesser General Public License version 3
++# only, as published by the Free Software Foundation.
++#
++# OpenQuake is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU Lesser General Public License version 3 for more details
++# (a copy is included in the LICENSE file that accompanied this code).
++#
++# You should have received a copy of the GNU Lesser General Public License
++# version 3 along with OpenQuake.  If not, see
++# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
++
++[kvs]
++port = 6379
++host = localhost
++test_db = 3
++# Turn on Java-side kvs connection caching for bigger deployments. When doing
++# so set 'timeout=0' in /etc/redis/redis.conf -- please see
++#       https://bugs.launchpad.net/openquake/+bug/907760
++# for details.
++cache_connections = false
++
++[amqp]
++host = localhost
++port = 5672
++user = guest
++password = guest
++vhost = /
++exchange = oq.signalling
++
++[logging]
++backend = amqp
++
++[supervisor]
++exe = bin/openquake_supervisor
++
++[database]
++name = openquake
++host = localhost
++port = 5432
++
++admin_password = openquake
++admin_user = oq_admin
++
++job_init_password = openquake
++job_init_user = oq_job_init
++
++job_superv_password = openquake
++job_superv_user = oq_job_superv
++
++reslt_writer_password = openquake
++reslt_writer_user = oq_reslt_writer
++
++[java]
++# JVM max. memory size (in MB) to be used (per celery worker process!)
++max_mem = 768
++
++[nfs]
++base_dir = /var/lib/openquake

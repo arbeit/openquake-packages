@@ -1,3 +1,15 @@
+openshalite (1.2-5) oneiric; urgency=low
+
+  * Correct source/format, make sure quilt patches are applied.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 05 Dec 2011 08:07:38 +0100
+
+openshalite (1.2-4) oneiric; urgency=low
+
+  * Upstream release (LP: #898633)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Sun, 04 Dec 2011 21:10:52 +0100
+
 openshalite (1.2-3) oneiric; urgency=low
 
   * Changes needed for the new logic tree implementation (LP: #879450)
