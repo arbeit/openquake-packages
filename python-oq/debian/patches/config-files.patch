@@ -54,7 +54,7 @@
 +os.environ["DJANGO_SETTINGS_MODULE"] = "openquake.settings"
 --- /dev/null
 +++ b/openquake/openquake.cfg
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,63 @@
 +# Copyright (c) 2010-2011, GEM Foundation.
 +#
 +# OpenQuake is free software: you can redistribute it and/or modify
@@ -75,6 +75,11 @@
 +port = 6379
 +host = localhost
 +test_db = 3
++# Turn on Java-side kvs connection caching for bigger deployments. When doing
++# so set 'timeout=0' in /etc/redis/redis.conf -- please see
++#       https://bugs.launchpad.net/openquake/+bug/907760
++# for details.
++cache_connections = false
 +
 +[amqp]
 +host = localhost

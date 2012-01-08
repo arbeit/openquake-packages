@@ -37,15 +37,13 @@ HDIR=/usr/openquake
 IDIR=/usr/share/pyshared/openquake
 mkdir -p $HDIR
 chmod 1777 $HDIR
-VDIR=/var/lib/openquake
-mkdir -p $VDIR
-# We should tolerate the failure of the next 2 commands, see
-# https://bugs.launchpad.net/openquake/+bug/902083 for details.
-chown -R root.openquake $VDIR 2>/dev/null || echo "Failed to change the $VDIR owner. Please make sure all is proper."
-chmod 1770 $VDIR 2>/dev/null || echo "Failed to change the $VDIR permissions. Please make sure all is proper."
-mkdir -p $VDIR/disagg-results
-chown root.openquake $VDIR/disagg-results
-chmod 770 $VDIR/disagg-results
+for vdir in /var/lib/openquake /var/lib/openquake/disagg-results; do
+    if [ ! -d $vdir ]; then
+        mkdir -p $vdir 2>/dev/null || echo "Failed to create $vdir, please make sure all is proper."
+    fi
+    chown -R root.openquake $vdir 2>/dev/null || echo "Failed to change the $vdir owner, please make sure all is proper."
+    chmod 1770 $vdir 2>/dev/null || echo "Failed to change the $vdir permissions, please make sure all is proper."
+done
 
 rm -f $HDIR/celeryconfig.py.new_in_this_release
 if [ -f $HDIR/celeryconfig.py ]; then
@@ -76,7 +74,7 @@ done
 chown -R root.openquake $SDIR
 
 # Is postgres installed on this system?
-if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
+if [ -f /usr/lib/postgresql/9.1/bin/postgres ]; then
     # postgres is installed, flatten and recreate the database.
 
     # Restart postgres in order to get rid of idle/open connections
@@ -118,7 +116,7 @@ if [ -f /usr/lib/postgresql/8.4/bin/postgres ]; then
         exit 1
     fi
 
-    PG_ROOT=/etc/postgresql/8.4/main
+    PG_ROOT=/etc/postgresql/9.1/main
     # Do we already have oq_* database users configured and how many?
     oq_config_lines=`grep oq_ $PG_ROOT/pg_hba.conf | grep -v '^#' | wc -l`
     # Do we already have oq_* database users *auto-configured* and how many?
