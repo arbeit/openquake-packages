@@ -19,12 +19,10 @@
 package org.opensha.sha.earthquake.rupForecastImpl;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 
 import org.opensha.commons.calc.magScalingRelations.MagAreaRelationship;
 import org.opensha.commons.calc.magScalingRelations.MagLengthRelationship;
 import org.opensha.commons.calc.magScalingRelations.MagScalingRelationship;
-import org.opensha.commons.data.DataPoint2D;
 import org.opensha.commons.data.Site;
 import org.opensha.commons.data.function.ArbitrarilyDiscretizedFunc;
 import org.opensha.commons.geo.LocationVector;
@@ -65,7 +63,7 @@ public class PointToLineSource extends ProbEqkSource implements
         java.io.Serializable {
 
     // for Debug purposes
-    protected static String C = new String("PointToLineEqkSource");
+    protected static String C = "PointToLineEqkSource";
     protected static String NAME = "Point-to-Line Source";
     protected boolean D = false;
 
@@ -186,8 +184,6 @@ public class PointToLineSource extends ProbEqkSource implements
         probEqkRuptureList = new ArrayList<ProbEqkRupture>();
         rates = new ArrayList<Double>();
 
-        // System.out.println((float)rupLength+"\t"+(float)mag+"\t"+(float)lowerSeisDepth+"\t"+(float)dip+"\t"+magScalingRel);
-
         if (numStrikes == -1) { // random or applied strike
             for (int i = 0; i < magFreqDists.length; i++) {
                 mkAndAddRuptures(location, magFreqDists[i], focalMechanisms[i],
@@ -292,7 +288,7 @@ public class PointToLineSource extends ProbEqkSource implements
                             getRupLength(mag, aveRupTopVersusMag, lowerSeisDepth,
                                     dip, magScalingRel);
 
-                    // get randome strike if needed (between -90 and + 90)
+                    // get random strike if needed (between -90 and + 90)
                     if (isStrikeRandom) {
                         strike = (Math.random() - 0.5) * 180.0;
                     }
@@ -315,8 +311,12 @@ public class PointToLineSource extends ProbEqkSource implements
                 }
                 // if it's smaller set point surface at hypocentral depth
                 else{
-                	PointSurface surf = new PointSurface(loc.getLatitude(),loc.getLongitude(),defaultHypoDepth);
-                	rupture.setRuptureSurface(surf);
+                    PointSurface surf = new PointSurface(loc.getLatitude(),
+                                                         loc.getLongitude(),
+                                                         defaultHypoDepth);
+                    surf.setAveStrike(strike);
+                    surf.setAveDip(dip);
+                    rupture.setRuptureSurface(surf);
                 }
 
                 // add the rupture to the list and save the rate in case the
@@ -361,8 +361,6 @@ public class PointToLineSource extends ProbEqkSource implements
         } else
             throw new RuntimeException("bad type of MagScalingRelationship: "
                     + magScalingRel);
-
-        // System.out.println((float)rupLength+"\t"+(float)mag+"\t"+(float)lowerSeisDepth+"\t"+(float)dip+"\t"+magScalingRel);
 
         return rupLength;
     }

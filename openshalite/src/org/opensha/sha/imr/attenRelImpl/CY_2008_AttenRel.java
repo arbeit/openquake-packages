@@ -56,6 +56,7 @@ import org.opensha.sha.imr.param.PropagationEffectParams.HangingWallFlagParam;
 import org.opensha.sha.imr.param.SiteParams.DepthTo1pt0kmPerSecParam;
 import org.opensha.sha.imr.param.SiteParams.Vs30_Param;
 import org.opensha.sha.imr.param.SiteParams.Vs30_TypeParam;
+import org.opensha.sha.imr.param.SiteParams.Vs30_TypeParam.Vs30Type;
 
 /**
  * <b>Title:</b> CY_2006_AttenRel
@@ -516,7 +517,7 @@ public class CY_2008_AttenRel extends AttenuationRelationship implements
 		aftershockParam.setValueAsDefault();
 
 		vs30Param.setValueAsDefault();
-		vs30_TypeParam.setValue(Vs30_TypeParam.VS30_TYPE_INFERRED);
+		vs30_TypeParam.setValue(Vs30Type.Inferred.toString());
 		depthTo1pt0kmPerSecParam.setValueAsDefault();
 
 		distanceRupParam.setValueAsDefault();
@@ -992,7 +993,7 @@ public class CY_2008_AttenRel extends AttenuationRelationship implements
 		} else if (pName.equals(Vs30_Param.NAME)) {
 			vs30 = ((Double) val).doubleValue();
 		} else if (pName.equals(Vs30_TypeParam.NAME)) {
-			if (((String) val).equals(Vs30_TypeParam.VS30_TYPE_MEASURED)) {
+			if (((String) val).equals(Vs30Type.Measured.toString())) {
 				f_meas = 1; // Bob Youngs confirmed by email that this is
 							// correct (f_meas=1-f_inf)
 			} else {

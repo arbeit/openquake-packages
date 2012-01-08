@@ -64,7 +64,7 @@ public class ArbitrarilyDiscretizedFunc extends DiscretizedFunc implements
     protected final static String C = "ArbitrarilyDiscretizedFunc";
 
     /* Boolean debugging variable to switch on and off debug printouts */
-    protected final static boolean D = true;
+    protected final static boolean D = false;
 
     /**
      * The set of DataPoints2D that conprise the discretized function. These are

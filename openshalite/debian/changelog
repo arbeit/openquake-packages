@@ -1,3 +1,9 @@
+openshalite (1.2-7) oneiric; urgency=low
+
+  * Prepare rel. 0.5.0 of openshalite (LP: #913540)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Sun, 08 Jan 2012 22:42:32 +0100
+
 openshalite (1.2-6) oneiric; urgency=low
 
   * Re-upload this package so that users can install OpenQuake on

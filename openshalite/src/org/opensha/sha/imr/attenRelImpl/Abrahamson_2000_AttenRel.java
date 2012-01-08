@@ -1168,7 +1168,7 @@ public class Abrahamson_2000_AttenRel extends AttenuationRelationship implements
 
         protected final static String C =
                 "Abrahamson_2000_AttenRelCoefficients";
-        protected final static boolean D = true;
+        protected final static boolean D = false;
 
         /** For serialization. */
         private static final long serialVersionUID = 1234567890987654321L;

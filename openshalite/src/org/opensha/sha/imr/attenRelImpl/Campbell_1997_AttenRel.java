@@ -1048,7 +1048,7 @@ public class Campbell_1997_AttenRel extends AttenuationRelationship implements
     class Campbell_1997_AttenRelCoefficients implements NamedObjectAPI {
 
         protected final static String C = "Campbell_1997_AttenRelCoefficients";
-        protected final static boolean D = true;
+        protected final static boolean D = false;
         /** For serialization. */
         private static final long serialVersionUID = 1234567890987654324L;
 

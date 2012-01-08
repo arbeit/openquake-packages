@@ -190,12 +190,6 @@ public interface HazardCurveCalculatorAPI extends Remote {
             Site site, ScalarIntensityMeasureRelationshipAPI imr,
             EqkRupture rupture) throws java.rmi.RemoteException;
 
-    // gets the current rupture that is being processed
-    public int getCurrRuptures() throws java.rmi.RemoteException;
-
-    // gets the total number of ruptures.
-    public int getTotRuptures() throws java.rmi.RemoteException;
-
     /**
      * stops the Hazard Curve calculations.
      * 
@@ -249,15 +243,12 @@ public interface HazardCurveCalculatorAPI extends Remote {
      *            : selected IMR object
      * @param eqkRupForecast
      *            : selected Earthquake rup forecast
-     * @param updateCurrRuptures
-     *            : tells whether to update current ruptures (for the
-     *            getCurrRuptures() method used for progress bars)
      * @return
      */
     public DiscretizedFuncAPI getEventSetHazardCurve(
             DiscretizedFuncAPI hazFunction, Site site,
             ScalarIntensityMeasureRelationshipAPI imr,
-            ArrayList<EqkRupture> eqkRupList, boolean updateCurrRuptures)
+            ArrayList<EqkRupture> eqkRupList)
             throws java.rmi.RemoteException;
 
 }

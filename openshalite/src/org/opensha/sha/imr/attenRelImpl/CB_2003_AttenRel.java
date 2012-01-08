@@ -1175,7 +1175,7 @@ public class CB_2003_AttenRel extends AttenuationRelationship implements
         /** For serialization. */
         private static final long serialVersionUID = 1234567890987654325L;
         protected final static String C = "CB_2003_AttenRelCoefficients";
-        protected final static boolean D = true;
+        protected final static boolean D = false;
 
         protected String name;
         protected double period = -1;
