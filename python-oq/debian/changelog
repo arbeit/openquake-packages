@@ -1,8 +1,9 @@
 python-oq (0.5.0-1) oneiric; urgency=low
 
   * Prepare rel. 0.5.0 of python-oq (LP: #913540)
+  * set JAVA_HOME for celeryd (LP: #911697)
 
- -- Muharem Hrnjadovic <mh@foldr3.com>  Sun, 08 Jan 2012 23:35:01 +0100
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 09 Jan 2012 07:15:31 +0100
 
 python-oq (0.4.6-11) oneiric; urgency=low
 
