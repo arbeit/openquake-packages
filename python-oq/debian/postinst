@@ -155,11 +155,6 @@ if [ -f /usr/lib/postgresql/9.1/bin/postgres ]; then
 
     DDIR=/usr/share/doc/python-oq/examples/demos
 
-    # Make absolutely sure that the demos that are broken in 0.4.6 are not
-    # installed.
-    rm -rf $DDIR/classical_psha_based_risk
-    rm -rf $DDIR/uhs
-
     cd $DDIR && find . | grep gz$ | xargs gunzip -f
     # Last but not least copy the smoke tests into a more prominent place.
     if [ -d $HDIR/demos ]; then
