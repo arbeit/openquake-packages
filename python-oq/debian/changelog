@@ -1,3 +1,16 @@
+python-oq (0.5.0-3) oneiric; urgency=low
+
+  * Fix demo files.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 09 Jan 2012 21:10:08 +0100
+
+python-oq (0.5.0-2) oneiric; urgency=low
+
+  * Calculation and serialization are to be carried out in parallel
+    (LP: #910985)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 09 Jan 2012 15:53:05 +0100
+
 python-oq (0.5.0-1) oneiric; urgency=low
 
   * Prepare rel. 0.5.0 of python-oq (LP: #913540)
