@@ -1,3 +1,9 @@
+python-oq (0.5.0-4) oneiric; urgency=low
+
+  * Remove "sudo" from db setup script (LP: #914139)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 10 Jan 2012 08:18:14 +0100
+
 python-oq (0.5.0-3) oneiric; urgency=low
 
   * Fix demo files.

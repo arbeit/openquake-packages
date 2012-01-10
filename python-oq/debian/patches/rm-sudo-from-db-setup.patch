@@ -1,0 +1,21 @@
+--- a/bin/create_oq_schema
++++ b/bin/create_oq_schema
+@@ -151,15 +151,11 @@
+         full_tspace_path="$tspace_path/$full_ts_name"
+ 
+         # Create table space path if needed.
+-        sudo test -d "$full_tspace_path"
++        test -d "$full_tspace_path"
+         if [ $? -ne 0 ]; then
+             echo ".. Creating table space path $full_tspace_path .."
+-            sudo mkdir -p $full_tspace_path
+-            if [ $this_is_linux -eq 1 ]; then
+-                sudo chown -R postgres.postgres $full_tspace_path
+-            else
+-                sudo chown -R postgres $full_tspace_path
+-            fi
++            mkdir -p $full_tspace_path
++            sudo chown -R postgres.postgres $full_tspace_path
+         fi
+ 
+         # Create the actual table space.
