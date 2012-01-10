@@ -1,3 +1,9 @@
+python-oq (0.5.0-5) oneiric; urgency=low
+
+  * Revert to the usual database user names.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 10 Jan 2012 10:49:49 +0100
+
 python-oq (0.5.0-4) oneiric; urgency=low
 
   * Remove "sudo" from db setup script (LP: #914139)
