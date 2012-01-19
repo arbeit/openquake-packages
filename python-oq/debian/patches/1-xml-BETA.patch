@@ -1,0 +1,801 @@
+--- a/openquake/hazard/opensha.py
++++ b/openquake/hazard/opensha.py
+@@ -21,6 +21,7 @@
+ """
+ 
+ 
++from collections import namedtuple
+ from itertools import izip
+ import functools
+ import hashlib
+@@ -192,6 +193,7 @@
+         gmpe_generator = random.Random()
+         gmpe_generator.seed(self["GMPE_LT_RANDOM_SEED"])
+ 
++        stats.pk_set(self.job_id, "hcls_crealization", 0)
+         for realization in xrange(0, realizations):
+             stats.pk_inc(self.job_id, "hcls_crealization")
+             LOG.info("Calculating hazard curves for realization %s"
+@@ -335,13 +337,13 @@
+         stats.pk_set(self.job_id, "hcls_realizations", realizations)
+ 
+         block_size = config.hazard_block_size()
+-        stats.pk_set(self.job_id, "hcls_block_size", block_size)
++        stats.pk_set(self.job_id, "block_size", block_size)
+ 
+         blocks = range(0, len(sites), block_size)
+-        stats.pk_set(self.job_id, "hcls_blocks", len(blocks))
++        stats.pk_set(self.job_id, "blocks", len(blocks))
+ 
+         for start in blocks:
+-            stats.pk_inc(self.job_id, "hcls_cblock")
++            stats.pk_inc(self.job_id, "cblock")
+             end = start + block_size
+             data = sites[start:end]
+ 
+@@ -414,6 +416,7 @@
+             self.serialize_hazard_curve(nrml_file, key_template,
+                                         hc_attrib_update, sites)
+ 
++    # pylint: disable=W0212
+     def serialize_hazard_curve(self, nrml_file, key_template, hc_attrib_update,
+                                sites):
+         """
+@@ -434,7 +437,7 @@
+         :type sites: list of :py:class:`openquake.shapes.Site`
+         """
+ 
+-        def duration_generator(value):
++        def pause_generator(value):
+             """
+             Returns the initial value when called for the first time and
+             the double value upon each subsequent invocation.
+@@ -447,6 +450,11 @@
+                     value *= 2
+                 yield value
+ 
++        # XML serialization context
++        xsc = namedtuple("XSC", "blocks, cblock, i_total, i_done, i_next")(
++                         stats.pk_get(self.job_id, "blocks"),
++                         stats.pk_get(self.job_id, "cblock"), len(sites), 0, 0)
++
+         nrml_path = self.build_nrml_path(nrml_file)
+ 
+         curve_writer = hazard_output.create_hazardcurve_writer(
+@@ -454,21 +462,22 @@
+ 
+         sites = set(sites)
+         accounted_for = set()
+-        dgen = duration_generator(0.1)
+-        duration = dgen.next()
++        min_pause = 0.1
++        pgen = pause_generator(min_pause)
++        pause = pgen.next()
+ 
+         while accounted_for != sites:
+             hc_data = []
+             # Sleep a little before checking the availability of additional
+             # hazard curve results.
+-            time.sleep(duration)
++            time.sleep(pause)
+             results_found = 0
+             for site in sites:
+-                key = key_template % hash(site)
+-                value = kvs.get_value_json_decoded(key)
+-                if value is None or site in accounted_for:
+-                    # The curve for this site is not ready yet. Proceed to
+-                    # the next.
++                if site in accounted_for:
++                    continue
++                value = kvs.get_value_json_decoded(key_template % hash(site))
++                if value is None:
++                    # No value yet, proceed to next site.
+                     continue
+                 # Use hazard curve ordinate values (PoE) from KVS and abscissae
+                 # from the IML list in config.
+@@ -483,9 +492,14 @@
+                 results_found += 1
+             if not results_found:
+                 # No results found, increase the sleep duration.
+-                duration = dgen.next()
++                pause = pgen.next()
+             else:
++                hazard_output.SerializerContext().update(
++                    xsc._replace(i_next=len(hc_data)))
+                 curve_writer.serialize(hc_data)
++                xsc = xsc._replace(i_done=xsc.i_done + len(hc_data))
++                pause *= 0.8
++                pause = min_pause if pause < min_pause else pause
+ 
+         return nrml_path
+ 
+--- a/openquake/hazard/tasks.py
++++ b/openquake/hazard/tasks.py
+@@ -65,7 +65,7 @@
+ 
+ @task
+ @java.unpack_exception
+-@stats.progress_indicator
++@stats.progress_indicator("h")
+ def compute_ground_motion_fields(job_id, sites, history, realization, seed):
+     """ Generate ground motion fields """
+     # TODO(JMC): Use a block_id instead of a sites list
+@@ -78,7 +78,7 @@
+ 
+ @task(ignore_result=True)
+ @java.unpack_exception
+-@stats.progress_indicator
++@stats.progress_indicator("h")
+ def compute_hazard_curve(job_id, sites, realization):
+     """ Generate hazard curve for a given site list. """
+     check_job_status(job_id)
+@@ -90,7 +90,7 @@
+ 
+ @task
+ @java.unpack_exception
+-@stats.progress_indicator
++@stats.progress_indicator("h")
+ def compute_mgm_intensity(job_id, block_id, site_id):
+     """
+     Compute mean ground intensity for a specific site.
+@@ -116,7 +116,7 @@
+ 
+ @task(ignore_result=True)
+ @java.unpack_exception
+-@stats.progress_indicator
++@stats.progress_indicator("h")
+ def compute_mean_curves(job_id, sites, realizations):
+     """Compute the mean hazard curve for each site given."""
+ 
+@@ -130,7 +130,7 @@
+ 
+ @task(ignore_result=True)
+ @java.unpack_exception
+-@stats.progress_indicator
++@stats.progress_indicator("h")
+ def compute_quantile_curves(job_id, sites, realizations, quantiles):
+     """Compute the quantile hazard curve for each site given."""
+ 
+--- a/openquake/job/__init__.py
++++ b/openquake/job/__init__.py
+@@ -43,12 +43,12 @@
+ from openquake.job.handlers import resolve_handler
+ from openquake.job import config as conf
+ from openquake.job import params as job_params
+-from openquake.job.mixins import Mixin
+ from openquake.job.params import (
+     PARAMS, CALCULATION_MODE, ENUM_MAP, PATH_PARAMS, INPUT_FILE_TYPES,
+     ARRAY_RE)
+ from openquake.kvs import mark_job_as_current
+ from openquake.logs import LOG
++from openquake.utils import config as utils_config
+ from openquake.utils import stats
+ 
+ RE_INCLUDE = re.compile(r'^(.*)_INCLUDE')
+@@ -331,6 +331,9 @@
+     # Reset all progress indication counters for the job at hand.
+     stats.delete_job_counters(job.id)
+ 
++    # Make the job ID generally available.
++    utils_config.Config().set_job_id(job.id)
++
+     return job
+ 
+ 
+--- a/openquake/kvs/__init__.py
++++ b/openquake/kvs/__init__.py
+@@ -28,7 +28,6 @@
+ from openquake import logs
+ from openquake.kvs import tokens
+ from openquake.utils import config
+-from openquake.utils import general
+ 
+ 
+ LOG = logs.LOG
+@@ -183,7 +182,4 @@
+ 
+ def cache_connections():
+     """True if kvs connections should be cached."""
+-    setting = config.get("kvs", "cache_connections")
+-    if setting is None:
+-        return False
+-    return general.str2bool(setting)
++    return config.flag_set("kvs", "cache_connections")
+--- a/openquake/output/hazard.py
++++ b/openquake/output/hazard.py
+@@ -40,14 +40,13 @@
+ GMFs are serialized per object (=Site) as implemented in the base class.
+ """
+ 
+-from collections import defaultdict
++from collections import defaultdict, namedtuple
+ from lxml import etree
+ import logging
+ 
+ from openquake.db import models
+ from openquake import job, shapes, writer
+-from openquake.utils import round_float
+-from openquake.utils import stats
++from openquake.utils import config, general, round_float, stats
+ from openquake.xml import NSMAP, NRML, GML
+ 
+ 
+@@ -74,16 +73,30 @@
+         self.hcnode_counter = 0
+         self.hcfield_counter = 0
+ 
++    def _maintain_debug_stats(self):
++        """Capture the file written if debug statistics are turned on."""
++        key = stats.key_name(config.Config().get_job_id(),
++                             *stats.STATS_KEYS["hcls_xmlcurvewrites"])
++        if key:
++            stats.kvs_op("rpush", key, self.path)
++
++    def open(self):
++        """Make sure the mode is set before the base class' open is called."""
++        self.mode = SerializerContext().get_mode()
++        super(HazardCurveXMLWriter, self).open()
++
+     def close(self):
+         """Override the default implementation writing all the
+         collected lxml object model to the stream."""
+ 
+         if self.nrml_el is None:
+-            error_msg = "You need to add at least a curve to build " \
+-                        "a valid output!"
++            error_msg = ("You need to add at least a curve to build "
++                         "a valid output!")
+             raise RuntimeError(error_msg)
+ 
+-        if self.mode in [writer.MODE_END, writer.MODE_START_AND_END]:
++        self.mode = SerializerContext().get_mode()
++        if self.mode.end:
++            self._maintain_debug_stats()
+             self.file.write(etree.tostring(
+                 self.nrml_el, pretty_print=True, xml_declaration=True,
+                 encoding="UTF-8"))
+@@ -237,6 +250,11 @@
+         self.parent_node = None
+         self.hazard_processing_node = None
+ 
++    def open(self):
++        """Make sure the mode is set before the base class' open is called."""
++        self.mode = SerializerContext().get_mode()
++        super(HazardMapXMLWriter, self).open()
++
+     def write(self, point, val):
+         """Writes hazard map for one site.
+ 
+@@ -261,7 +279,8 @@
+     def write_header(self):
+         """Header (i.e., common) information for all nodes."""
+ 
+-        if self.mode not in [writer.MODE_START, writer.MODE_START_AND_END]:
++        self.mode = SerializerContext().get_mode()
++        if not self.mode.start:
+             return
+ 
+         self.root_node = etree.Element(self.root_tag, nsmap=NSMAP)
+@@ -282,10 +301,19 @@
+             self.hazard_map_tag, nsmap=NSMAP)
+         self.parent_node.attrib['%sid' % GML] = self.HAZARD_MAP_DEFAULT_ID
+ 
++    def _maintain_debug_stats(self):
++        """Capture the file written if debug statistics are turned on."""
++        key = stats.key_name(config.Config().get_job_id(),
++                             *stats.STATS_KEYS["hcls_xmlmapwrites"])
++        if key:
++            stats.kvs_op("rpush", key, self.path)
++
+     def write_footer(self):
+         """Serialize tree to file."""
+ 
+-        if self.mode in [writer.MODE_END, writer.MODE_START_AND_END]:
++        self.mode = SerializerContext().get_mode()
++        if self.mode.end:
++            self._maintain_debug_stats()
+             if self._ensure_all_attributes_set():
+                 et = etree.ElementTree(self.root_node)
+                 et.write(self.file, pretty_print=True, xml_declaration=True,
+@@ -414,9 +442,6 @@
+     def write_header(self):
+         """Write out the file header."""
+ 
+-        if self.mode not in [writer.MODE_START, writer.MODE_START_AND_END]:
+-            return
+-
+         self.root_node = etree.Element(GMFXMLWriter.root_tag, nsmap=NSMAP)
+ 
+         _set_gml_id(self.root_node, NRML_GML_ID)
+@@ -456,10 +481,9 @@
+ 
+     def write_footer(self):
+         """Write out the file footer."""
+-        if self.mode in [writer.MODE_END, writer.MODE_START_AND_END]:
+-            et = etree.ElementTree(self.root_node)
+-            et.write(self.file, pretty_print=True, xml_declaration=True,
+-                     encoding="UTF-8")
++        et = etree.ElementTree(self.root_node)
++        et.write(self.file, pretty_print=True, xml_declaration=True,
++                 encoding="UTF-8")
+ 
+     def _append_site_node(self, point, val, parent_node):
+         """Write a single GMFNode element."""
+@@ -844,45 +868,13 @@
+             location="POINT(%s %s)" % (point.point.x, point.point.y))
+ 
+ 
+-def get_mode(job_id, serialize_to, nrml_path):
+-    """Figure out the XML serialization mode.
+-
+-    This facilitates multi-stage XML serialization.
+-
+-    :param int job_id: the id of the job the data belongs to.
+-    :param serialize_to: where to serialize
+-    :type serialize_to: list of strings, permitted values: 'db', 'xml'.
+-    :param string nrml_path: the full XML/NRML path.
+-    :returns: one of: MODE_START, MODE_IN_THE_MIDDLE, MODE_END,
+-        MODE_START_AND_END (single-stage serialization).
+-    """
+-    mode = writer.MODE_START_AND_END
+-    if 'xml' in serialize_to and nrml_path:
+-        # Figure out the mode, are we at the beginning, in the middle or at
+-        # the end of the XML file?
+-        blocks = stats.pk_get(job_id, "hcls_blocks")
+-        cblock = stats.pk_get(job_id, "hcls_cblock")
+-        if blocks and cblock:
+-            blocks = int(blocks)
+-            cblock = int(cblock)
+-            if blocks == 1:
+-                pass    # MODE_START_AND_END
+-            elif cblock == 1:
+-                mode = writer.MODE_START
+-            elif cblock == blocks:
+-                mode = writer.MODE_END
+-            else:
+-                mode = writer.MODE_IN_THE_MIDDLE
+-    return mode
+-
+-
+ # Facilitate multi-stage XML serialization by using the same serializer
+ # object for a given job and NRML path.
+ _XML_SERIALIZER_CACHE = defaultdict(lambda: None)
+ 
+ 
+ def _create_writer(job_id, serialize_to, nrml_path, create_xml_writer,
+-                   create_db_writer, mode=None):
++                   create_db_writer, multistage_serialization=False):
+     """Common code for the functions below"""
+ 
+     writers = []
+@@ -893,12 +885,11 @@
+         writers.append(create_db_writer(nrml_path, job_id))
+ 
+     if 'xml' in serialize_to and nrml_path:
+-        if mode is not None:
++        if multistage_serialization:
+             obj = _XML_SERIALIZER_CACHE[(job_id, nrml_path)]
+             if obj is None:
+                 obj = create_xml_writer(nrml_path)
+                 _XML_SERIALIZER_CACHE[(job_id, nrml_path)] = obj
+-            obj.set_mode(mode)
+         else:
+             obj = create_xml_writer(nrml_path)
+         writers.append(obj)
+@@ -918,9 +909,8 @@
+     :returns: an :py:class:`output.hazard.HazardCurveXMLWriter` or an
+         :py:class:`output.hazard.HazardCurveDBWriter` instance.
+     """
+-    mode = get_mode(job_id, serialize_to, nrml_path)
+     return _create_writer(job_id, serialize_to, nrml_path,
+-                          HazardCurveXMLWriter, HazardCurveDBWriter, mode)
++                          HazardCurveXMLWriter, HazardCurveDBWriter, True)
+ 
+ 
+ def create_hazardmap_writer(job_id, serialize_to, nrml_path):
+@@ -935,9 +925,8 @@
+     :returns: an :py:class:`output.hazard.HazardMapXMLWriter` or an
+         :py:class:`output.hazard.HazardMapDBWriter` instance.
+     """
+-    mode = get_mode(job_id, serialize_to, nrml_path)
+     return _create_writer(job_id, serialize_to, nrml_path, HazardMapXMLWriter,
+-                          HazardMapDBWriter, mode)
++                          HazardMapDBWriter, True)
+ 
+ 
+ def create_gmf_writer(job_id, serialize_to, nrml_path):
+@@ -954,3 +943,74 @@
+     """
+     return _create_writer(
+         job_id, serialize_to, nrml_path, GMFXMLWriter, GmfDBWriter)
++
++
++@general.singleton
++class SerializerContext(object):
++    """Used to facilitate multi-stage XML serialization."""
++    def __init__(self):
++        self.blocks = 0
++        self.cblock = 0
++        self.i_total = 0
++        self.i_done = 0
++        self.i_next = 0
++
++    def update(self, context):
++        """Updates the serialization context.
++
++        :param namedtuple context: a `namedtuple` with the following
++            five integers:
++                - blocks: overall number of blocks the calculation is divided
++                    into
++                - cblock: current block number (1 based)
++                - i_total: overall number of items to be serialized in the
++                    current block
++                - i_done: number of items already serialized in the
++                    current block
++                - i_next: number of items to be serialized next
++        """
++        self.blocks = context.blocks
++        self.cblock = context.cblock
++        self.i_total = context.i_total
++        self.i_done = context.i_done
++        self.i_next = context.i_next
++
++    def get_mode(self):
++        """Figure out the XML serialization mode.
++
++        The possible modes are:
++            - start
++            - middle
++            - end
++            - start and end (single pass serialization)
++
++        :returns: a `namedtuple` with three booleans: start, middle and end
++            that are set to reflect the current serialization mode.
++        """
++        # Figure out the mode, are we at the beginning, in the middle or at
++        # the end of the XML file?
++
++        mode = namedtuple("SerializerMode", "start, middle, end")
++
++        if self.cblock > 1 and self.cblock < self.blocks:
++            return mode(False, True, False)
++
++        start = middle = end = False
++        if self.cblock == 1:
++            # We are serializing data from the first block.
++            if self.i_done == 0:
++                # First block, nothing serialized yet.
++                start = True
++            else:
++                middle = True
++        if self.cblock == self.blocks:
++            # We are serializing data from the last block.
++            items_left = self.i_total - self.i_done - self.i_next
++            if items_left == 0:
++                # Last block, last batch.
++                middle = False
++                end = True
++            elif not start:
++                middle = True
++
++        return mode(start, middle, end)
+--- a/openquake/utils/config.py
++++ b/openquake/utils/config.py
+@@ -54,6 +54,7 @@
+ 
+     def __init__(self):
+         self._load_from_file()
++        self.job_id = -1
+ 
+     def get(self, name):
+         """A dict with key/value pairs for the given `section` or `None`."""
+@@ -81,6 +82,14 @@
+         else:
+             return False
+ 
++    def set_job_id(self, job_id):
++        """Sets the job identifier."""
++        self.job_id = job_id
++
++    def get_job_id(self):
++        """Gets the job identifier."""
++        return self.job_id
++
+ 
+ def get_section(section):
+     """A dictionary of key/value pairs for the given `section` or `None`."""
+@@ -121,3 +130,17 @@
+         block_size = default
+ 
+     return block_size
++
++
++def flag_set(section, setting):
++    """True if the given setting is enabled in openquake.cfg
++
++    :param string section: name of the configuration file section
++    :param string setting: name of the configuration file setting
++
++    :returns: True if the setting is enabled in openquake.cfg, False otherwise
++    """
++    setting = get(section, setting)
++    if setting is None:
++        return False
++    return general.str2bool(setting)
+--- a/openquake/utils/stats.py
++++ b/openquake/utils/stats.py
+@@ -34,17 +34,52 @@
+ # job in case of failures. See e.g.
+ #   https://bugs.launchpad.net/openquake/+bug/907703
+ STATS_KEYS = {
+-    # Classical PSHA kvs statistics db keys, "t" and "i" mark a totals
+-    # and an incremental counter respectively.
+-    "hcls_realizations": ("classical:realizations", "h", "t"),
+-    "hcls_crealization": ("classical:crealization", "h", "i"),
+-    "hcls_sites": ("classical:sites", "h", "t"),
+-    "hcls_block_size": ("classical:block_size", "h", "t"),
+-    "hcls_blocks": ("classical:blocks", "h", "t"),
+-    "hcls_cblock": ("classical:cblock", "h", "i"),
++    # Predefined calculator statistics keys for the kvs.
++    # The areas are as follows:
++    #   "g" : general
++    #   "h" : hazard
++    #   "r" : risk
++    # The counter types are as follows:
++    #   "d" : debug counter, turned off in production via openquake.cfg
++    #   "i" : incremental counter
++    #   "t" : totals counter
++    # The total number of realizations
++    "hcls_realizations": ("h", "cls:realizations", "t"),
++    # Current realization
++    "hcls_crealization": ("h", "cls:crealization", "i"),
++    # The total number of sites
++    "hcls_sites": ("h", "cls:sites", "t"),
++    # The block size used
++    "block_size": ("g", "gen:block_size", "t"),
++    # The total number of blocks
++    "blocks": ("g", "gen:blocks", "t"),
++    # The current block
++    "cblock": ("g", "gen:cblock", "i"),
++    # debug statistic: list of paths of hazard curves written to xml
++    "hcls_xmlcurvewrites": ("h", "cls:debug:xmlcurvewrites", "d"),
++    # debug statistic: list of paths of hazard maps written to xml
++    "hcls_xmlmapwrites": ("h", "cls:debug:xmlmapwrites", "d"),
+ }
+ 
+ 
++# Predefined key template, order of substitution variables:
++#   job_id, area, fragment, counter_type.
++_KEY_TEMPLATE = "oqs/%s/%s/%s/%s"
++
++
++def kvs_op(dop, *kvs_args):
++    """Apply the kvs operation using the predefined key.
++
++    :param string dop: the kvs operation desired
++    :param tuple kvs_args: the positional arguments for the desired kvs
++        operation
++    :param value: whatever is retured by the kvs operation
++    """
++    conn = _redis()
++    op = getattr(conn, dop)
++    return op(*kvs_args)
++
++
+ def pk_set(job_id, skey, value):
+     """Set the value for a predefined statistics key.
+ 
+@@ -53,8 +88,9 @@
+     :param value: the desired value
+     """
+     key = key_name(job_id, *STATS_KEYS[skey])
+-    conn = _redis()
+-    conn.set(key, value)
++    if not key:
++        return
++    kvs_op("set", key, value)
+ 
+ 
+ def pk_inc(job_id, skey):
+@@ -64,19 +100,26 @@
+     :param string skey: predefined statistics key
+     """
+     key = key_name(job_id, *STATS_KEYS[skey])
+-    conn = _redis()
+-    conn.incr(key)
++    if not key:
++        return
++    kvs_op("incr", key)
+ 
+ 
+-def pk_get(job_id, skey):
++def pk_get(job_id, skey, cast2int=True):
+     """Get the value for a predefined statistics key.
+ 
+     :param int job_id: identifier of the job in question
+     :param string skey: predefined statistics key
++    :param bool cast2int: whether the values should be cast to integers
+     """
+     key = key_name(job_id, *STATS_KEYS[skey])
+-    conn = _redis()
+-    return conn.get(key)
++    if not key:
++        return
++    value = kvs_op("get", key)
++    if cast2int:
++        return int(value) if value else 0
++    else:
++        return value
+ 
+ 
+ def _redis():
+@@ -90,19 +133,28 @@
+     return redis.Redis(**args)
+ 
+ 
+-def key_name(job_id, fragment, area="h", counter_type="i"):
++def key_name(job_id, area, fragment, counter_type):
+     """Return the redis key name for the given job/function.
+ 
+-    The areas in use are 'h' (for hazard) and 'r' (for risk).
+-    The counter types in use are 'i' (for incremental counters) and
+-    't' (for totals).
++    The areas in use are 'h' (for hazard) and 'r' (for risk). The counter
++    types in use are:
++        "d" : debug counter, turned off in production via openquake.cfg
++        "i" : incremental counter
++        "t" : totals counter
+     """
+-    return "oqs:%s:%s:%s:%s" % (job_id, area, counter_type, fragment)
++    if counter_type == "d" and not debug_stats_enabled():
++        return None
++    return _KEY_TEMPLATE % (job_id, area, fragment, counter_type)
+ 
+ 
+-def progress_indicator(func):
++class progress_indicator(object):   # pylint: disable=C0103
+     """Count successful/failed invocations of the wrapped function."""
+ 
++    def __init__(self, area):
++        self.area = area
++        self.__name__ = "progress_indicator"
++
++    @staticmethod
+     def find_job_id(*args, **kwargs):
+         """Find and return the job_id."""
+         if len(args) > 0:
+@@ -110,54 +162,65 @@
+         else:
+             return kwargs.get("job_id", -1)
+ 
+-    @wraps(func)
+-    def wrapper(*args, **kwargs):
+-        """The actual decorator."""
+-        # The first argument is always the job_id
+-        job_id = find_job_id(*args, **kwargs)
+-        key = key_name(job_id, func.__name__)
+-        conn = _redis()
+-        try:
+-            result = func(*args, **kwargs)
+-            conn.incr(key)
+-            return result
+-        except:
+-            # Count failure
+-            conn.incr(key + ":f")
+-            raise
++    def __call__(self, func):
+ 
+-    return wrapper
++        @wraps(func)
++        def wrapper(*args, **kwargs):
++            """The actual decorator."""
++            # The first argument is always the job_id
++            job_id = self.find_job_id(*args, **kwargs)
++            conn = _redis()
++            try:
++                result = func(*args, **kwargs)
++                key = key_name(job_id, self.area, func.__name__, "i")
++                conn.incr(key)
++                return result
++            except:
++                # Count failure
++                key = key_name(
++                    job_id, self.area, func.__name__ + "-failures", "i")
++                conn.incr(key)
++                raise
+ 
++        return wrapper
+ 
+-def set_total(job_id, key, value):
++
++def set_total(job_id, area, fragment, value):
+     """Set a total value for the given key."""
+-    key = key_name(job_id, key, counter_type="t")
+-    conn = _redis()
+-    conn.set(key, value)
++    key = key_name(job_id, area, fragment, "t")
++    kvs_op("set", key, value)
+ 
+ 
+-def incr_counter(job_id, key):
++def incr_counter(job_id, area, fragment):
+     """Increment the counter for the given key."""
+-    key = key_name(job_id, key)
+-    conn = _redis()
+-    conn.incr(key)
++    key = key_name(job_id, area, fragment, "i")
++    kvs_op("incr", key)
+ 
+ 
+-def get_counter(job_id, key, counter_type="i"):
++def get_counter(job_id, area, fragment, counter_type):
+     """Get the value for the given key.
+ 
+-    The counter types in use are 'i' (for incremental counters) and
+-    't' (for totals).
++    The areas in use are 'h' (for hazard) and 'r' (for risk). The counter
++    types in use are:
++        "d" : debug counter, turned off in production via openquake.cfg
++        "i" : incremental counter
++        "t" : totals counter
+     """
+-    key = key_name(job_id, key, counter_type=counter_type)
+-    conn = _redis()
+-    value = conn.get(key)
++    key = key_name(job_id, area, fragment, counter_type)
++    if not key:
++        return
++    value = kvs_op("get", key)
+     return int(value) if value else value
+ 
+ 
+ def delete_job_counters(job_id):
+     """Delete the progress indication counters for the given `job_id`."""
+     conn = _redis()
+-    keys = conn.keys("oqs:%s*" % job_id)
++    keys = conn.keys("oqs/%s*" % job_id)
+     if keys:
+         conn.delete(*keys)
++
++
++def debug_stats_enabled():
++    """True if debug statistics counters are enabled."""
++    return config.flag_set("statistics", "debug")
+--- a/openquake/writer.py
++++ b/openquake/writer.py
+@@ -32,11 +32,6 @@
+ 
+ LOGGER = logging.getLogger('serializer')
+ 
+-MODE_START = 1
+-MODE_IN_THE_MIDDLE = 0
+-MODE_END = -1
+-MODE_START_AND_END = -2
+-
+ 
+ class FileWriter(object):
+     """Simple output half of the codec process."""
+@@ -45,13 +40,7 @@
+         self.path = path
+         self.file = None
+         self.root_node = None
+-        self.mode = MODE_START_AND_END
+-
+-    def set_mode(self, mode):
+-        """Facilitate XML serialization in multiple stages."""
+-        assert mode in [MODE_START, MODE_IN_THE_MIDDLE, MODE_END,
+-                        MODE_START_AND_END]
+-        self.mode = mode
++        self.mode = None
+ 
+     def initialize(self):
+         """Initialization hook for derived classes."""
+@@ -59,7 +48,7 @@
+ 
+     def open(self):
+         """Get the file handle open for writing"""
+-        if self.mode in [MODE_END, MODE_START_AND_END]:
++        if self.mode is None or self.mode.end:
+             self.file = open(self.path, "w")
+ 
+     def write(self, point, value):
