@@ -1,3 +1,11 @@
+python-oq (0.5.0-6) oneiric; urgency=low
+
+  * NRML files are written only once (LP: #914614)
+  * optimize parallel results collection (LP: #914613)
+  * fix "current realization" progress counter value (LP: #914477)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 19 Jan 2012 15:16:51 +0100
+
 python-oq (0.5.0-5) oneiric; urgency=low
 
   * Revert to the usual database user names.
