@@ -26,7 +26,7 @@
 -                sudo chown -R postgres $full_tspace_path
 -            fi
 +            mkdir -p $full_tspace_path
-+            sudo chown -R postgres.postgres $full_tspace_path
++            chown -R postgres.postgres $full_tspace_path
          fi
  
          # Create the actual table space.

@@ -109,6 +109,19 @@
  
          return nrml_path
  
+@@ -576,6 +590,12 @@
+             hm_attrib.update(hm_attrib_update)
+             hm_data.append((site, hm_attrib))
+ 
++        # XML serialization context
++        xsc = namedtuple("XSC", "blocks, cblock, i_total, i_done, i_next")(
++                         stats.pk_get(self.calc_proxy.job_id, "blocks"),
++                         stats.pk_get(self.calc_proxy.job_id, "cblock"),
++                         len(sites), 0, len(hm_data))
++        hazard_output.SerializerContext().update(xsc)
+         map_writer.serialize(hm_data)
+ 
+         return nrml_path
 --- a/openquake/hazard/tasks.py
 +++ b/openquake/hazard/tasks.py
 @@ -65,7 +65,7 @@
