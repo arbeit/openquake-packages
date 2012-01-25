@@ -115,8 +115,8 @@
  
 +        # XML serialization context
 +        xsc = namedtuple("XSC", "blocks, cblock, i_total, i_done, i_next")(
-+                         stats.pk_get(self.calc_proxy.job_id, "blocks"),
-+                         stats.pk_get(self.calc_proxy.job_id, "cblock"),
++                         stats.pk_get(self.job_id, "blocks"),
++                         stats.pk_get(self.job_id, "cblock"),
 +                         len(sites), 0, len(hm_data))
 +        hazard_output.SerializerContext().update(xsc)
          map_writer.serialize(hm_data)
