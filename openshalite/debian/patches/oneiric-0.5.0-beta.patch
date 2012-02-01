@@ -1,0 +1,78 @@
+--- a/src/org/opensha/sha/earthquake/rupForecastImpl/FloatingPoissonFaultSource.java
++++ b/src/org/opensha/sha/earthquake/rupForecastImpl/FloatingPoissonFaultSource.java
+@@ -18,7 +18,6 @@
+ 
+ package org.opensha.sha.earthquake.rupForecastImpl;
+ 
+-import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.Iterator;
+ 
+@@ -26,17 +25,14 @@
+ import org.opensha.commons.calc.magScalingRelations.MagLengthRelationship;
+ import org.opensha.commons.calc.magScalingRelations.MagScalingRelationship;
+ import org.opensha.commons.data.Site;
+-import org.opensha.commons.util.FileUtils;
+ import org.opensha.commons.geo.BorderType;
+ import org.opensha.commons.geo.Location;
+ import org.opensha.commons.geo.LocationList;
+-import org.opensha.commons.geo.LocationUtils;
+ import org.opensha.commons.geo.Region;
+ import org.opensha.sha.earthquake.ProbEqkRupture;
+ import org.opensha.sha.earthquake.ProbEqkSource;
+ import org.opensha.sha.faultSurface.EvenlyGriddedSurface;
+ import org.opensha.sha.faultSurface.EvenlyGriddedSurfaceAPI;
+-import org.opensha.sha.faultSurface.FaultTrace;
+ import org.opensha.sha.magdist.GaussianMagFreqDist;
+ import org.opensha.sha.magdist.IncrementalMagFreqDist;
+ import org.opensha.sha.util.TectonicRegionType;
+@@ -118,7 +114,7 @@
+ public class FloatingPoissonFaultSource extends ProbEqkSource {
+ 
+     // for Debug purposes
+-    private static String C = new String("FloatingPoissonFaultSource");
++    private static String C = "FloatingPoissonFaultSource";
+     private boolean D = false;
+ 
+     // name for this classs
+@@ -127,8 +123,6 @@
+     // private fields
+     private ArrayList<ProbEqkRupture> ruptureList;
+ 
+-    // private ArrayList<Location> faultCornerLocations = new
+-    // ArrayList<Location>(); // used for the getMinDistance(Site) method
+     private double duration;
+     private EvenlyGriddedSurface faultSurface;
+ 
+@@ -278,6 +272,7 @@
+     	for (int r = 0; r < ruptureList.size(); r++) {
+     		ruptureList.get(r).setTectRegType(tectRegType);
+     	}
++    	super.setTectonicRegionType(tectRegType);
+     }
+ 
+     /**
+@@ -364,8 +359,6 @@
+                         rupWidth = 2 * ddw; // factor of 2 more than ensures
+                                             // full ddw ruptures
+ 
+-                    // System.out.println((float)mag+"\t"+(float)rupLen+"\t"+(float)rupWidth+"\t"+(float)(rupLen*rupWidth));
+-
+                     // get number of ruptures depending on whether we're
+                     // floating down the middle
+                     if (floatTypeFlag != 2)
+@@ -403,14 +396,6 @@
+                         		rupSurf.getSurfaceCentre());
+                         ruptureList.add(probEqkRupture);
+                     }
+-                    /*
+-                     * if( D )
+-                     * System.out.println(C+": ddw="+ddw+": mag="+mag+"; rupLen="
+-                     * +rupLen+"; rupWidth="+rupWidth+
+-                     * "; rate="+rate+"; timeSpan="+duration+"; numRup="+numRup+
+-                     * "; weight="
+-                     * +weight+"; prob="+prob+"; floatTypeFlag="+floatTypeFlag);
+-                     */
+ 
+                 }
+                 // Apply full fault rupture

@@ -38,8 +38,10 @@ REGION_GRID_SPACING = "REGION_GRID_SPACING"
 CALCULATION_MODE = "CALCULATION_MODE"
 REGION_GRID_SPACING = "REGION_GRID_SPACING"
 SITES = "SITES"
-DETERMINISTIC_MODE = "Deterministic"
+SCENARIO_MODE = "Scenario"
 DISAGGREGATION_MODE = "Disaggregation"
+BCR_EVENT_BASED_MODE = "Event Based BCR"
+BCR_CLASSICAL_MODE = "Classical BCR"
 UHS_MODE = "UHS"
 BASE_PATH = "BASE_PATH"
 COMPUTE_HAZARD_AT_ASSETS = "COMPUTE_HAZARD_AT_ASSETS_LOCATIONS"
@@ -232,10 +234,10 @@ class ComputationTypeValidator(object):
         return (True, [])
 
 
-class DeterministicComputationValidator(object):
-    """Validator that checks if the deterministic calculation
+class ScenarioComputationValidator(object):
+    """Validator that checks if the scenario calculation
     mode specified in the configuration file is for an
-    hazard + risk job. We don't currently support deterministic
+    hazard + risk job. We don't currently support scenario
     calculations for hazard jobs only."""
 
     def __init__(self, sections, params):
@@ -243,13 +245,13 @@ class DeterministicComputationValidator(object):
         self.sections = sections
 
     def is_valid(self):
-        """Return `True` if the deterministic calculation mode
+        """Return `True` if the scenario calculation mode
         specified is for an hazard + risk job, `False` otherwise."""
 
         if RISK_SECTION not in self.sections \
-                and self.params[CALCULATION_MODE] == DETERMINISTIC_MODE:
+                and self.params[CALCULATION_MODE] == SCENARIO_MODE:
 
-            return (False, ["With DETERMINISTIC calculations we"
+            return (False, ["With SCENARIO calculations we"
                     + " only support hazard + risk jobs."])
 
         return (True, [])
@@ -384,6 +386,33 @@ class UHSValidator(object):
         return (valid, errors)
 
 
+class BCRValidator(object):
+    """
+    Validator for both classical- and probabilistic-based BCR calculators
+    """
+
+    def __init__(self, params):
+        self.params = params
+
+    def is_valid(self):
+        """
+        Checks the following conditions:
+
+        * INVESTIGATION_TIME is set to 1.0
+        * INTEREST_RATE is positive
+        * ASSET_LIFE_EXPECTANCY is positive
+        """
+        errors = []
+        if float(self.params.get('INVESTIGATION_TIME')) != 1.0:
+            errors.append("Parameter 'INVESTIGATION_TIME' must be set to 1.0 "
+                          "for BCR calculations.")
+        if float(self.params.get('INTEREST_RATE')) <= 0:
+            errors.append("Parameter 'INTEREST_RATE' must be positive")
+        if float(self.params.get('ASSET_LIFE_EXPECTANCY')) <= 0:
+            errors.append("Parameter 'ASSET_LIFE_EXPECTANCY' must be positive")
+        return (not bool(errors), errors)
+
+
 class FilePathValidator(object):
     """Validator that checks paths defined in configuration files are valid"""
 
@@ -508,14 +537,14 @@ def default_validators(sections, params):
 
     hazard = HazardMandatoryParamsValidator(sections, params)
     exposure = RiskMandatoryParamsValidator(sections, params)
-    deterministic = DeterministicComputationValidator(sections, params)
+    scenario = ScenarioComputationValidator(sections, params)
     hazard_comp_type = ComputationTypeValidator(params)
     file_path = FilePathValidator(params)
     parameter = BasicParameterValidator(params)
 
     validators = ValidatorSet()
     validators.add(hazard_comp_type)
-    validators.add(deterministic)
+    validators.add(scenario)
     validators.add(exposure)
     validators.add(parameter)
     validators.add(file_path)
@@ -523,5 +552,8 @@ def default_validators(sections, params):
 
     if params.get(CALCULATION_MODE) == DISAGGREGATION_MODE:
         validators.add(DisaggregationValidator(params))
+    elif params.get(CALCULATION_MODE) in (BCR_CLASSICAL_MODE,
+                                          BCR_EVENT_BASED_MODE):
+        validators.add(BCRValidator(params))
 
     return validators

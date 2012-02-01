@@ -1,22 +1,22 @@
 #!/bin/bash
 
-# ssh ubuntu@kvm rm -rf /var/tmp/pkgs/dists/natty/universe/binary-amd64
-ssh ubuntu@kvm mkdir -p /var/tmp/pkgs/dists/natty/universe/binary-amd64
+# ssh ubuntu@kvm rm -rf /var/tmp/pkgs/dists/oneiric/universe/binary-amd64
+ssh ubuntu@kvm mkdir -p /var/tmp/pkgs/dists/oneiric/universe/binary-amd64
 
 for f in "$@"
 do
-    scp $f ubuntu@kvm:/var/tmp/pkgs/dists/natty/universe/binary-amd64/
+    scp $f ubuntu@kvm:/var/tmp/pkgs/dists/oneiric/universe/binary-amd64/
     scp $f ubuntu@kvm:/var/tmp/pkgs/
 done
 
 echo "rebuilding local archive .."
-ssh ubuntu@kvm "cd /var/tmp/pkgs/dists/natty/universe/binary-amd64; dpkg-scanpackages . /dev/null | tee Packages | gzip -c > Packages.gz"
+ssh ubuntu@kvm "cd /var/tmp/pkgs/dists/oneiric/universe/binary-amd64; dpkg-scanpackages . /dev/null | tee Packages | gzip -c > Packages.gz"
 
 local_archive_in_sources=`ssh ubuntu@kvm cat /etc/apt/sources.list | grep 'file:..*pkgs' | wc -l`
 
 if [ $local_archive_in_sources -lt 1 ]; then
     echo "adding local archive to sources.list .."
-    ssh root@kvm 'echo "deb file:///var/tmp/pkgs natty universe" >> /etc/apt/sources.list'
+    ssh root@kvm 'echo "deb file:///var/tmp/pkgs oneiric universe" >> /etc/apt/sources.list'
 else
     echo "sources.list is good to go"
 fi

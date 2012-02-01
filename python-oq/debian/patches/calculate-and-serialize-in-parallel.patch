@@ -1,0 +1,716 @@
+--- a/openquake/db/models.py
++++ b/openquake/db/models.py
+@@ -487,7 +487,7 @@
+     duration = models.IntegerField(default=0)
+     job_pid = models.IntegerField(default=0)
+     supervisor_pid = models.IntegerField(default=0)
+-    oq_params = models.ForeignKey('OqParams')
++    oq_job_profile = models.ForeignKey('OqJobProfile')
+     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+ 
+     class Meta:  # pylint: disable=C0111,W0232
+@@ -511,7 +511,7 @@
+         db_table = 'uiapi\".\"calc_stats'
+ 
+ 
+-class OqParams(models.Model):
++class OqJobProfile(models.Model):
+     '''
+     Parameters needed to run an OpenQuake job
+     '''
+@@ -679,7 +679,7 @@
+     interest_rate = models.FloatField(null=True)
+ 
+     class Meta:  # pylint: disable=C0111,W0232
+-        db_table = 'uiapi\".\"oq_params'
++        db_table = 'uiapi\".\"oq_job_profile'
+ 
+ 
+ class Output(models.Model):
+@@ -987,7 +987,7 @@
+     owner = models.ForeignKey("OqUser")
+     name = models.TextField()
+     description = models.TextField(null=True)
+-    imt = models.TextField(choices=OqParams.IMT_CHOICES)
++    imt = models.TextField(choices=OqJobProfile.IMT_CHOICES)
+     imls = FloatArrayField()
+     category = models.TextField()
+     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+--- a/openquake/db/schema/comments.sql
++++ b/openquake/db/schema/comments.sql
+@@ -313,12 +313,12 @@
+ COMMENT ON COLUMN uiapi.calc_stats.realizations IS 'The number of logic tree samples in the calculation (for hazard jobs of all types except scenario)';
+ 
+ 
+-COMMENT ON TABLE uiapi.oq_params IS 'Holds the parameters needed to invoke the OpenQuake engine.';
+-COMMENT ON COLUMN uiapi.oq_params.calc_mode IS 'One of: classical, event_based, scenario, disaggregation, uhs, classical_bcr or event_based_bcr.';
+-COMMENT ON COLUMN uiapi.oq_params.job_type IS '"hazard" and/or "risk"';
+-COMMENT ON COLUMN uiapi.oq_params.histories IS 'Number of seismicity histories';
+-COMMENT ON COLUMN uiapi.oq_params.imls IS 'Intensity measure levels';
+-COMMENT ON COLUMN uiapi.oq_params.imt IS 'Intensity measure type, one of:
++COMMENT ON TABLE uiapi.oq_job_profile IS 'Holds the parameters needed to invoke the OpenQuake engine.';
++COMMENT ON COLUMN uiapi.oq_job_profile.calc_mode IS 'One of: classical, event_based, scenario, disaggregation, uhs, classical_bcr or event_based_bcr.';
++COMMENT ON COLUMN uiapi.oq_job_profile.job_type IS '"hazard" and/or "risk"';
++COMMENT ON COLUMN uiapi.oq_job_profile.histories IS 'Number of seismicity histories';
++COMMENT ON COLUMN uiapi.oq_job_profile.imls IS 'Intensity measure levels';
++COMMENT ON COLUMN uiapi.oq_job_profile.imt IS 'Intensity measure type, one of:
+     - peak ground acceleration (pga)
+     - spectral acceleration (sa)
+     - peak ground velocity (pgv)
+@@ -326,10 +326,10 @@
+     - Arias Intensity (ia)
+     - relative significant duration (rsd)
+     - Modified Mercalli Intensity';
+-COMMENT ON COLUMN uiapi.oq_params.poes IS 'Probabilities of exceedence';
+-COMMENT ON COLUMN uiapi.oq_params.region IS 'Region of interest for the calculation (Polygon)';
+-COMMENT ON COLUMN uiapi.oq_params.region_grid_spacing IS 'Desired cell size (in degrees), used when splitting up the region of interest. This effectively defines the resolution of the calculation. (Smaller grid spacing means more sites and thus more calculations.)';
+-COMMENT ON COLUMN uiapi.oq_params.sites IS 'Sites of interest for the calculation (MultiPoint)';
++COMMENT ON COLUMN uiapi.oq_job_profile.poes IS 'Probabilities of exceedence';
++COMMENT ON COLUMN uiapi.oq_job_profile.region IS 'Region of interest for the calculation (Polygon)';
++COMMENT ON COLUMN uiapi.oq_job_profile.region_grid_spacing IS 'Desired cell size (in degrees), used when splitting up the region of interest. This effectively defines the resolution of the calculation. (Smaller grid spacing means more sites and thus more calculations.)';
++COMMENT ON COLUMN uiapi.oq_job_profile.sites IS 'Sites of interest for the calculation (MultiPoint)';
+ 
+ 
+ COMMENT ON TABLE uiapi.output IS 'A single OpenQuake calculation engine output. The data may reside in a file or in the database.';
+--- a/openquake/db/schema/indexes.sql
++++ b/openquake/db/schema/indexes.sql
+@@ -64,7 +64,7 @@
+ CREATE INDEX hzrdr_hazard_curve_output_id_idx on hzrdr.hazard_curve(output_id);
+ CREATE INDEX hzrdr_hazard_curve_data_hazard_curve_id_idx on hzrdr.hazard_curve_data(hazard_curve_id);
+ CREATE INDEX hzrdr_gmf_data_output_id_idx on hzrdr.gmf_data(output_id);
+-CREATE INDEX uiapi_oq_params_input_set_id_idx on uiapi.oq_params(input_set_id);
++CREATE INDEX uiapi_oq_job_profile_input_set_id_idx on uiapi.oq_job_profile(input_set_id);
+ CREATE INDEX riskr_loss_map_output_id_idx on riskr.loss_map(output_id);
+ CREATE INDEX riskr_loss_map_data_loss_map_id_idx on riskr.loss_map_data(loss_map_id);
+ CREATE INDEX riskr_loss_curve_output_id_idx on riskr.loss_curve(output_id);
+--- a/openquake/db/schema/openquake.sql
++++ b/openquake/db/schema/openquake.sql
+@@ -554,7 +554,7 @@
+     duration INTEGER NOT NULL DEFAULT 0,
+     job_pid INTEGER NOT NULL DEFAULT 0,
+     supervisor_pid INTEGER NOT NULL DEFAULT 0,
+-    oq_params_id INTEGER NOT NULL,
++    oq_job_profile_id INTEGER NOT NULL,
+     last_update timestamp without time zone
+         DEFAULT timezone('UTC'::text, now()) NOT NULL
+ ) TABLESPACE uiapi_ts;
+@@ -574,7 +574,7 @@
+ 
+ 
+ -- The parameters needed for an OpenQuake engine run
+-CREATE TABLE uiapi.oq_params (
++CREATE TABLE uiapi.oq_job_profile (
+     id SERIAL PRIMARY KEY,
+     -- One of:
+     --      classical (Classical PSHA)
+@@ -708,7 +708,16 @@
+         CONSTRAINT compute_mean_hazard_curve_is_set
+         CHECK(
+             ((calc_mode IN ('classical', 'classical_bcr'))
+-             AND (compute_mean_hazard_curve IS NOT NULL))
++            AND
++            (
++                -- If the job is hazard+risk and classical,
++                -- make sure compute_mean_hazard_curve is TRUE.
++                ((ARRAY['hazard', 'risk']::VARCHAR[] <@ job_type) AND (compute_mean_hazard_curve = TRUE))
++                OR
++                -- If the job is just classical (and not hazard+risk),
++                -- just make sure compute_mean_hazard_curve is not null.
++                ((NOT ARRAY['hazard', 'risk']::VARCHAR[] <@ job_type) AND (compute_mean_hazard_curve IS NOT NULL))
++            ))
+             OR
+             ((calc_mode NOT IN ('classical', 'classical_bcr'))
+              AND (compute_mean_hazard_curve IS NULL))),
+@@ -1045,11 +1054,11 @@
+     last_update timestamp without time zone
+         DEFAULT timezone('UTC'::text, now()) NOT NULL
+ ) TABLESPACE uiapi_ts;
+-SELECT AddGeometryColumn('uiapi', 'oq_params', 'region', 4326, 'POLYGON', 2);
+-SELECT AddGeometryColumn('uiapi', 'oq_params', 'sites', 4326, 'MULTIPOINT', 2);
++SELECT AddGeometryColumn('uiapi', 'oq_job_profile', 'region', 4326, 'POLYGON', 2);
++SELECT AddGeometryColumn('uiapi', 'oq_job_profile', 'sites', 4326, 'MULTIPOINT', 2);
+ -- Params can either contain a site list ('sites') or
+ -- region + region_grid_spacing, but not both.
+-ALTER TABLE uiapi.oq_params ADD CONSTRAINT oq_params_geometry CHECK(
++ALTER TABLE uiapi.oq_job_profile ADD CONSTRAINT oq_job_profile_geometry CHECK(
+     ((region IS NOT NULL) AND (region_grid_spacing IS NOT NULL)
+         AND (sites IS NULL))
+     OR ((region IS NULL) AND (region_grid_spacing IS NULL)
+@@ -1473,8 +1482,8 @@
+ ALTER TABLE uiapi.oq_calculation ADD CONSTRAINT uiapi_oq_calculation_owner_fk
+ FOREIGN KEY (owner_id) REFERENCES admin.oq_user(id) ON DELETE RESTRICT;
+ 
+-ALTER TABLE uiapi.oq_calculation ADD CONSTRAINT uiapi_oq_calculation_oq_params_fk
+-FOREIGN KEY (oq_params_id) REFERENCES uiapi.oq_params(id) ON DELETE RESTRICT;
++ALTER TABLE uiapi.oq_calculation ADD CONSTRAINT uiapi_oq_calculation_oq_job_profile_fk
++FOREIGN KEY (oq_job_profile_id) REFERENCES uiapi.oq_job_profile(id) ON DELETE RESTRICT;
+ 
+ ALTER TABLE uiapi.calc_stats ADD CONSTRAINT  uiapi_calc_stats_oq_calculation_fk
+ FOREIGN KEY (oq_calculation_id) REFERENCES uiapi.oq_calculation(id) ON DELETE CASCADE;
+@@ -1482,7 +1491,7 @@
+ ALTER TABLE uiapi.upload ADD CONSTRAINT uiapi_upload_owner_fk
+ FOREIGN KEY (owner_id) REFERENCES admin.oq_user(id) ON DELETE RESTRICT;
+ 
+-ALTER TABLE uiapi.oq_params ADD CONSTRAINT uiapi_oq_params_input_set_fk
++ALTER TABLE uiapi.oq_job_profile ADD CONSTRAINT uiapi_oq_job_profile_input_set_fk
+ FOREIGN KEY (input_set_id) REFERENCES uiapi.input_set(id) ON DELETE RESTRICT;
+ 
+ ALTER TABLE uiapi.input ADD CONSTRAINT uiapi_input_input_set_fk
+--- a/openquake/db/schema/security.sql
++++ b/openquake/db/schema/security.sql
+@@ -67,7 +67,7 @@
+ GRANT ALL ON SEQUENCE uiapi.input_id_seq to GROUP openquake;
+ GRANT ALL ON SEQUENCE uiapi.oq_calculation_id_seq to GROUP openquake;
+ GRANT ALL ON SEQUENCE uiapi.calc_stats_id_seq to GROUP openquake;
+-GRANT ALL ON SEQUENCE uiapi.oq_params_id_seq to GROUP openquake;
++GRANT ALL ON SEQUENCE uiapi.oq_job_profile_id_seq to GROUP openquake;
+ GRANT ALL ON SEQUENCE uiapi.output_id_seq to GROUP openquake;
+ GRANT ALL ON SEQUENCE uiapi.upload_id_seq to GROUP openquake;
+ GRANT ALL ON SEQUENCE uiapi.input_set_id_seq to GROUP openquake;
+@@ -106,43 +106,43 @@
+ 
+ -- hzrdi.complex_fault
+ GRANT SELECT ON hzrdi.complex_fault TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.complex_fault TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.complex_fault TO oq_job_init;
+ 
+ -- hzrdi.fault_edge
+ GRANT SELECT ON hzrdi.fault_edge TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.fault_edge TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.fault_edge TO oq_job_init;
+ 
+ -- hzrdi.focal_mechanism
+ GRANT SELECT ON hzrdi.focal_mechanism TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.focal_mechanism TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.focal_mechanism TO oq_job_init;
+ 
+ -- hzrdi.mfd_evd
+ GRANT SELECT ON hzrdi.mfd_evd TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.mfd_evd TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.mfd_evd TO oq_job_init;
+ 
+ -- hzrdi.mfd_tgr
+ GRANT SELECT ON hzrdi.mfd_tgr TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.mfd_tgr TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.mfd_tgr TO oq_job_init;
+ 
+ -- hzrdi.r_depth_distr
+ GRANT SELECT ON hzrdi.r_depth_distr TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.r_depth_distr TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.r_depth_distr TO oq_job_init;
+ 
+ -- hzrdi.r_rate_mdl
+ GRANT SELECT ON hzrdi.r_rate_mdl TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.r_rate_mdl TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.r_rate_mdl TO oq_job_init;
+ 
+ -- hzrdi.rupture
+ GRANT SELECT ON hzrdi.rupture TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.rupture TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.rupture TO oq_job_init;
+ 
+ -- hzrdi.simple_fault
+ GRANT SELECT ON hzrdi.simple_fault TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.simple_fault TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.simple_fault TO oq_job_init;
+ 
+ -- hzrdi.source
+ GRANT SELECT ON hzrdi.source TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.source TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdi.source TO oq_job_init;
+ 
+ -- hzrdr.hazard_curve
+ GRANT SELECT ON hzrdr.hazard_curve TO GROUP openquake;
+@@ -174,11 +174,11 @@
+ 
+ -- riski.vulnerability_function
+ GRANT SELECT ON riski.vulnerability_function TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON riski.vulnerability_function TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON riski.vulnerability_function TO oq_job_init;
+ 
+ -- riski.vulnerability_model
+ GRANT SELECT ON riski.vulnerability_model TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON riski.vulnerability_model TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON riski.vulnerability_model TO oq_job_init;
+ 
+ -- riskr.loss_curve
+ GRANT SELECT ON riskr.loss_curve TO GROUP openquake;
+@@ -218,22 +218,22 @@
+ 
+ -- uiapi.input
+ GRANT SELECT ON uiapi.input TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON uiapi.input TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON uiapi.input TO oq_job_init;
+ 
+ -- uiapi.oq_calculation
+ GRANT SELECT ON uiapi.oq_calculation TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE ON uiapi.oq_calculation TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE ON uiapi.oq_calculation TO oq_job_init;
+ 
+ -- uiapi.calc_stats
+ GRANT SELECT ON uiapi.calc_stats TO GROUP openquake;
+--- oq_calculation_init is granted write access to record job start time and other job stats at job init time
+-GRANT SELECT,INSERT,UPDATE,DELETE ON uiapi.calc_stats to oq_calculation_init;
+--- oq_calculation_superv is granted write access so that the job supervisor can record job completion time
+-GRANT SELECT,INSERT,UPDATE,DELETE ON uiapi.calc_stats to oq_calculation_superv;
+-
+--- uiapi.oq_params
+-GRANT SELECT ON uiapi.oq_params TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE ON uiapi.oq_params TO oq_calculation_init;
++-- oq_job_init is granted write access to record job start time and other job stats at job init time
++GRANT SELECT,INSERT,UPDATE,DELETE ON uiapi.calc_stats to oq_job_init;
++-- oq_job_superv is granted write access so that the job supervisor can record job completion time
++GRANT SELECT,INSERT,UPDATE,DELETE ON uiapi.calc_stats to oq_job_superv;
++
++-- uiapi.oq_job_profile
++GRANT SELECT ON uiapi.oq_job_profile TO GROUP openquake;
++GRANT SELECT,INSERT,UPDATE ON uiapi.oq_job_profile TO oq_job_init;
+ 
+ -- uiapi.output
+ GRANT SELECT ON uiapi.output TO GROUP openquake;
+@@ -241,12 +241,12 @@
+ 
+ -- uiapi.input_set
+ GRANT SELECT ON uiapi.input_set TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON uiapi.input_set TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON uiapi.input_set TO oq_job_init;
+ 
+ -- uiapi.upload
+ GRANT SELECT ON uiapi.upload TO GROUP openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON uiapi.upload TO oq_calculation_init;
++GRANT SELECT,INSERT,UPDATE,DELETE ON uiapi.upload TO oq_job_init;
+ 
+ -- uiapi.error_msg
+ GRANT SELECT ON uiapi.error_msg TO openquake;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON uiapi.error_msg TO oq_calculation_superv;
++GRANT SELECT,INSERT,UPDATE,DELETE ON uiapi.error_msg TO oq_job_superv;
+--- a/openquake/db/schema/upgrades/openquake/0.4.2/15/01-user-permission-changes.sql
++++ b/openquake/db/schema/upgrades/openquake/0.4.2/15/01-user-permission-changes.sql
+@@ -52,9 +52,9 @@
+ REVOKE ALL PRIVILEGES ON uiapi.oq_job FROM oq_reslt_writer;
+ GRANT SELECT,INSERT,UPDATE ON uiapi.oq_job TO oq_job_init;
+ 
+-REVOKE ALL PRIVILEGES ON uiapi.oq_params FROM oq_uiapi_writer;
+-REVOKE ALL PRIVILEGES ON uiapi.oq_params FROM oq_reslt_writer;
+-GRANT SELECT,INSERT,UPDATE ON uiapi.oq_params TO oq_job_init;
++REVOKE ALL PRIVILEGES ON uiapi.oq_job_profile FROM oq_uiapi_writer;
++REVOKE ALL PRIVILEGES ON uiapi.oq_job_profile FROM oq_reslt_writer;
++GRANT SELECT,INSERT,UPDATE ON uiapi.oq_job_profile TO oq_job_init;
+ 
+ REVOKE ALL PRIVILEGES ON uiapi.output FROM oq_uiapi_writer;
+ 
+--- a/openquake/db/schema/upgrades/openquake/0.4.2/17/01-add-sites-geometry-to-oq_params.sql
++++ b/openquake/db/schema/upgrades/openquake/0.4.2/17/01-add-sites-geometry-to-oq_params.sql
+@@ -13,14 +13,14 @@
+ -- schema changes:
+ 
+ -- Remove NOT NULL constraints from region and region_grid_spacing:
+-ALTER TABLE uiapi.oq_params ALTER COLUMN region DROP NOT NULL;
+-ALTER TABLE uiapi.oq_params ALTER COLUMN region_grid_spacing DROP NOT NULL;
++ALTER TABLE uiapi.oq_job_profile ALTER COLUMN region DROP NOT NULL;
++ALTER TABLE uiapi.oq_job_profile ALTER COLUMN region_grid_spacing DROP NOT NULL;
+ 
+--- Add the 'sites' column to oq_params:
+-SELECT AddGeometryColumn('uiapi', 'oq_params', 'sites', 4326, 'MULTIPOINT', 2);
++-- Add the 'sites' column to oq_job_profile:
++SELECT AddGeometryColumn('uiapi', 'oq_job_profile', 'sites', 4326, 'MULTIPOINT', 2);
+ -- Params can either contain a site list ('sites') or
+ -- region + region_grid_spacing, but not both.
+-ALTER TABLE uiapi.oq_params ADD CONSTRAINT oq_params_geometry CHECK(
++ALTER TABLE uiapi.oq_job_profile ADD CONSTRAINT oq_job_profile_geometry CHECK(
+     ((region IS NOT NULL) AND (region_grid_spacing IS NOT NULL)
+         AND (sites IS NULL))
+     OR ((region IS NULL) AND (region_grid_spacing IS NULL)
+@@ -28,7 +28,7 @@
+ 
+ 
+ -- comments:
+-COMMENT ON COLUMN uiapi.oq_params.region IS 'Region of interest for the calculation (Polygon)';
+-COMMENT ON COLUMN uiapi.oq_params.region_grid_spacing IS 'Desired cell size (in degrees), used when splitting up the region of interest. This effectively defines the resolution of the calculation. (Smaller grid spacing means more sites and thus more calculations.)';
+-COMMENT ON COLUMN uiapi.oq_params.sites IS 'Sites of interest for the calculation (MultiPoint)';
++COMMENT ON COLUMN uiapi.oq_job_profile.region IS 'Region of interest for the calculation (Polygon)';
++COMMENT ON COLUMN uiapi.oq_job_profile.region_grid_spacing IS 'Desired cell size (in degrees), used when splitting up the region of interest. This effectively defines the resolution of the calculation. (Smaller grid spacing means more sites and thus more calculations.)';
++COMMENT ON COLUMN uiapi.oq_job_profile.sites IS 'Sites of interest for the calculation (MultiPoint)';
+ 
+--- /dev/null
++++ b/openquake/engine.py
+@@ -0,0 +1,54 @@
++# -*- coding: utf-8 -*-
++
++# Copyright (c) 2010-2011, GEM Foundation.
++#
++# OpenQuake is free software: you can redistribute it and/or modify
++# it under the terms of the GNU Lesser General Public License version 3
++# only, as published by the Free Software Foundation.
++#
++# OpenQuake is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU Lesser General Public License version 3 for more details
++# (a copy is included in the LICENSE file that accompanied this code).
++#
++# You should have received a copy of the GNU Lesser General Public License
++# version 3 along with OpenQuake.  If not, see
++# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
++
++
++"""The 'Engine' is responsible for instantiating calculators and running jobs.
++"""
++
++
++import os
++
++from openquake.logs import LOG
++from openquake.job.mixins import Mixin
++
++
++def launch(a_job):
++    """Based on the behavior specified in the configuration, mix in the correct
++    behavior for job and execute it.
++
++    :param a_job:
++        :class:`openquake.job.Job` instance.
++    """
++    # TODO: This needs to be done as a pre-execution step of calculation.
++    a_job._record_initial_stats()  # pylint: disable=W0212
++
++    output_dir = os.path.join(a_job.base_path, a_job['OUTPUT_DIR'])
++    if not os.path.exists(output_dir):
++        os.makedirs(output_dir)
++
++    for (key, mixin) in Mixin.ordered_mixins():
++        if not key.upper() in a_job.sections:
++            continue
++
++        with Mixin(a_job, mixin):
++            # The mixin defines a preload decorator to handle the needed
++            # data for the tasks and decorates _execute(). the mixin's
++            # _execute() method calls the expected tasks.
++            LOG.debug(
++                "Job %s Launching %s for %s" % (a_job.job_id, mixin, key))
++            a_job.execute()
+--- a/openquake/hazard/opensha.py
++++ b/openquake/hazard/opensha.py
+@@ -451,7 +451,6 @@
+ 
+         curve_writer = hazard_output.create_hazardcurve_writer(
+             self.job_id, self.serialize_results_to, nrml_path)
+-        hc_data = []
+ 
+         sites = set(sites)
+         accounted_for = set()
+@@ -459,6 +458,7 @@
+         duration = dgen.next()
+ 
+         while accounted_for != sites:
++            hc_data = []
+             # Sleep a little before checking the availability of additional
+             # hazard curve results.
+             time.sleep(duration)
+@@ -484,8 +484,8 @@
+             if not results_found:
+                 # No results found, increase the sleep duration.
+                 duration = dgen.next()
+-
+-        curve_writer.serialize(hc_data)
++            else:
++                curve_writer.serialize(hc_data)
+ 
+         return nrml_path
+ 
+--- a/openquake/job/config.py
++++ b/openquake/job/config.py
+@@ -26,29 +26,24 @@
+ from django.contrib.gis.db import models
+ from openquake.db.models import CharArrayField, FloatArrayField
+ 
+-from openquake.job.params import PARAMS, PATH_PARAMS, ARRAY_RE
++from openquake.job.params import PARAMS, PATH_PARAMS, ARRAY_RE, str2bool
+ 
+ 
+-EXPOSURE = "EXPOSURE"
+-RISK_SECTION = "RISK"
+-INPUT_REGION = "REGION_VERTEX"
+-HAZARD_SECTION = "HAZARD"
+-GENERAL_SECTION = "general"
+-REGION_GRID_SPACING = "REGION_GRID_SPACING"
+ CALCULATION_MODE = "CALCULATION_MODE"
+-REGION_GRID_SPACING = "REGION_GRID_SPACING"
+-SITES = "SITES"
+-SCENARIO_MODE = "Scenario"
+-DISAGGREGATION_MODE = "Disaggregation"
+-BCR_EVENT_BASED_MODE = "Event Based BCR"
+ BCR_CLASSICAL_MODE = "Classical BCR"
++BCR_EVENT_BASED_MODE = "Event Based BCR"
++CLASSICAL_MODE = "Classical"
++DISAGGREGATION_MODE = "Disaggregation"
++SCENARIO_MODE = "Scenario"
+ UHS_MODE = "UHS"
+-BASE_PATH = "BASE_PATH"
+-COMPUTE_HAZARD_AT_ASSETS = "COMPUTE_HAZARD_AT_ASSETS_LOCATIONS"
+ 
+-DEPTHTO1PT0KMPERSEC = "DEPTHTO1PT0KMPERSEC"
+-VS30_TYPE = "VS30_TYPE"
+-HAZARD_TASKS = "HAZARD_TASKS"
++GENERAL_SECTION = "general"
++HAZARD_SECTION = "HAZARD"
++RISK_SECTION = "RISK"
++
++INPUT_REGION = "REGION_VERTEX"
++REGION_GRID_SPACING = "REGION_GRID_SPACING"
++SITES = "SITES"
+ 
+ LAT_BIN_LIMITS = 'LATITUDE_BIN_LIMITS'
+ LON_BIN_LIMITS = 'LONGITUDE_BIN_LIMITS'
+@@ -58,6 +53,13 @@
+ 
+ UHS_PERIODS = 'UHS_PERIODS'
+ 
++BASE_PATH = "BASE_PATH"
++COMPUTE_HAZARD_AT_ASSETS = "COMPUTE_HAZARD_AT_ASSETS_LOCATIONS"
++EXPOSURE = "EXPOSURE"
++DEPTHTO1PT0KMPERSEC = "DEPTHTO1PT0KMPERSEC"
++VS30_TYPE = "VS30_TYPE"
++HAZARD_TASKS = "HAZARD_TASKS"
++
+ 
+ def to_float_array(value):
+     """Convert string value to floating point value array"""
+@@ -521,6 +523,29 @@
+         return (len(errors) == 0, errors)
+ 
+ 
++class ClassicalValidator(object):
++    """Validator for Classical job configs."""
++
++    def __init__(self, sections, params):
++        self.sections = sections
++        self.params = params
++
++    def is_valid(self):
++        errors = []
++        valid = True
++
++        # If this is hazard & risk job...
++        if set([HAZARD_SECTION, RISK_SECTION]).issubset(self.sections):
++            # ... make sure COMPUTE_MEAN_HAZARD_CURVE is set to true.
++            # Note: We expected this parameter to passed in string form.
++            if not str2bool(self.params.get('COMPUTE_MEAN_HAZARD_CURVE')):
++                valid = False
++                errors.append('COMPUTE_MEAN_HAZARD_CURVE must be defined and'
++                              ' set to True in classical hazard+risk jobs.')
++
++        return (valid, errors)
++
++
+ def default_validators(sections, params):
+     """Create the set of default validators for a job.
+ 
+@@ -556,4 +581,7 @@
+                                           BCR_EVENT_BASED_MODE):
+         validators.add(BCRValidator(params))
+ 
++    if params.get(CALCULATION_MODE) == CLASSICAL_MODE:
++        validators.add(ClassicalValidator(sections, params))
++
+     return validators
+--- a/openquake/job/__init__.py
++++ b/openquake/job/__init__.py
+@@ -29,6 +29,7 @@
+ from django.contrib.gis.geos import GEOSGeometry
+ from lxml import etree
+ 
++from openquake import engine
+ from openquake import flags
+ from openquake import kvs
+ from openquake import logs
+@@ -36,7 +37,7 @@
+ from openquake import xml
+ from openquake.parser import exposure
+ from openquake.db.models import (
+-    OqCalculation, OqParams, OqUser, CalcStats, FloatArrayField,
++    OqCalculation, OqJobProfile, OqUser, CalcStats, FloatArrayField,
+     CharArrayField, InputSet, Input)
+ from openquake.supervising import supervisor
+ from openquake.job.handlers import resolve_handler
+@@ -79,7 +80,7 @@
+         # job executor process
+         try:
+             logs.init_logs_amqp_send(level=FLAGS.debug, job_id=a_job.job_id)
+-            a_job.launch()
++            engine.launch(a_job)
+         except Exception, ex:
+             LOG.critical("Job failed with exception: '%s'" % str(ex))
+             a_job.set_status('failed')
+@@ -153,7 +154,10 @@
+ 
+ def prepare_config_parameters(params, sections):
+     """
+-    Pre-process configuration parameters removing unknown ones.
++    Pre-process configuration parameters to:
++        - remove unknown parameters
++        - expand file paths to make them absolute
++        - set default parameter values
+     """
+ 
+     calc_mode = CALCULATION_MODE[params['CALCULATION_MODE']]
+@@ -181,6 +185,21 @@
+ 
+         new_params[name] = os.path.join(params['BASE_PATH'], new_params[name])
+ 
++    # Set default parameters (if applicable).
++    # TODO(LB): This probably isn't the best place for this code (since we may
++    # want to implement similar default param logic elsewhere). For now,
++    # though, it will have to do.
++
++    # If job is classical and hazard+risk:
++    if calc_mode == 'classical' and set(['HAZARD', 'RISK']).issubset(sections):
++        if params.get('COMPUTE_MEAN_HAZARD_CURVE'):
++            # If this param is already defined, display a message to the user
++            # that this config param is being ignored and set to the default:
++            print "Ignoring COMPUTE_MEAN_HAZARD_CURVE; defaulting to 'true'."
++        # The value is set to a string because validators still expected job
++        # config params to be strings at this point:
++        new_params['COMPUTE_MEAN_HAZARD_CURVE'] = 'true'
++
+     return new_params, sections
+ 
+ 
+@@ -238,7 +257,7 @@
+ 
+ 
+ def _store_input_parameters(params, calc_mode, oqp):
+-    """Store parameters in uiapi.oq_params columns"""
++    """Store parameters in uiapi.oq_job_profile columns"""
+ 
+     for name, param in PARAMS.items():
+         if calc_mode in param.modes and param.default is not None:
+@@ -298,14 +317,15 @@
+ 
+     job = OqCalculation(owner=owner, path=None)
+ 
+-    oqp = OqParams(input_set=input_set, calc_mode=calc_mode, job_type=job_type)
++    oqp = OqJobProfile(input_set=input_set, calc_mode=calc_mode,
++                       job_type=job_type)
+ 
+     _insert_input_files(params, input_set)
+     _store_input_parameters(params, calc_mode, oqp)
+ 
+     oqp.save()
+ 
+-    job.oq_params = oqp
++    job.oq_job_profile = oqp
+     job.save()
+ 
+     # Reset all progress indication counters for the job at hand.
+@@ -458,28 +478,6 @@
+         region.cell_size = float(self['REGION_GRID_SPACING'])
+         return region
+ 
+-    def launch(self):
+-        """ Based on the behaviour specified in the configuration, mix in the
+-        correct behaviour for the tasks and then execute them.
+-        """
+-        self._record_initial_stats()
+-
+-        output_dir = os.path.join(self.base_path, self['OUTPUT_DIR'])
+-        if not os.path.exists(output_dir):
+-            os.makedirs(output_dir)
+-
+-        for (key, mixin) in Mixin.ordered_mixins():
+-            if key.upper() not in self.sections:
+-                continue
+-
+-            with Mixin(self, mixin):
+-                # The mixin defines a preload decorator to handle the needed
+-                # data for the tasks and decorates _execute(). the mixin's
+-                # _execute() method calls the expected tasks.
+-                LOG.debug(
+-                    "Job %s Launching %s for %s" % (self.job_id, mixin, key))
+-                self.execute()
+-
+     def __getitem__(self, name):
+         defined_param = job_params.PARAMS.get(name)
+         if (hasattr(defined_param, 'to_job')
+--- a/openquake/job/params.py
++++ b/openquake/job/params.py
+@@ -18,14 +18,14 @@
+ 
+ """
+ This module contains the data required to map configuration values into
+-oq_params columns.
++oq_job_profile columns.
+ """
+ 
+ import re
+ 
+ from collections import namedtuple
+ 
+-from openquake.db.models import OqParams
++from openquake.db.models import OqJobProfile
+ from openquake.utils.general import str2bool
+ 
+ 
+@@ -128,7 +128,7 @@
+     Adds a new parameter definition to the PARAMS dictionary
+ 
+     :param column: If `column` is `None`, the parameter is only checked but not
+-        inserted into the `oq_params` table.
++        inserted into the `oq_job_profile` table.
+     :type column: `str`
+     :param modes: The calculation modes to which this parameter applies. (Can
+         either be a single string (for a single mode) or a sequence of strings
+@@ -159,7 +159,7 @@
+                              modes=modes, to_db=None, to_job=to_job,
+                              java_name=java_name)
+     else:
+-        column_type = type(OqParams._meta.get_field_by_name(column)[0])
++        column_type = type(OqJobProfile._meta.get_field_by_name(column)[0])
+         PARAMS[name] = Param(column=column, type=column_type,
+                              default=default, modes=modes, to_db=to_db,
+                              to_job=to_job, java_name=java_name)
+--- a/openquake/output/hazard.py
++++ b/openquake/output/hazard.py
+@@ -552,7 +552,7 @@
+         """
+         hazard_map = models.HazardMap.objects.get(output=output_id)
+         hazard_map_data = hazard_map.hazardmapdata_set.all()
+-        params = hazard_map.output.oq_calculation.oq_params
++        params = hazard_map.output.oq_calculation.oq_job_profile
+         points = []
+ 
+         for datum in hazard_map_data:
+@@ -674,7 +674,7 @@
+         """
+         hazard_curves = models.HazardCurve.objects.filter(output=output_id)
+         params = models.Output.objects.get(
+-            id=output_id).oq_calculation.oq_params
++            id=output_id).oq_calculation.oq_job_profile
+         points = []
+ 
+         for hazard_curve_datum in hazard_curves:
+--- a/openquake/risk/job/classical_psha.py
++++ b/openquake/risk/job/classical_psha.py
+@@ -75,7 +75,7 @@
+             hazard_curve__statistic_type='mean').extra(
+             where=["ST_GeoHash(location, 12) = %s"], params=[gh]).get()
+ 
+-        return Curve(zip(job.oq_params.imls, hc.poes))
++        return Curve(zip(job.oq_job_profile.imls, hc.poes))
+ 
+     def compute_risk(self, block_id):
+         """This task computes risk for a block of sites. It requires to have
+--- a/openquake/utils/stats.py
++++ b/openquake/utils/stats.py
+@@ -28,6 +28,11 @@
+ from openquake.utils import config
+ 
+ 
++# Predefined kvs keys for calculator progress/statistics counters.
++# Calculators will maintain totals/incremental counter values of interest.
++# These can be used to provide feedback to the user and/or terminate the
++# job in case of failures. See e.g.
++#   https://bugs.launchpad.net/openquake/+bug/907703
+ STATS_KEYS = {
+     # Classical PSHA kvs statistics db keys, "t" and "i" mark a totals
+     # and an incremental counter respectively.

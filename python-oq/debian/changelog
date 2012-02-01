@@ -1,3 +1,61 @@
+python-oq (0.5.0-9) oneiric; urgency=low
+
+  * Fix error resulting from backporting code.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 25 Jan 2012 16:27:49 +0100
+
+python-oq (0.5.0-8) oneiric; urgency=low
+
+  * Fix hazard map serialization failure (LP: #921604)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 25 Jan 2012 16:06:54 +0100
+
+python-oq (0.5.0-7) oneiric; urgency=low
+
+  * Remove one last 'sudo' from db setup script
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 25 Jan 2012 12:17:35 +0100
+
+python-oq (0.5.0-6) oneiric; urgency=low
+
+  * NRML files are written only once (LP: #914614)
+  * optimize parallel results collection (LP: #914613)
+  * fix "current realization" progress counter value (LP: #914477)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 19 Jan 2012 15:16:51 +0100
+
+python-oq (0.5.0-5) oneiric; urgency=low
+
+  * Revert to the usual database user names.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 10 Jan 2012 10:49:49 +0100
+
+python-oq (0.5.0-4) oneiric; urgency=low
+
+  * Remove "sudo" from db setup script (LP: #914139)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 10 Jan 2012 08:18:14 +0100
+
+python-oq (0.5.0-3) oneiric; urgency=low
+
+  * Fix demo files.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 09 Jan 2012 21:10:08 +0100
+
+python-oq (0.5.0-2) oneiric; urgency=low
+
+  * Calculation and serialization are to be carried out in parallel
+    (LP: #910985)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 09 Jan 2012 15:53:05 +0100
+
+python-oq (0.5.0-1) oneiric; urgency=low
+
+  * Prepare rel. 0.5.0 of python-oq (LP: #913540)
+  * set JAVA_HOME for celeryd (LP: #911697)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 09 Jan 2012 07:15:31 +0100
+
 python-oq (0.4.6-11) oneiric; urgency=low
 
   * Facilitate java-side kvs connection caching

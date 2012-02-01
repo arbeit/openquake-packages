@@ -10,19 +10,6 @@
  from openquake import job
  from openquake import kvs
  from openquake import logs
---- a/bin/load_eq_catalog
-+++ b/bin/load_eq_catalog
-@@ -24,10 +24,6 @@
- 
- import sys
- 
--import oqpath
--oqpath.set_oq_path()
--
--from openquake.utils import db
- from openquake.utils.db import loader as db_loader
- 
- from openquake import flags
 --- a/bin/openquake
 +++ b/bin/openquake
 @@ -63,9 +63,6 @@
