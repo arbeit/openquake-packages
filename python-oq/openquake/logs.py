@@ -30,7 +30,6 @@ import threading
 import kombu
 from openquake.signalling import AMQPMessageConsumer, amqp_connect
 
-logging.basicConfig()
 
 LEVELS = {'debug': logging.DEBUG,
           'info': logging.INFO,
@@ -49,16 +48,16 @@ def init_logs_amqp_send(level, job_id):
 
     Adds handler :class:`AMQPHandler` to logger 'oq.job'.
     """
+    set_logger_level(logging.root, level)
+
     amqp_handlers = [h for h in logging.root.handlers
                      if isinstance(h, AMQPHandler)]
-
     if amqp_handlers:
         [handler] = amqp_handlers
         handler.set_job_id(job_id)
         return
 
     logging.getLogger("amqplib").propagate = False
-    set_logger_level(logging.root, level)
     hdlr = AMQPHandler()
     hdlr.set_job_id(job_id)
     logging.root.addHandler(hdlr)
@@ -111,7 +110,7 @@ class AMQPHandler(logging.Handler):  # pylint: disable=R0902
         """
         self._MDC.job_id = job_id
 
-    def emit(self, record):
+    def emit(self, record):  # pylint: disable=E0202
         # exc_info objects are not easily serializable
         # so we can not support "logger.exception()"
         assert not record.exc_info

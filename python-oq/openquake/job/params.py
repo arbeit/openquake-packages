@@ -18,14 +18,14 @@
 
 """
 This module contains the data required to map configuration values into
-oq_params columns.
+oq_job_profile columns.
 """
 
 import re
 
 from collections import namedtuple
 
-from openquake.db.models import OqParams
+from openquake.db.models import OqJobProfile
 from openquake.utils.general import str2bool
 
 
@@ -85,6 +85,8 @@ ENUM_MAP = {
     '16 Spoked Line Sources': '16spokedsources',
 }
 
+REVERSE_ENUM_MAP = dict((v, k) for k, v in ENUM_MAP.iteritems())
+
 CALCULATION_MODES = set(CALCULATION_MODE.values())
 PARAMS = {}
 PATH_PARAMS = ['VULNERABILITY', 'VULNERABILITY_RETROFITTED',
@@ -128,7 +130,7 @@ def define_param(name, column, modes=None, default=None, to_db=None,
     Adds a new parameter definition to the PARAMS dictionary
 
     :param column: If `column` is `None`, the parameter is only checked but not
-        inserted into the `oq_params` table.
+        inserted into the `oq_job_profile` table.
     :type column: `str`
     :param modes: The calculation modes to which this parameter applies. (Can
         either be a single string (for a single mode) or a sequence of strings
@@ -159,7 +161,7 @@ def define_param(name, column, modes=None, default=None, to_db=None,
                              modes=modes, to_db=None, to_job=to_job,
                              java_name=java_name)
     else:
-        column_type = type(OqParams._meta.get_field_by_name(column)[0])
+        column_type = type(OqJobProfile._meta.get_field_by_name(column)[0])
         PARAMS[name] = Param(column=column, type=column_type,
                              default=default, modes=modes, to_db=to_db,
                              to_job=to_job, java_name=java_name)
@@ -182,8 +184,6 @@ define_param("DEPTHTO1PT0KMPERSEC", "depth_to_1pt_0km_per_sec",
              default=100.0, java_name="Depth 1.0 km/sec", to_job=float)
 define_param("VS30_TYPE", "vs30_type", default="measured",
              java_name="Vs30 Type", to_job=lambda s: s.capitalize())
-define_param("HAZARD_TASKS", None, modes=("classical", "classical_bcr"),
-             to_job=int)
 
 # input files
 define_param('VULNERABILITY', None)
@@ -241,7 +241,8 @@ define_param('INCLUDE_GRID_SOURCES', 'include_grid_sources',
              to_job=str2bool)
 define_param('TREAT_GRID_SOURCE_AS', 'treat_grid_source_as',
              modes=('classical', 'event_based', 'disaggregation', 'uhs',
-                    'classical_bcr', 'event_based_bcr'))
+                    'classical_bcr', 'event_based_bcr'),
+             to_db=map_enum)
 define_param('GRID_SOURCE_MAGNITUDE_SCALING_RELATIONSHIP',
              'grid_source_magnitude_scaling_relationship')
 
@@ -348,6 +349,8 @@ define_param('INVESTIGATION_TIME', 'investigation_time', default=0.0,
                     'classical_bcr', 'event_based_bcr'),
              to_job=float)
 define_param('LOSS_CURVES_OUTPUT_PREFIX', 'loss_curves_output_prefix')
+define_param('LREM_STEPS_PER_INTERVAL', 'lrem_steps_per_interval',
+             modes=('classical', 'classical_bcr'), to_job=int)
 define_param('MAXIMUM_DISTANCE', 'maximum_distance', to_job=float,
              modes=('classical', 'disaggregation', 'uhs',
                     'classical_bcr', 'event_based_bcr'))

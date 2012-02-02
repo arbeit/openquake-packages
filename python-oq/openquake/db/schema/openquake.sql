@@ -554,7 +554,7 @@ CREATE TABLE uiapi.oq_calculation (
     duration INTEGER NOT NULL DEFAULT 0,
     job_pid INTEGER NOT NULL DEFAULT 0,
     supervisor_pid INTEGER NOT NULL DEFAULT 0,
-    oq_params_id INTEGER NOT NULL,
+    oq_job_profile_id INTEGER NOT NULL,
     last_update timestamp without time zone
         DEFAULT timezone('UTC'::text, now()) NOT NULL
 ) TABLESPACE uiapi_ts;
@@ -574,8 +574,9 @@ CREATE TABLE uiapi.calc_stats (
 
 
 -- The parameters needed for an OpenQuake engine run
-CREATE TABLE uiapi.oq_params (
+CREATE TABLE uiapi.oq_job_profile (
     id SERIAL PRIMARY KEY,
+    owner_id INTEGER NOT NULL,
     -- One of:
     --      classical (Classical PSHA)
     --      event_based (Probabilistic event based)
@@ -708,7 +709,16 @@ CREATE TABLE uiapi.oq_params (
         CONSTRAINT compute_mean_hazard_curve_is_set
         CHECK(
             ((calc_mode IN ('classical', 'classical_bcr'))
-             AND (compute_mean_hazard_curve IS NOT NULL))
+            AND
+            (
+                -- If the job is hazard+risk and classical,
+                -- make sure compute_mean_hazard_curve is TRUE.
+                ((ARRAY['hazard', 'risk']::VARCHAR[] <@ job_type) AND (compute_mean_hazard_curve = TRUE))
+                OR
+                -- If the job is just classical (and not hazard+risk),
+                -- just make sure compute_mean_hazard_curve is not null.
+                ((NOT ARRAY['hazard', 'risk']::VARCHAR[] <@ job_type) AND (compute_mean_hazard_curve IS NOT NULL))
+            ))
             OR
             ((calc_mode NOT IN ('classical', 'classical_bcr'))
              AND (compute_mean_hazard_curve IS NULL))),
@@ -803,8 +813,30 @@ CREATE TABLE uiapi.oq_params (
             OR
             ((calc_mode NOT IN ('classical_bcr', 'event_based_bcr'))
              AND interest_rate IS NULL)),
+    -- Loss Ratio Exceedence Matrix steps per interval
+    -- Only used for Classical/Classical BCR Risk calculations.
+    lrem_steps_per_interval integer
+        CONSTRAINT lrem_steps_is_set
+        CHECK (
+            (calc_mode in ('classical', 'classical_bcr'))
+            AND
+            (
+                -- If this is a Classical or Classical BCR Risk calculation,
+                -- lrem_steps_per_interval needs to set.
+                ((ARRAY['risk']::VARCHAR[] <@ job_type)
+                 AND (lrem_steps_per_interval IS NOT NULL))
+                OR
+                -- If it's not a Risk calculation, it should be NULL.
+                ((NOT ARRAY['risk']::VARCHAR[] <@ job_type)
+                 AND (lrem_steps_per_interval IS NULL))
+            )
+            OR
+            (
+                (calc_mode NOT IN ('classical', 'classical_bcr'))
+                AND (lrem_steps_per_interval IS NULL)
+            )),
     loss_curves_output_prefix VARCHAR,
-    maximum_distance VARCHAR
+    maximum_distance float
         CONSTRAINT maximum_distance_is_set
         CHECK(
             ((calc_mode IN ('classical', 'disaggregation', 'uhs',
@@ -943,7 +975,7 @@ CREATE TABLE uiapi.oq_params (
         CONSTRAINT treat_grid_source_as_is_set
         CHECK(
             ((calc_mode != 'scenario')
-             AND (treat_grid_source_as IS NOT NULL))
+             AND (treat_grid_source_as IN ('pointsources', 'linesources', 'crosshairsources', '16spokedsources')))
             OR
             ((calc_mode = 'scenario')
              AND (treat_grid_source_as IS NULL))),
@@ -1045,11 +1077,11 @@ CREATE TABLE uiapi.oq_params (
     last_update timestamp without time zone
         DEFAULT timezone('UTC'::text, now()) NOT NULL
 ) TABLESPACE uiapi_ts;
-SELECT AddGeometryColumn('uiapi', 'oq_params', 'region', 4326, 'POLYGON', 2);
-SELECT AddGeometryColumn('uiapi', 'oq_params', 'sites', 4326, 'MULTIPOINT', 2);
+SELECT AddGeometryColumn('uiapi', 'oq_job_profile', 'region', 4326, 'POLYGON', 2);
+SELECT AddGeometryColumn('uiapi', 'oq_job_profile', 'sites', 4326, 'MULTIPOINT', 2);
 -- Params can either contain a site list ('sites') or
 -- region + region_grid_spacing, but not both.
-ALTER TABLE uiapi.oq_params ADD CONSTRAINT oq_params_geometry CHECK(
+ALTER TABLE uiapi.oq_job_profile ADD CONSTRAINT oq_job_profile_geometry CHECK(
     ((region IS NOT NULL) AND (region_grid_spacing IS NOT NULL)
         AND (sites IS NULL))
     OR ((region IS NULL) AND (region_grid_spacing IS NULL)
@@ -1473,8 +1505,11 @@ FOREIGN KEY (surface_id) REFERENCES eqcat.surface(id) ON DELETE RESTRICT;
 ALTER TABLE uiapi.oq_calculation ADD CONSTRAINT uiapi_oq_calculation_owner_fk
 FOREIGN KEY (owner_id) REFERENCES admin.oq_user(id) ON DELETE RESTRICT;
 
-ALTER TABLE uiapi.oq_calculation ADD CONSTRAINT uiapi_oq_calculation_oq_params_fk
-FOREIGN KEY (oq_params_id) REFERENCES uiapi.oq_params(id) ON DELETE RESTRICT;
+ALTER TABLE uiapi.oq_calculation ADD CONSTRAINT uiapi_oq_calculation_oq_job_profile_fk
+FOREIGN KEY (oq_job_profile_id) REFERENCES uiapi.oq_job_profile(id) ON DELETE RESTRICT;
+
+ALTER TABLE uiapi.oq_job_profile ADD CONSTRAINT uiapi_oq_job_profile_owner_fk
+FOREIGN KEY (owner_id) REFERENCES admin.oq_user(id) ON DELETE RESTRICT;
 
 ALTER TABLE uiapi.calc_stats ADD CONSTRAINT  uiapi_calc_stats_oq_calculation_fk
 FOREIGN KEY (oq_calculation_id) REFERENCES uiapi.oq_calculation(id) ON DELETE CASCADE;
@@ -1482,7 +1517,7 @@ FOREIGN KEY (oq_calculation_id) REFERENCES uiapi.oq_calculation(id) ON DELETE CA
 ALTER TABLE uiapi.upload ADD CONSTRAINT uiapi_upload_owner_fk
 FOREIGN KEY (owner_id) REFERENCES admin.oq_user(id) ON DELETE RESTRICT;
 
-ALTER TABLE uiapi.oq_params ADD CONSTRAINT uiapi_oq_params_input_set_fk
+ALTER TABLE uiapi.oq_job_profile ADD CONSTRAINT uiapi_oq_job_profile_input_set_fk
 FOREIGN KEY (input_set_id) REFERENCES uiapi.input_set(id) ON DELETE RESTRICT;
 
 ALTER TABLE uiapi.input ADD CONSTRAINT uiapi_input_input_set_fk

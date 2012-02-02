@@ -26,29 +26,24 @@ import os
 from django.contrib.gis.db import models
 from openquake.db.models import CharArrayField, FloatArrayField
 
-from openquake.job.params import PARAMS, PATH_PARAMS, ARRAY_RE
+from openquake.job.params import PARAMS, PATH_PARAMS, ARRAY_RE, str2bool
 
 
-EXPOSURE = "EXPOSURE"
-RISK_SECTION = "RISK"
-INPUT_REGION = "REGION_VERTEX"
-HAZARD_SECTION = "HAZARD"
-GENERAL_SECTION = "general"
-REGION_GRID_SPACING = "REGION_GRID_SPACING"
 CALCULATION_MODE = "CALCULATION_MODE"
+BCR_CLASSICAL_MODE = "Classical BCR"
+BCR_EVENT_BASED_MODE = "Event Based BCR"
+CLASSICAL_MODE = "Classical"
+DISAGGREGATION_MODE = "Disaggregation"
+SCENARIO_MODE = "Scenario"
+UHS_MODE = "UHS"
+
+GENERAL_SECTION = "general"
+HAZARD_SECTION = "HAZARD"
+RISK_SECTION = "RISK"
+
+INPUT_REGION = "REGION_VERTEX"
 REGION_GRID_SPACING = "REGION_GRID_SPACING"
 SITES = "SITES"
-SCENARIO_MODE = "Scenario"
-DISAGGREGATION_MODE = "Disaggregation"
-BCR_EVENT_BASED_MODE = "Event Based BCR"
-BCR_CLASSICAL_MODE = "Classical BCR"
-UHS_MODE = "UHS"
-BASE_PATH = "BASE_PATH"
-COMPUTE_HAZARD_AT_ASSETS = "COMPUTE_HAZARD_AT_ASSETS_LOCATIONS"
-
-DEPTHTO1PT0KMPERSEC = "DEPTHTO1PT0KMPERSEC"
-VS30_TYPE = "VS30_TYPE"
-HAZARD_TASKS = "HAZARD_TASKS"
 
 LAT_BIN_LIMITS = 'LATITUDE_BIN_LIMITS'
 LON_BIN_LIMITS = 'LONGITUDE_BIN_LIMITS'
@@ -57,6 +52,12 @@ EPS_BIN_LIMITS = 'EPSILON_BIN_LIMITS'
 DIST_BIN_LIMITS = 'DISTANCE_BIN_LIMITS'
 
 UHS_PERIODS = 'UHS_PERIODS'
+
+BASE_PATH = "BASE_PATH"
+COMPUTE_HAZARD_AT_ASSETS = "COMPUTE_HAZARD_AT_ASSETS_LOCATIONS"
+EXPOSURE = "EXPOSURE"
+DEPTHTO1PT0KMPERSEC = "DEPTHTO1PT0KMPERSEC"
+VS30_TYPE = "VS30_TYPE"
 
 
 def to_float_array(value):
@@ -253,6 +254,15 @@ class ScenarioComputationValidator(object):
 
             return (False, ["With SCENARIO calculations we"
                     + " only support hazard + risk jobs."])
+
+        try:
+            num_gmfs = self.params.get(
+                'NUMBER_OF_GROUND_MOTION_FIELDS_CALCULATIONS')
+            if num_gmfs is None or not int(num_gmfs) > 0:
+                return (False, ["NUMBER_OF_GROUND_MOTION_FIELDS_CALCULATIONS"
+                                " parameter must be greater than 0."])
+        except ValueError, err:
+            return (False, [err.message])
 
         return (True, [])
 
@@ -521,6 +531,59 @@ class BasicParameterValidator(object):
         return (len(errors) == 0, errors)
 
 
+class ClassicalValidator(object):
+    """Validator for Classical job configs."""
+
+    def __init__(self, sections, params):
+        self.sections = sections
+        self.params = params
+
+    def is_valid(self):
+        errors = []
+        valid = True
+
+        # If this is hazard & risk job...
+        if set([HAZARD_SECTION, RISK_SECTION]).issubset(self.sections):
+            # ... make sure COMPUTE_MEAN_HAZARD_CURVE is set to true.
+            # Note: We expected this parameter to passed in string form.
+            if not str2bool(self.params.get('COMPUTE_MEAN_HAZARD_CURVE')):
+                valid = False
+                errors.append('COMPUTE_MEAN_HAZARD_CURVE must be defined and'
+                              ' set to True in classical hazard+risk jobs.')
+
+        return (valid, errors)
+
+
+class ClassicalRiskValidator(object):
+    """Validator for Classical/Classical BCR Risk job configs."""
+
+    LREM_STEPS_ERROR = ('LREM_STEPS_PER_INTERVAL must be defined as an integer'
+                        ' >= 1 in Classical/Classical BCR Hazard+Risk'
+                        ' calculations.')
+
+    def __init__(self, params):
+        self.params = params
+
+    def is_valid(self):
+        """Make the following calculation configuration checks:
+            * Check that LREM_STEPS_PER_INTERVAL is defined.
+            * Check that LREM_STEPS_PER_INTERVAL is an int >= 1.
+        """
+        lrem_steps = self.params.get('LREM_STEPS_PER_INTERVAL')
+
+        if lrem_steps is None:
+            return (False, [self.LREM_STEPS_ERROR])
+
+        try:
+            if int(lrem_steps) < 1:
+                return (False, [self.LREM_STEPS_ERROR])
+        except ValueError:
+            return (False, [self.LREM_STEPS_ERROR])
+
+        # No validation issues; configuration is good.
+        return (True, [])
+
+
 def default_validators(sections, params):
     """Create the set of default validators for a job.
 
@@ -537,23 +600,31 @@ def default_validators(sections, params):
 
     hazard = HazardMandatoryParamsValidator(sections, params)
     exposure = RiskMandatoryParamsValidator(sections, params)
-    scenario = ScenarioComputationValidator(sections, params)
     hazard_comp_type = ComputationTypeValidator(params)
     file_path = FilePathValidator(params)
     parameter = BasicParameterValidator(params)
 
     validators = ValidatorSet()
     validators.add(hazard_comp_type)
-    validators.add(scenario)
     validators.add(exposure)
     validators.add(parameter)
     validators.add(file_path)
     validators.add(hazard)
 
-    if params.get(CALCULATION_MODE) == DISAGGREGATION_MODE:
+    calc_mode = params.get(CALCULATION_MODE)
+    if calc_mode == DISAGGREGATION_MODE:
         validators.add(DisaggregationValidator(params))
-    elif params.get(CALCULATION_MODE) in (BCR_CLASSICAL_MODE,
-                                          BCR_EVENT_BASED_MODE):
+    elif calc_mode in (BCR_CLASSICAL_MODE, BCR_EVENT_BASED_MODE):
         validators.add(BCRValidator(params))
+    elif calc_mode == SCENARIO_MODE:
+        validators.add(ScenarioComputationValidator(sections, params))
+
+    if params.get(CALCULATION_MODE) == CLASSICAL_MODE:
+        validators.add(ClassicalValidator(sections, params))
+
+    # Validator only for Classical/Classical BCR Hazard+Risk:
+    if (params.get(CALCULATION_MODE) in (BCR_CLASSICAL_MODE, CLASSICAL_MODE)
+        and set([HAZARD_SECTION, RISK_SECTION]).issubset(sections)):
+        validators.add(ClassicalRiskValidator(params))
 
     return validators
