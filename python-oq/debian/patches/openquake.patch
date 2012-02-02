@@ -14,7 +14,7 @@
 -    4,  # minor
 -    5,  # sprint number
 +    5,  # minor
-+    0,  # sprint number
++    1,  # sprint number
      0)  # release date (seconds since the "Epoch"), do *not* set in master!
 -
 -# The path to the OpenQuake root directory
