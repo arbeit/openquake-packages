@@ -1,3 +1,9 @@
+python-oq (0.5.1-1) oneiric; urgency=low
+
+  * 0.5.1 upstream release (LP: #925339)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 02 Feb 2012 10:11:58 +0100
+
 python-oq (0.5.0-9) oneiric; urgency=low
 
   * Fix error resulting from backporting code.
