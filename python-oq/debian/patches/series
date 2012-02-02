@@ -1,4 +1,3 @@
-config-files.patch
 oqpath.patch
 logsink-cfg.patch
 setuptools.patch
