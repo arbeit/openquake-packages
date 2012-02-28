@@ -1,3 +1,10 @@
+openshalite (1.2-9) oneiric; urgency=low
+
+  * Campbell GMPE stddev bugfix (LP: #942484)
+  * Parameter listener bug in Campbell 2003 GMPE (LP: #931453)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 28 Feb 2012 16:01:56 +0100
+
 openshalite (1.2-8) precise; urgency=low
 
   * Re-upload this package so that users can install OpenQuake on
