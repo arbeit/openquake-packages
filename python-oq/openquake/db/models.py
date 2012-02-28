@@ -25,6 +25,59 @@ Model representations of the OpenQuake DB tables.
 
 from datetime import datetime
 from django.contrib.gis.db import models
+from django.contrib.gis.geos.geometry import GEOSGeometry
+
+
+def model_equals(model_a, model_b, ignore=None):
+    """Compare two Django model objects for equality. The two objects are
+    considered equal if the values of the all of the fields of both models are
+    equal.
+
+    If you want to ignore some attributes (such as `id`) and compare the rest
+    of the attributes, you can specify a list or tuple of attributes to ignore.
+
+    :param model_a:
+        A :class:`django.db.models.Model` instance.
+    :param model_b:
+        A :class:`django.db.models.Model` instance.
+    :param ignore:
+        Optional. A list or tuple of attribute names (as strings) to ignore in
+        the comparison. For example::
+            ('id', 'last_updated')
+
+    :returns:
+        `True` if the contents each model object are equal, taking into account
+        any ignores.
+    """
+    if not model_a.__class__ == model_b.__class__:
+        # Not the same class type; these are definitely not equal.
+        return False
+
+    # Now get each field name and compare the attributes in both objects.
+    for field_name in model_a.__dict__.keys():
+        # Ignore _state; this is an ever-present attribute of the model
+        # __dict__ which we don't care about. It doesn't affect our equality
+        # comparison.
+        if field_name == '_state':
+            continue
+
+        # Make sure we ignore the attributes that were specified.
+        if ignore is not None and field_name in ignore:
+            continue
+
+        a_val = getattr(model_a, field_name)
+        b_val = getattr(model_b, field_name)
+
+        # If the attribute is a geometry object,
+        # use the GEOSGeometry.equals method to compare:
+        if isinstance(a_val, GEOSGeometry):
+            if not a_val.equals(b_val):
+                return False
+        else:
+            if not a_val == b_val:
+                return False
+
+    return True
 
 
 class FloatArrayField(models.Field):  # pylint: disable=R0904
@@ -487,7 +540,7 @@ class OqCalculation(models.Model):
     duration = models.IntegerField(default=0)
     job_pid = models.IntegerField(default=0)
     supervisor_pid = models.IntegerField(default=0)
-    oq_params = models.ForeignKey('OqParams')
+    oq_job_profile = models.ForeignKey('OqJobProfile')
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
 
     class Meta:  # pylint: disable=C0111,W0232
@@ -511,10 +564,11 @@ class CalcStats(models.Model):
         db_table = 'uiapi\".\"calc_stats'
 
 
-class OqParams(models.Model):
+class OqJobProfile(models.Model):
     '''
     Parameters needed to run an OpenQuake job
     '''
+    owner = models.ForeignKey('OqUser')
     CALC_MODE_CHOICES = (
         (u'classical', u'Classical PSHA'),
         (u'event_based', u'Probabilistic Event-Based'),
@@ -591,6 +645,7 @@ class OqParams(models.Model):
     include_fault_source = models.NullBooleanField(null=True)
     include_grid_sources = models.NullBooleanField(null=True)
     include_subduction_fault_source = models.NullBooleanField(null=True)
+    lrem_steps_per_interval = models.IntegerField(null=True)
     loss_curves_output_prefix = models.TextField(null=True)
     maximum_distance = models.FloatField(null=True)
     quantile_levels = FloatArrayField(null=True)
@@ -679,7 +734,7 @@ class OqParams(models.Model):
     interest_rate = models.FloatField(null=True)
 
     class Meta:  # pylint: disable=C0111,W0232
-        db_table = 'uiapi\".\"oq_params'
+        db_table = 'uiapi\".\"oq_job_profile'
 
 
 class Output(models.Model):
@@ -987,7 +1042,7 @@ class VulnerabilityModel(models.Model):
     owner = models.ForeignKey("OqUser")
     name = models.TextField()
     description = models.TextField(null=True)
-    imt = models.TextField(choices=OqParams.IMT_CHOICES)
+    imt = models.TextField(choices=OqJobProfile.IMT_CHOICES)
     imls = FloatArrayField()
     category = models.TextField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)

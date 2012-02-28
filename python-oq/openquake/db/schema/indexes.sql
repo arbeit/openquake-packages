@@ -54,6 +54,7 @@ CREATE INDEX uiapi_input_input_set_id_idx on uiapi.input(input_set_id);
 CREATE INDEX uiapi_input_set_owner_id_idx on uiapi.input_set(owner_id);
 CREATE INDEX uiapi_input_set_upload_id_idx on uiapi.input_set(upload_id);
 CREATE INDEX uiapi_oq_calculation_owner_id_idx on uiapi.oq_calculation(owner_id);
+CREATE INDEX uiapi_oq_job_profile_owner_id_idx on uiapi.oq_job_profile(owner_id);
 CREATE INDEX uiapi_oq_calculation_status_running on uiapi.oq_calculation(status) WHERE status = 'running';
 CREATE INDEX uiapi_output_owner_id_idx on uiapi.output(owner_id);
 CREATE INDEX uiapi_upload_owner_id_idx on uiapi.upload(owner_id);
@@ -64,7 +65,7 @@ CREATE INDEX hzrdr_hazard_map_data_hazard_map_id_idx on hzrdr.hazard_map_data(ha
 CREATE INDEX hzrdr_hazard_curve_output_id_idx on hzrdr.hazard_curve(output_id);
 CREATE INDEX hzrdr_hazard_curve_data_hazard_curve_id_idx on hzrdr.hazard_curve_data(hazard_curve_id);
 CREATE INDEX hzrdr_gmf_data_output_id_idx on hzrdr.gmf_data(output_id);
-CREATE INDEX uiapi_oq_params_input_set_id_idx on uiapi.oq_params(input_set_id);
+CREATE INDEX uiapi_oq_job_profile_input_set_id_idx on uiapi.oq_job_profile(input_set_id);
 CREATE INDEX riskr_loss_map_output_id_idx on riskr.loss_map(output_id);
 CREATE INDEX riskr_loss_map_data_loss_map_id_idx on riskr.loss_map_data(loss_map_id);
 CREATE INDEX riskr_loss_curve_output_id_idx on riskr.loss_curve(output_id);

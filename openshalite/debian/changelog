@@ -1,3 +1,10 @@
+openshalite (1.2-8) precise; urgency=low
+
+  * Re-upload this package so that users can install OpenQuake on
+    ubuntu 12.04 from the same PPA (LP: #911628)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 03 Feb 2012 06:52:41 +0100
+
 openshalite (1.2-7) oneiric; urgency=low
 
   * Prepare rel. 0.5.0 of openshalite (LP: #913540)
