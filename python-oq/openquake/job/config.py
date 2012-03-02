@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 """
 This module contains logic related to the configuration and
@@ -33,6 +32,7 @@ CALCULATION_MODE = "CALCULATION_MODE"
 BCR_CLASSICAL_MODE = "Classical BCR"
 BCR_EVENT_BASED_MODE = "Event Based BCR"
 CLASSICAL_MODE = "Classical"
+EVENT_BASED_MODE = "Event Based"
 DISAGGREGATION_MODE = "Disaggregation"
 SCENARIO_MODE = "Scenario"
 UHS_MODE = "UHS"
@@ -555,7 +555,7 @@ class ClassicalValidator(object):
 
 
 class ClassicalRiskValidator(object):
-    """Validator for Classical/Classical BCR Risk job configs."""
+    """Validator for Classical/Classical BCR Risk calculation configs."""
 
     LREM_STEPS_ERROR = ('LREM_STEPS_PER_INTERVAL must be defined as an integer'
                         ' >= 1 in Classical/Classical BCR Hazard+Risk'
@@ -581,6 +581,36 @@ class ClassicalRiskValidator(object):
             return (False, [self.LREM_STEPS_ERROR])
 
         # No validation issues; configuration is good.
+        return (True, [])
+
+
+class EventBasedRiskValidator(object):
+    """Validator for Event-Based/Event-Based BCR Risk calculation configs."""
+
+    LOSS_HISTOGRAM_BINS_ERROR = ('LOSS_HISTOGRAM_BINS must be defined as an'
+                                 ' integer >= 1 in Event-Based/Event-Based'
+                                 ' BCR calculations.')
+
+    def __init__(self, params):
+        self.params = params
+
+    def is_valid(self):
+        """Make the following calculation configuration checks:
+            * Check that LOSS_HISTOGRAM_BINS is defined.
+            * Check that LOSS_HISTOGRAM_BINS is an int >= 1.
+        """
+        hgram_bins = self.params.get('LOSS_HISTOGRAM_BINS')
+
+        if hgram_bins is None:
+            return (False, [self.LOSS_HISTOGRAM_BINS_ERROR])
+
+        try:
+            if int(hgram_bins) < 1:
+                return (False, [self.LOSS_HISTOGRAM_BINS_ERROR])
+
+        except ValueError:
+            return (False, [self.LOSS_HISTOGRAM_BINS_ERROR])
+
         return (True, [])
 
 
@@ -622,9 +652,15 @@ def default_validators(sections, params):
     if params.get(CALCULATION_MODE) == CLASSICAL_MODE:
         validators.add(ClassicalValidator(sections, params))
 
-    # Validator only for Classical/Classical BCR Hazard+Risk:
+    # Validator only for Classical/Classical BCR Risk:
     if (params.get(CALCULATION_MODE) in (BCR_CLASSICAL_MODE, CLASSICAL_MODE)
         and set([HAZARD_SECTION, RISK_SECTION]).issubset(sections)):
         validators.add(ClassicalRiskValidator(params))
+
+    # Validator only for Event-Based/Event-Based BCR Risk:
+    if (params.get(CALCULATION_MODE) in (BCR_EVENT_BASED_MODE,
+                                         EVENT_BASED_MODE)
+        and set([HAZARD_SECTION, RISK_SECTION]).issubset(sections)):
+        validators.add(EventBasedRiskValidator(params))
 
     return validators

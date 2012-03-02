@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 """Core functionality for the Disaggregation Hazard calculator."""
 
+import errno
 import h5py
 import numpy
 import os
@@ -220,8 +220,8 @@ class DisaggHazardCalculator(Calculator):
 
         For example:
         >>> DisaggHazardCalculator.create_result_dir(
-        ... '/var/lib/openquake', 2847)
-        '/var/lib/openquake/disagg-results/job-2847'
+        ... '/tmp/openquake', 123456789)
+        '/tmp/openquake/disagg-results/job-123456789'
 
         :param base_path: base result storage directory (a path to an NFS
             mount, for example)
@@ -230,7 +230,16 @@ class DisaggHazardCalculator(Calculator):
         """
         output_path = os.path.join(
             base_path, 'disagg-results', 'job-%s' % job_id)
-        os.makedirs(output_path)
+        try:
+            os.makedirs(output_path)
+        except OSError, err:
+            # If the path already exists, make sure it's a dir.
+            if err.errno == errno.EEXIST:
+                # If it isn't a dir, this is a problem.
+                if not os.path.isdir(output_path):
+                    raise
+            else:
+                raise
         return output_path
 
     def distribute_disagg(self, sites, realizations, poes, result_dir):

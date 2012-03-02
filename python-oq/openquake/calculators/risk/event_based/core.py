@@ -1,26 +1,23 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
 """Core functionality for Event-Based Risk calculations."""
-
-import os
 
 from numpy import zeros
 
@@ -31,77 +28,21 @@ from openquake import logs
 from openquake import shapes
 from openquake.db import models
 from openquake.parser import vulnerability
-from openquake.output import curve
 from openquake.calculators.risk import general
 
 LOGGER = logs.LOG
 
 
-def _filename(job_id):
-    """Return the name of the generated file."""
-    return "%s-aggregate-loss-curve.svg" % job_id
-
-
-def _for_plotting(loss_curve, time_span):
-    """Translate a loss curve into a dictionary compatible to
-    the interface defined in CurvePlot.write."""
-    data = {}
-
-    data["AggregateLossCurve"] = {}
-    data["AggregateLossCurve"]["abscissa"] = tuple(loss_curve.abscissae)
-    data["AggregateLossCurve"]["ordinate"] = tuple(loss_curve.ordinates)
-    data["AggregateLossCurve"]["abscissa_property"] = "Economic Losses"
-    data["AggregateLossCurve"]["ordinate_property"] = \
-            "PoE in %s years" % (str(time_span))
-
-    data["AggregateLossCurve"]["curve_title"] = "Aggregate Loss Curve"
-
-    return data
-
-
-def plot_aggregate_curve(calculator, aggregate_curve):
-    """Plot an aggreate loss curve.
-
-    This function is triggered only if the AGGREGATE_LOSS_CURVE
-    parameter is specified in the configuration file.
-
-    :param calculator:
-        :py:class:`EventBasedRiskCalculator` instance for an in-progress
-        calculation.
-    :param aggregate_curve: the aggregate curve to plot.
-    :type aggregate_curve: :py:class:`openquake.shapes.Curve`
-    """
-
-    if not calculator.calc_proxy.has("AGGREGATE_LOSS_CURVE"):
-        LOGGER.debug("AGGREGATE_LOSS_CURVE parameter not specified, " \
-                "skipping aggregate loss curve computation...")
-
-        return
-
-    path = os.path.join(
-            calculator.calc_proxy.params["BASE_PATH"],
-            calculator.calc_proxy.params["OUTPUT_DIR"],
-            _filename(calculator.calc_proxy.job_id))
-
-    plotter = curve.CurvePlot(path)
-    plotter.write(_for_plotting(aggregate_curve,
-            calculator.calc_proxy.params["INVESTIGATION_TIME"]),
-            autoscale_y=False)
-
-    plotter.close()
-    LOGGER.debug("Aggregate loss curve stored at %s" % path)
-
-
 class EventBasedRiskCalculator(general.ProbabilisticRiskCalculator):
     """Calculator for Event-Based Risk computations."""
 
-    def __init__(self, job_profile):
-        super(EventBasedRiskCalculator, self).__init__(job_profile)
+    def __init__(self, calc_proxy):
+        super(EventBasedRiskCalculator, self).__init__(calc_proxy)
         self.vuln_curves = None
+        self.agg_curve = None
 
     def execute(self):
         """Execute the job."""
-        general.preload(self)
 
         aggregate_curve = general.AggregateLossCurve()
 
@@ -122,14 +63,46 @@ class EventBasedRiskCalculator(general.ProbabilisticRiskCalculator):
                 # TODO(jmc): Cancel and respawn this task
                 return
 
+        self.agg_curve = aggregate_curve.compute(
+            self._tses(), self._time_span(),
+            self.calc_proxy.oq_job_profile.loss_histogram_bins)
+
+    def post_execute(self):
+        """Perform the following post-execution actions:
+
+        * Write loss curves to XML
+        * Save the aggregate loss curve to the database
+        * Write BCR output (NOTE: If BCR mode, none of the other artifacts will
+          be written.
+
+        Not all of these actions will be executed; this depends on the
+        configuration of the calculation.
+        """
+
         if self.is_benefit_cost_ratio_mode():
             self.write_output_bcr()
             return
 
-        agg_curve = aggregate_curve.compute(self._tses(), self._time_span())
-        plot_aggregate_curve(self, agg_curve)
-
         self.write_output()
+
+        # Save the aggregate loss curve to the database:
+        calculation = self.calc_proxy.oq_calculation
+
+        agg_lc_display_name = (
+            'Aggregate Loss Curve for calculation %s' % calculation.id)
+        output = models.Output(
+            oq_calculation=calculation, owner=calculation.owner,
+            display_name=agg_lc_display_name, db_backed=True,
+            output_type='agg_loss_curve')
+        output.save()
+
+        loss_curve = models.LossCurve(output=output, aggregate=True)
+        loss_curve.save()
+
+        agg_lc_data = models.AggregateLossCurveData(
+            loss_curve=loss_curve, losses=self.agg_curve.x_values,
+            poes=self.agg_curve.y_values)
+        agg_lc_data.save()
 
     def _tses(self):
         """Return the time representative of the Stochastic Event Set
@@ -256,11 +229,9 @@ class EventBasedRiskCalculator(general.ProbabilisticRiskCalculator):
                                          point.row)
             gmf_slice = kvs.get_value_json_decoded(key)
 
-            asset_key = kvs.tokens.asset_key(
-                self.calc_proxy.job_id, point.row, point.column)
-
-            for asset in kvs.get_list_json_decoded(asset_key):
-                LOGGER.debug("Processing asset %s" % (asset))
+            assets = self.assets_for_cell(self.calc_proxy.job_id, point.site)
+            for asset in assets:
+                LOGGER.debug("Processing asset %s" % asset)
 
                 # loss ratios, used both to produce the curve
                 # and to aggregate the losses
@@ -269,7 +240,7 @@ class EventBasedRiskCalculator(general.ProbabilisticRiskCalculator):
                 loss_ratio_curve = self.compute_loss_ratio_curve(
                     point.column, point.row, asset, gmf_slice, loss_ratios)
 
-                aggregate_curve.append(loss_ratios * asset["assetValue"])
+                aggregate_curve.append(loss_ratios * asset.value)
 
                 if loss_ratio_curve:
                     loss_curve = self.compute_loss_curve(
@@ -312,8 +283,9 @@ class EventBasedRiskCalculator(general.ProbabilisticRiskCalculator):
                 vuln_function, gmf_slice, epsilon_provider, asset)
             loss_ratio_curve = general.compute_loss_ratio_curve(
                 vuln_function, gmf_slice, epsilon_provider, asset,
+                self.calc_proxy.oq_job_profile.loss_histogram_bins,
                 loss_ratios=loss_ratios)
-            return loss_ratio_curve.rescale_abscissae(asset["assetValue"])
+            return loss_ratio_curve.rescale_abscissae(asset.value)
 
         result = general.compute_bcr_for_block(self.calc_proxy.job_id, points,
             get_loss_curve, float(self.calc_proxy.params['INTEREST_RATE']),
@@ -333,45 +305,45 @@ class EventBasedRiskCalculator(general.ProbabilisticRiskCalculator):
 
         epsilon_provider = general.EpsilonProvider(self.calc_proxy.params)
 
-        vuln_function = self.vuln_curves.get(
-            asset["taxonomy"], None)
+        vuln_function = self.vuln_curves.get(asset.taxonomy, None)
 
         if not vuln_function:
-            LOGGER.error(
-                "Unknown vulnerability function %s for asset %s"
-                % (asset["taxonomy"], asset["assetID"]))
-
+            LOGGER.error("Unknown vulnerability function %s for asset %s"
+                         % (asset.taxonomy, asset.asset_ref))
             return None
 
-        return general.compute_loss_ratios(
-            vuln_function, gmf_slice, epsilon_provider, asset)
+        return general.compute_loss_ratios(vuln_function, gmf_slice,
+                                           epsilon_provider, asset)
 
-    def compute_loss_ratio_curve(
-            self, col, row, asset, gmf_slice, loss_ratios):
-        """Compute the loss ratio curve for a single asset."""
+    def compute_loss_ratio_curve(self, col, row, asset, gmf_slice,
+                                 loss_ratios):
+        """Compute the loss ratio curve for a single asset.
 
-        vuln_function = self.vuln_curves.get(
-            asset["taxonomy"], None)
+        :param asset: the asset used to compute loss
+        :type asset: an :py:class:`openquake.db.model.ExposureData` instance
+        """
+        calc_proxy = self.calc_proxy
+
+        vuln_function = self.vuln_curves.get(asset.taxonomy, None)
 
         if not vuln_function:
-            LOGGER.error(
-                "Unknown vulnerability function %s for asset %s"
-                % (asset["taxonomy"], asset["assetID"]))
-
+            LOGGER.error("Unknown vulnerability function %s for asset %s"
+                         % (asset.taxonomy, asset.asset_ref))
             return None
 
-        epsilon_provider = general.EpsilonProvider(self.calc_proxy.params)
+        epsilon_provider = general.EpsilonProvider(calc_proxy.params)
 
+        loss_histogram_bins = calc_proxy.oq_job_profile.loss_histogram_bins
         loss_ratio_curve = general.compute_loss_ratio_curve(
-                vuln_function, gmf_slice, epsilon_provider, asset,
-                loss_ratios=loss_ratios)
+            vuln_function, gmf_slice, epsilon_provider, asset,
+            loss_histogram_bins, loss_ratios=loss_ratios)
 
         # NOTE (jmc): Early exit if the loss ratio is all zeros
         if not False in (loss_ratio_curve.ordinates == 0.0):
             return None
 
         key = kvs.tokens.loss_ratio_key(
-            self.calc_proxy.job_id, row, col, asset["assetID"])
+            self.calc_proxy.job_id, row, col, asset.asset_ref)
 
         kvs.get_client().set(key, loss_ratio_curve.to_json())
 
@@ -386,10 +358,10 @@ class EventBasedRiskCalculator(general.ProbabilisticRiskCalculator):
         if asset is None:
             return None
 
-        loss_curve = loss_ratio_curve.rescale_abscissae(asset["assetValue"])
+        loss_curve = loss_ratio_curve.rescale_abscissae(asset.value)
 
         key = kvs.tokens.loss_curve_key(
-            self.calc_proxy.job_id, row, column, asset["assetID"])
+            self.calc_proxy.job_id, row, column, asset.asset_ref)
 
         LOGGER.debug("Loss curve is %s, write to key %s" % (loss_curve, key))
         kvs.get_client().set(key, loss_curve.to_json())

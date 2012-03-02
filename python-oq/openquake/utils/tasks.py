@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 
 """Utility functions related to splitting work into tasks."""
@@ -97,7 +96,7 @@ def _check_exception(results):
 
 class JobCompletedError(Exception):
     """
-    Exception to be thrown by :func:`check_job_status`
+    Exception to be thrown by :func:`get_running_calculation`
     in case of dealing with already completed job.
     """
 
@@ -129,7 +128,7 @@ def get_running_calculation(calculation_id):
 
     calc_proxy = CalculationProxy.from_kvs(calculation_id)
     if calc_proxy and calc_proxy.params:
-        level = calc_proxy.params.get('debug')
+        level = calc_proxy.log_level
     else:
         level = 'warn'
     logs.init_logs_amqp_send(level=level, job_id=calculation_id)

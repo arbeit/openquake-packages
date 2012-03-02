@@ -1,80 +1,60 @@
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 
 """Core functionality of the Uniform Hazard Spectra calculator."""
 
 
-import h5py
-import numpy
-import os
+import random
 
 from celery.task import task
+from django.db import transaction
+from django.contrib.gis.geos.geometry import GEOSGeometry
 
 from openquake import java
-from openquake.engine import CalculationProxy
-from openquake.java import list_to_jdouble_array
-from openquake.logs import LOG
-from openquake.utils import config
-from openquake.utils import tasks as utils_tasks
+from openquake.calculators.base import Calculator
 from openquake.calculators.hazard.general import generate_erf
 from openquake.calculators.hazard.general import generate_gmpe_map
 from openquake.calculators.hazard.general import get_iml_list
 from openquake.calculators.hazard.general import set_gmpe_params
-
-
-@task(ignore_result=True)
-def touch_result_file(job_id, path, sites, n_samples, n_periods):
-    """Given a path (including the file name), create an empty HDF5 result file
-    containing 1 empty data set for each site. Each dataset will be a matrix
-    with the number of rows = number of samples and number of cols = number of
-    UHS periods.
-
-    :param int job_id:
-        ID of the job record in the DB/KVS.
-    :param str path:
-        Location (including a file name) on an NFS where the empty
-        result file should be created.
-    :param sites:
-        List of :class:`openquake.shapes.Site` objects.
-    :param int n_samples:
-        Number of logic tree samples (the y-dimension of each dataset).
-    :param int n_periods:
-        Number of UHS periods (the x-dimension of each dataset).
-    """
-    utils_tasks.get_running_calculation(job_id)
-    # TODO: Generate the sites, instead of pumping them through rabbit?
-    with h5py.File(path, 'w') as h5_file:
-        for site in sites:
-            ds_name = 'lon:%s-lat:%s' % (site.longitude, site.latitude)
-            ds_shape = (n_samples, n_periods)
-            h5_file.create_dataset(ds_name, dtype=numpy.float64,
-                                   shape=ds_shape)
+from openquake.calculators.hazard.general import store_gmpe_map
+from openquake.calculators.hazard.general import store_source_model
+from openquake.calculators.hazard.uhs.ath import completed_task_count
+from openquake.calculators.hazard.uhs.ath import uhs_task_handler
+from openquake.db.models import Output
+from openquake.db.models import UhSpectra
+from openquake.db.models import UhSpectrum
+from openquake.db.models import UhSpectrumData
+from openquake.input import logictree
+from openquake.java import list_to_jdouble_array
+from openquake.logs import LOG
+from openquake.utils import config
+from openquake.utils import stats
+from openquake.utils import tasks as utils_tasks
+from openquake.utils.general import block_splitter
 
 
 @task(ignore_results=True)
+@stats.progress_indicator('h')
 @java.unpack_exception
-def compute_uhs_task(job_id, realization, site, result_dir):
+def compute_uhs_task(job_id, realization, site):
     """Compute Uniform Hazard Spectra for a given site of interest and 1 or
     more Probability of Exceedance values. The bulk of the computation will
     be done by utilizing the `UHSCalculator` class in the Java code.
 
-    UHS results (for each poe) will be written as a 1D array into temporary
-    HDF5 files. (The files will later be collected and 'reduced' into final
-    result files.)
+    UHS results will be written directly to the database.
 
     :param int job_id:
         ID of the job record in the DB/KVS.
@@ -83,26 +63,18 @@ def compute_uhs_task(job_id, realization, site, result_dir):
         NUMBER_OF_LOGIC_TREE_SAMPLES param defined in the job config.
     :param site:
         The site of interest (a :class:`openquake.shapes.Site` object).
-    :param result_dir:
-        NFS result directory path. For each poe, a subfolder will be created to
-        contain intermediate calculation results. (Each call to this task will
-        generate 1 result file per poe.)
-    :returns:
-        A list of the resulting file names (1 per poe).
     """
-    utils_tasks.check_job_status(job_id)
-
-    the_job = CalculationProxy.from_kvs(job_id)
+    calc_proxy = utils_tasks.get_running_calculation(job_id)
 
     log_msg = (
         "Computing UHS for job_id=%s, site=%s, realization=%s."
-        " UHS results will be serialized to `%s`.")
-    log_msg %= (the_job.job_id, site, realization, result_dir)
+        " UHS results will be serialized to the database.")
+    log_msg %= (calc_proxy.job_id, site, realization)
     LOG.info(log_msg)
 
-    uhs_results = compute_uhs(the_job, site)
+    uhs_results = compute_uhs(calc_proxy, site)
 
-    return write_uhs_results(result_dir, realization, site, uhs_results)
+    write_uhs_spectrum_data(calc_proxy, realization, site, uhs_results)
 
 
 def compute_uhs(the_job, site):
@@ -145,58 +117,154 @@ def compute_uhs(the_job, site):
     return uhs_results
 
 
-def write_uhs_results(result_dir, realization, site, uhs_results):
-    """Write intermediate (temporary) UHS results to the specified directory.
-    Results will later be collected and written to the final results file(s).
+@transaction.commit_on_success(using='reslt_writer')
+def write_uh_spectra(calc_proxy):
+    """Write the top-level Uniform Hazard Spectra calculation results records
+    to the database.
 
-    :param result_dir:
-        NFS result directory path. For each poe, a subfolder will be created to
-        contain intermediate calculation results. (Each call to this task will
-        generate 1 result file per poe).
-    :param int realization:
-        Logic tree sample number.
-    :param site:
-        :class:`openquake.shapes.Site` associated with the results.
-    :param uhs_results:
-        A sequence of `UHSResult` jpype Java objects.
-    :returns:
-        A list of the resulting file names (1 per poe).
+    In the workflow of the UHS calculator, this should be written prior to the
+    execution of the main calculation. (See
+    :method:`openquake.calculators.base.Calculator.pre_execute`.)
+
+    This function writes:
+    * 1 record to uiapi.output
+    * 1 record to hzrdr.uh_spectra
+    * 1 record to hzrdr.uh_spectrum, per PoE defined in the calculation config
+
+    :param calc_proxy:
+        :class:`openquake.engine.CalculationProxy` instance for the current
+        UHS calculation.
     """
-    result_files = []
+    oq_job_profile = calc_proxy.oq_job_profile
+    oq_calculation = calc_proxy.oq_calculation
+
+    output = Output(
+        owner=oq_calculation.owner,
+        oq_calculation=oq_calculation,
+        display_name='UH Spectra for calculation id %s' % oq_calculation.id,
+        db_backed=True,
+        output_type='uh_spectra')
+    output.save()
+
+    uh_spectra = UhSpectra(
+        output=output,
+        timespan=oq_job_profile.investigation_time,
+        realizations=oq_job_profile.realizations,
+        periods=oq_job_profile.uhs_periods)
+    uh_spectra.save()
+
+    for poe in oq_job_profile.poes:
+        uh_spectrum = UhSpectrum(uh_spectra=uh_spectra, poe=poe)
+        uh_spectrum.save()
+
+
+@transaction.commit_on_success(using='reslt_writer')
+def write_uhs_spectrum_data(calc_proxy, realization, site, uhs_results):
+    """Write UHS results for a single ``site`` and ``realization`` to the
+    database.
+
+    :param calc_proxy:
+        :class:`openquake.engine.CalculationProxy` instance for a UHS
+        calculation.
+    :param int realization:
+       The realization number (from 0 to N, where N is the number of logic tree
+        samples defined in the calculation config) for which these results have
+        been computed.
+    :param site:
+        :class:`openquake.shapes.Site` instance.
+    :param uhs_results:
+        List of `UHSResult` jpype Java objects, one for each PoE defined in the
+        calculation configuration.
+    """
+    # Get the top-level uh_spectra record for this calculation:
+    oq_calculation = calc_proxy.oq_calculation
+    uh_spectra = UhSpectra.objects.get(
+        output__oq_calculation=oq_calculation.id)
+
+    location = GEOSGeometry(site.point.to_wkt())
 
     for result in uhs_results:
         poe = result.getPoe()
-        uhs = result.getUhs()  # This is a Java Double[]
+        # Get the uh_spectrum record to which the current result belongs.
+        # Remember, each uh_spectrum record is associated with a partiuclar
+        # PoE.
+        uh_spectrum = UhSpectrum.objects.get(uh_spectra=uh_spectra.id, poe=poe)
 
-        # We want intermediate calc results to be organized by PoE,
-        # so that they can be collected and reduced into a single result file
-        # per PoE.
-        # Having results separated this way means that a result collector
-        # is simply assigned a directory to poll and grabs any result files
-        # that it finds (without having to do much/any fitering or searching).
-        poe_path = os.path.join(result_dir, 'poe:%s' % poe)
-        if not os.path.exists(poe_path):
-            os.makedirs(poe_path)
+        # getUhs() yields a Java Double[] of SA (Spectral Acceleration) values
+        sa_values = [x.value for x in result.getUhs()]
 
-        # Initially, prepend the file name with an underscore.
-        # When the file done being written to, rename it and remove the
-        # underscore.
-        file_name = '_sample:%s-lon:%s-lat:%s.h5'
-        file_name %= (realization, site.longitude, site.latitude)
-        file_path = os.path.join(poe_path, file_name)
+        uh_spectrum_data = UhSpectrumData(
+            uh_spectrum=uh_spectrum, realization=realization,
+            sa_values=sa_values, location=location)
+        uh_spectrum_data.save()
 
-        with h5py.File(file_path, 'w') as h5_file:
-            h5_file.create_dataset(
-                'uhs',
-                # We have to get the primitive 'value' for each Double in the
-                # Double[]
-                data=numpy.array([x.value for x in uhs], dtype=numpy.float64))
 
-        # We're done writing so we can rename it. This is an indicator to
-        # result collector code that these results are ready to be collected.
-        complete_file_path = os.path.join(poe_path, file_name[1:])
-        os.rename(file_path, complete_file_path)
+class UHSCalculator(Calculator):
+    """Uniform Hazard Spectra calculator"""
 
-        result_files.append(complete_file_path)
+    # LogicTreeProcessor for sampling the source model and gmpe logic trees.
+    lt_processor = None
 
-    return result_files
+    def initialize(self):
+        """Set the task total counter."""
+        task_total = (self.calc_proxy.oq_job_profile.realizations
+                      * len(self.calc_proxy.sites_to_compute()))
+        stats.set_total(self.calc_proxy.job_id, 'h', 'uhs:tasks', task_total)
+
+    def pre_execute(self):
+        """Performs the following pre-execution tasks:
+
+        - write initial DB 'container' records for the calculation results
+        - instantiate a :class:`openquake.input.logictree.LogicTreeProcessor`
+          for sampling source model and gmpe logic trees
+        """
+        write_uh_spectra(self.calc_proxy)
+
+        source_model_lt = self.calc_proxy.params.get(
+            'SOURCE_MODEL_LOGIC_TREE_FILE_PATH')
+        gmpe_lt = self.calc_proxy.params.get('GMPE_LOGIC_TREE_FILE_PATH')
+        basepath = self.calc_proxy.params.get('BASE_PATH')
+        self.lt_processor = logictree.LogicTreeProcessor(
+            basepath, source_model_lt, gmpe_lt)
+
+    def execute(self):
+        """Loop over realizations (logic tree samples), split the geometry of
+        interest into blocks of sites, and distribute Celery tasks to carry out
+        the UHS computation.
+        """
+        calc_proxy = self.calc_proxy
+        all_sites = calc_proxy.sites_to_compute()
+        site_block_size = config.hazard_block_size()
+        job_profile = calc_proxy.oq_job_profile
+
+        src_model_rnd = random.Random(job_profile.source_model_lt_random_seed)
+        gmpe_rnd = random.Random(job_profile.gmpe_lt_random_seed)
+
+        for rlz in xrange(calc_proxy.oq_job_profile.realizations):
+
+            # Sample the gmpe and source models:
+            store_source_model(
+                calc_proxy.job_id, src_model_rnd.getrandbits(32),
+                calc_proxy.params, self.lt_processor)
+            store_gmpe_map(
+                calc_proxy.job_id, gmpe_rnd.getrandbits(32), self.lt_processor)
+
+            for site_block in block_splitter(all_sites, site_block_size):
+
+                tf_args = dict(job_id=calc_proxy.job_id, realization=rlz)
+
+                num_tasks_completed = completed_task_count(calc_proxy.job_id)
+
+                ath_args = dict(job_id=calc_proxy.job_id,
+                                num_tasks=len(site_block),
+                                start_count=num_tasks_completed)
+
+                utils_tasks.distribute(
+                    compute_uhs_task, ('site', site_block), tf_args=tf_args,
+                    ath=uhs_task_handler, ath_args=ath_args)
+
+    def post_execute(self):
+        """Clean up stats counters."""
+        # TODO: export these counters to the database before deleting them
+        # See bug https://bugs.launchpad.net/openquake/+bug/925946.
+        stats.delete_job_counters(self.calc_proxy.job_id)

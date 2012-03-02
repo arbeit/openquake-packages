@@ -1,7 +1,7 @@
 /*
   OpenQuake database schema definitions.
 
-    Copyright (c) 2010-2011, GEM Foundation.
+    Copyright (c) 2010-2012, GEM Foundation.
 
     OpenQuake database is made available under the Open Database License:
     http://opendatacommons.org/licenses/odbl/1.0/. Any rights in individual
@@ -543,7 +543,7 @@ CREATE TABLE uiapi.input (
 CREATE TABLE uiapi.oq_calculation (
     id SERIAL PRIMARY KEY,
     owner_id INTEGER NOT NULL,
-    description VARCHAR NOT NULL,
+    description VARCHAR NOT NULL DEFAULT '',
     -- The full path of the location where the input files for the calculation
     -- engine reside. This is used internally by openquake-server, can probably
     -- be removed (see https://github.com/gem/openquake-server/issues/55)
@@ -577,6 +577,7 @@ CREATE TABLE uiapi.calc_stats (
 CREATE TABLE uiapi.oq_job_profile (
     id SERIAL PRIMARY KEY,
     owner_id INTEGER NOT NULL,
+    description VARCHAR NOT NULL DEFAULT '',
     -- One of:
     --      classical (Classical PSHA)
     --      event_based (Probabilistic event based)
@@ -836,6 +837,26 @@ CREATE TABLE uiapi.oq_job_profile (
                 AND (lrem_steps_per_interval IS NULL)
             )),
     loss_curves_output_prefix VARCHAR,
+    -- Number of bins in the compute loss histogram.
+    -- For Event-Based Risk calculations only.
+    loss_histogram_bins INTEGER
+        CONSTRAINT loss_histogram_bins_is_set
+        CHECK (
+            (calc_mode in ('event_based', 'event_based_bcr'))
+            AND
+            (
+                ((ARRAY['risk']::VARCHAR[] <@ job_type)
+                 AND (loss_histogram_bins is NOT NULL)
+                 AND (loss_histogram_bins >= 1))
+                OR
+                ((NOT ARRAY['risk']::VARCHAR[] <@ job_type)
+                 AND (loss_histogram_bins IS NULL))
+            )
+            OR
+            (
+                (calc_mode NOT IN ('event_based', 'event_based_bcr')
+                 AND (loss_histogram_bins IS NULL))
+            )),
     maximum_distance float
         CONSTRAINT maximum_distance_is_set
         CHECK(
@@ -854,7 +875,6 @@ CREATE TABLE uiapi.oq_job_profile (
             ((calc_mode != 'classical')
              AND (quantile_levels IS NULL))),
     reference_depth_to_2pt5km_per_sec_param float,
-    risk_cell_size float,
     rupture_aspect_ratio float
         CONSTRAINT rupture_aspect_ratio_is_set
         CHECK(
@@ -1109,10 +1129,11 @@ CREATE TABLE uiapi.output (
     --      loss_map
     --      collapse_map
     --      bcr_distribution
+    --      agg_loss_curve
     output_type VARCHAR NOT NULL CONSTRAINT output_type_value
         CHECK(output_type IN ('unknown', 'hazard_curve', 'hazard_map',
             'gmf', 'loss_curve', 'loss_map', 'collapse_map',
-            'bcr_distribution')),
+            'bcr_distribution', 'uh_spectra', 'agg_loss_curve')),
     -- Number of bytes in file
     size INTEGER NOT NULL DEFAULT 0,
     -- The full path of the shapefile generated for a hazard or loss map
@@ -1212,8 +1233,55 @@ SELECT AddGeometryColumn('hzrdr', 'gmf_data', 'location', 4326, 'POINT', 2);
 ALTER TABLE hzrdr.gmf_data ALTER COLUMN location SET NOT NULL;
 
 
--- Loss map data.
+-- Uniform Hazard Spectra
+--
+-- A collection of Uniform Hazard Spectrum which share a set of periods.
+-- A UH Spectrum has a PoE (Probability of Exceedence) and is conceptually
+-- composed of a set of 2D matrices, 1 matrix per site/point of interest.
+-- Each 2D matrix has a number of rows equal to `realizations` and a number of
+-- columns equal to the number of `periods`.
+CREATE TABLE hzrdr.uh_spectra (
+    id SERIAL PRIMARY KEY,
+    output_id INTEGER NOT NULL,
+    timespan float NOT NULL CONSTRAINT valid_uhs_timespan
+        CHECK (timespan > 0.0),
+    realizations INTEGER NOT NULL CONSTRAINT uh_spectra_realizations_is_set
+        CHECK (realizations >= 1),
+    -- There should be at least 1 period value defined.
+    periods float[] NOT NULL CONSTRAINT uh_spectra_periods_is_set
+        CHECK ((periods <> '{}'))
+) TABLESPACE hzrdr_ts;
 
+
+-- Uniform Hazard Spectrum
+--
+-- * "Uniform" meaning "the same PoE"
+-- * "Spectrum" because it covers a range/band of periods/frequencies
+CREATE TABLE hzrdr.uh_spectrum (
+    id SERIAL PRIMARY KEY,
+    uh_spectra_id INTEGER NOT NULL,
+    poe float NOT NULL CONSTRAINT uh_spectrum_poe_is_set
+        CHECK ((poe >= 0.0) AND (poe <= 1.0))
+) TABLESPACE hzrdr_ts;
+
+
+-- Uniform Hazard Spectrum Data
+--
+-- A single "row" of data in a UHS matrix for a specific site/point of interest.
+CREATE TABLE hzrdr.uh_spectrum_data (
+    id SERIAL PRIMARY KEY,
+    uh_spectrum_id INTEGER NOT NULL, -- Unique -> (uh_spectrum_id, realization, location)
+    -- logic tree sample number for this calculation result,
+    -- from 0 to N
+    realization INTEGER NOT NULL,
+    sa_values float[] NOT NULL CONSTRAINT sa_values_is_set
+        CHECK ((sa_values <> '{}'))
+) TABLESPACE hzrdr_ts;
+SELECT AddGeometryColumn('hzrdr', 'uh_spectrum_data', 'location', 4326, 'POINT', 2);
+ALTER TABLE hzrdr.uh_spectrum_data ALTER COLUMN location SET NOT NULL;
+
+
+-- Loss map data.
 CREATE TABLE riskr.loss_map (
     id SERIAL PRIMARY KEY,
     output_id INTEGER NOT NULL, -- FK to output.id
@@ -1321,15 +1389,51 @@ ALTER TABLE riskr.bcr_distribution_data ALTER COLUMN location SET NOT NULL;
 
 
 -- Exposure model
+-- Abbreviations:
+--      coco: contents cost
+--      reco: retrofitting cost
+--      stco: structural cost
 CREATE TABLE oqmif.exposure_model (
     id SERIAL PRIMARY KEY,
     owner_id INTEGER NOT NULL,
+    -- Associates the risk exposure model with an input file
+    input_id INTEGER,
     name VARCHAR NOT NULL,
     description VARCHAR,
+    -- the taxonomy system used to classify the assets
+    taxonomy_source VARCHAR,
     -- e.g. "buildings", "bridges" etc.
     category VARCHAR NOT NULL,
-    -- e.g. "EUR", "count", "density" etc.
-    unit VARCHAR NOT NULL,
+
+    -- area type
+    area_type VARCHAR CONSTRAINT area_type_value
+        CHECK(area_type IS NULL OR area_type = 'per_asset'
+              OR area_type = 'aggregated'),
+
+    -- area unit
+    area_unit VARCHAR,
+
+    -- contents cost type
+    coco_type VARCHAR CONSTRAINT coco_type_value
+        CHECK(coco_type IS NULL OR coco_type = 'per_asset'
+              OR coco_type = 'per_area' OR coco_type = 'aggregated'),
+    -- contents cost unit
+    coco_unit VARCHAR,
+
+    -- retrofitting cost type
+    reco_type VARCHAR CONSTRAINT reco_type_value
+        CHECK(reco_type IS NULL OR reco_type = 'per_asset'
+              OR reco_type = 'per_area' OR reco_type = 'aggregated'),
+    -- retrofitting cost unit
+    reco_unit VARCHAR,
+
+    -- structural cost type
+    stco_type VARCHAR CONSTRAINT stco_type_value
+        CHECK(stco_type IS NULL OR stco_type = 'per_asset'
+              OR stco_type = 'per_area' OR stco_type = 'aggregated'),
+    -- structural cost unit
+    stco_unit VARCHAR,
+
     last_update timestamp without time zone
         DEFAULT timezone('UTC'::text, now()) NOT NULL
 ) TABLESPACE oqmif_ts;
@@ -1339,13 +1443,29 @@ CREATE TABLE oqmif.exposure_model (
 CREATE TABLE oqmif.exposure_data (
     id SERIAL PRIMARY KEY,
     exposure_model_id INTEGER NOT NULL,
-    -- The asset reference is unique within an exposure model.
+    -- the asset reference is unique within an exposure model.
     asset_ref VARCHAR NOT NULL,
-    value float NOT NULL,
-    -- Vulnerability function reference
+
+    -- vulnerability function reference
     taxonomy VARCHAR NOT NULL,
-    structure_type VARCHAR,
-    retrofitting_cost float,
+
+    -- structural cost
+    stco float CONSTRAINT stco_value CHECK(stco >= 0.0),
+    -- retrofitting cost
+    reco float CONSTRAINT reco_value CHECK(reco >= 0.0),
+    -- contents cost
+    coco float CONSTRAINT coco_value CHECK(coco >= 0.0),
+
+    -- number of assets, people etc.
+    number_of_units float CONSTRAINT number_of_units_value
+        CHECK(number_of_units >= 0.0),
+    area float CONSTRAINT area_value CHECK(area >= 0.0),
+
+    -- insurance coverage limit
+    ins_limit float,
+    -- insurance deductible
+    deductible float,
+
     last_update timestamp without time zone
         DEFAULT timezone('UTC'::text, now()) NOT NULL,
     UNIQUE (exposure_model_id, asset_ref)
@@ -1354,10 +1474,20 @@ SELECT AddGeometryColumn('oqmif', 'exposure_data', 'site', 4326, 'POINT', 2);
 ALTER TABLE oqmif.exposure_data ALTER COLUMN site SET NOT NULL;
 
 
+CREATE TABLE oqmif.occupancy (
+    id SERIAL PRIMARY KEY,
+    exposure_data_id INTEGER NOT NULL,
+    description VARCHAR NOT NULL,
+    occupants INTEGER NOT NULL
+) TABLESPACE oqmif_ts;
+
+
 -- Vulnerability model
 CREATE TABLE riski.vulnerability_model (
     id SERIAL PRIMARY KEY,
     owner_id INTEGER NOT NULL,
+    -- Associates the risk vulnerability model with an input file
+    input_id INTEGER,
     name VARCHAR NOT NULL,
     description VARCHAR,
     imt VARCHAR NOT NULL CONSTRAINT imt_value
@@ -1473,26 +1603,6 @@ FOREIGN KEY (complex_fault_id) REFERENCES hzrdi.complex_fault(id) ON DELETE REST
 ALTER TABLE hzrdi.rupture ADD CONSTRAINT hzrdi_rupture_input_fk
 FOREIGN KEY (input_id) REFERENCES uiapi.input(id) ON DELETE RESTRICT;
 
-CREATE TRIGGER hzrdi_rupture_before_insert_update_trig
-BEFORE INSERT OR UPDATE ON hzrdi.rupture
-FOR EACH ROW EXECUTE PROCEDURE check_rupture_sources();
-
-CREATE TRIGGER hzrdi_source_before_insert_update_trig
-BEFORE INSERT OR UPDATE ON hzrdi.source
-FOR EACH ROW EXECUTE PROCEDURE check_source_sources();
-
-CREATE TRIGGER hzrdi_r_rate_mdl_before_insert_update_trig
-BEFORE INSERT OR UPDATE ON hzrdi.r_rate_mdl
-FOR EACH ROW EXECUTE PROCEDURE check_only_one_mfd_set();
-
-CREATE TRIGGER hzrdi_simple_fault_before_insert_update_trig
-BEFORE INSERT OR UPDATE ON hzrdi.simple_fault
-FOR EACH ROW EXECUTE PROCEDURE check_only_one_mfd_set();
-
-CREATE TRIGGER hzrdi_complex_fault_before_insert_update_trig
-BEFORE INSERT OR UPDATE ON hzrdi.complex_fault
-FOR EACH ROW EXECUTE PROCEDURE check_only_one_mfd_set();
-
 ALTER TABLE eqcat.catalog ADD CONSTRAINT eqcat_catalog_owner_fk
 FOREIGN KEY (owner_id) REFERENCES admin.oq_user(id) ON DELETE RESTRICT;
 
@@ -1541,9 +1651,16 @@ FOREIGN KEY (oq_calculation_id) REFERENCES uiapi.oq_calculation(id) ON DELETE CA
 ALTER TABLE oqmif.exposure_model ADD CONSTRAINT oqmif_exposure_model_owner_fk
 FOREIGN KEY (owner_id) REFERENCES admin.oq_user(id) ON DELETE RESTRICT;
 
+ALTER TABLE oqmif.exposure_model ADD CONSTRAINT oqmif_exposure_model_input_fk
+FOREIGN KEY (input_id) REFERENCES uiapi.input(id) ON DELETE RESTRICT;
+
 ALTER TABLE riski.vulnerability_model ADD CONSTRAINT
 riski_vulnerability_model_owner_fk FOREIGN KEY (owner_id) REFERENCES
 admin.oq_user(id) ON DELETE RESTRICT;
+
+ALTER TABLE riski.vulnerability_model ADD CONSTRAINT
+riski_vulnerability_model_input_fk FOREIGN KEY (input_id) REFERENCES
+uiapi.input(id) ON DELETE RESTRICT;
 
 ALTER TABLE hzrdr.hazard_map
 ADD CONSTRAINT hzrdr_hazard_map_output_fk
@@ -1564,6 +1681,22 @@ FOREIGN KEY (hazard_curve_id) REFERENCES hzrdr.hazard_curve(id) ON DELETE CASCAD
 ALTER TABLE hzrdr.gmf_data
 ADD CONSTRAINT hzrdr_gmf_data_output_fk
 FOREIGN KEY (output_id) REFERENCES uiapi.output(id) ON DELETE CASCADE;
+
+-- UHS:
+-- uh_spectra -> output FK
+ALTER TABLE hzrdr.uh_spectra
+ADD CONSTRAINT hzrdr_uh_spectra_output_fk
+FOREIGN KEY (output_id) REFERENCES uiapi.output(id) ON DELETE CASCADE;
+
+-- uh_spectrum -> uh_spectra FK
+ALTER TABLE hzrdr.uh_spectrum
+ADD CONSTRAINT hzrdr_uh_spectrum_uh_spectra_fk
+FOREIGN KEY (uh_spectra_id) REFERENCES hzrdr.uh_spectra(id) ON DELETE CASCADE;
+
+-- uh_spectrum_data -> uh_spectrum FK
+ALTER TABLE hzrdr.uh_spectrum_data
+ADD CONSTRAINT hzrdr_uh_spectrum_data_uh_spectrum_fk
+FOREIGN KEY (uh_spectrum_id) REFERENCES hzrdr.uh_spectrum(id) ON DELETE CASCADE;
 
 ALTER TABLE riskr.loss_map
 ADD CONSTRAINT riskr_loss_map_output_fk
@@ -1613,39 +1746,12 @@ ALTER TABLE oqmif.exposure_data ADD CONSTRAINT
 oqmif_exposure_data_exposure_model_fk FOREIGN KEY (exposure_model_id)
 REFERENCES oqmif.exposure_model(id) ON DELETE CASCADE;
 
+ALTER TABLE oqmif.occupancy ADD CONSTRAINT
+oqmif_occupancy_exposure_data_fk FOREIGN KEY (exposure_data_id)
+REFERENCES oqmif.exposure_data(id) ON DELETE CASCADE;
+
 ALTER TABLE riski.vulnerability_function ADD CONSTRAINT
 riski_vulnerability_function_vulnerability_model_fk FOREIGN KEY
 (vulnerability_model_id) REFERENCES riski.vulnerability_model(id) ON DELETE
 CASCADE;
 
-CREATE TRIGGER eqcat_magnitude_before_insert_update_trig
-BEFORE INSERT OR UPDATE ON eqcat.magnitude
-FOR EACH ROW EXECUTE PROCEDURE check_magnitude_data();
-
-CREATE TRIGGER admin_organization_refresh_last_update_trig BEFORE UPDATE ON admin.organization FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER admin_oq_user_refresh_last_update_trig BEFORE UPDATE ON admin.oq_user FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER eqcat_catalog_refresh_last_update_trig BEFORE UPDATE ON eqcat.catalog FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER eqcat_surface_refresh_last_update_trig BEFORE UPDATE ON eqcat.surface FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER hzrdi_fault_edge_refresh_last_update_trig BEFORE UPDATE ON hzrdi.fault_edge FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER hzrdi_mfd_evd_refresh_last_update_trig BEFORE UPDATE ON hzrdi.mfd_evd FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER hzrdi_mfd_tgr_refresh_last_update_trig BEFORE UPDATE ON hzrdi.mfd_tgr FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER hzrdi_r_depth_distr_refresh_last_update_trig BEFORE UPDATE ON hzrdi.r_depth_distr FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER hzrdi_focal_mechanism_refresh_last_update_trig BEFORE UPDATE ON hzrdi.focal_mechanism FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER oqmif_exposure_model_refresh_last_update_trig BEFORE UPDATE ON oqmif.exposure_model FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER oqmif_exposure_data_refresh_last_update_trig BEFORE UPDATE ON oqmif.exposure_data FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER riski_vulnerability_function_refresh_last_update_trig BEFORE UPDATE ON riski.vulnerability_function FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER riski_vulnerability_model_refresh_last_update_trig BEFORE UPDATE ON riski.vulnerability_model FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();
-
-CREATE TRIGGER uiapi_input_set_refresh_last_update_trig BEFORE UPDATE ON uiapi.input_set FOR EACH ROW EXECUTE PROCEDURE refresh_last_update();

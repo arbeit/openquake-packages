@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 """
 This module contains the data required to map configuration values into
@@ -175,6 +174,7 @@ cttfl = lambda x: cttl(x, float)  # config text to float list
 
 # general params
 define_param('CALCULATION_MODE', None)
+define_param('DESCRIPTION', 'description', default='')
 define_param('SITES', 'sites', to_job=cttfl)
 define_param('REGION_GRID_SPACING', 'region_grid_spacing', to_job=float)
 define_param('REGION_VERTEX', 'region', to_job=cttfl)
@@ -349,6 +349,8 @@ define_param('INVESTIGATION_TIME', 'investigation_time', default=0.0,
                     'classical_bcr', 'event_based_bcr'),
              to_job=float)
 define_param('LOSS_CURVES_OUTPUT_PREFIX', 'loss_curves_output_prefix')
+define_param('LOSS_HISTOGRAM_BINS', 'loss_histogram_bins',
+             modes=('event_based', 'event_based_bcr'), to_job=int)
 define_param('LREM_STEPS_PER_INTERVAL', 'lrem_steps_per_interval',
              modes=('classical', 'classical_bcr'), to_job=int)
 define_param('MAXIMUM_DISTANCE', 'maximum_distance', to_job=float,
@@ -375,7 +377,6 @@ define_param("REFERENCE_DEPTH_TO_2PT5KM_PER_SEC_PARAM",
              java_name="Depth 2.5 km/sec", to_job=float)
 define_param("REFERENCE_VS30_VALUE", "reference_vs30_value", java_name="Vs30",
              to_job=float)
-define_param('RISK_CELL_SIZE', 'risk_cell_size', to_job=float)
 define_param('RUPTURE_SURFACE_DISCRETIZATION',
              'rupture_surface_discretization', modes='scenario',
              to_job=float)

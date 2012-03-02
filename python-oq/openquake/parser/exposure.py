@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 
 """Parsers to read exposure files, including exposure portfolios.
 These can include building, population, critical infrastructure,
 and other asset classes."""
 
+from collections import namedtuple
 from lxml import etree
 
 from openquake import producer
@@ -32,6 +32,9 @@ from openquake.xml import NRML, GML
 
 # do not use namespace for now
 RISKML_NS = ''
+
+
+OCCUPANCY = namedtuple("OCCUPANCY", "occupants, description")
 
 
 def _to_site(element):
@@ -62,8 +65,24 @@ def _to_site(element):
         raise ValueError(error_str)
 
 
-class ExposurePortfolioFile(producer.FileProducer):
-    """ This class parses an ExposurePortfolio XML (part of riskML?) file.
+def _to_occupancy(element):
+    """Convert the 'occupants' tags to named tuples.
+
+    We want to extract the value of <occupants>. We expect the input
+    element to be an 'assetDefinition' and have a child element
+    structured like this:
+
+    <occupants description="day">245</occupants>
+    """
+    occupancy_data = []
+    for otag in element.findall('%soccupants' % NRML):
+        occupancy_data.append(OCCUPANCY(
+            occupants=int(otag.text), description=otag.attrib["description"]))
+    return occupancy_data
+
+
+class ExposureModelFile(producer.FileProducer):
+    """ This class parses an ExposureModel XML (part of riskML?) file.
     The contents of such a file is meant to be used as input for the risk
     engine. The class is implemented as a generator.
     For each 'AssetInstance' element in the parsed
@@ -87,7 +106,7 @@ class ExposurePortfolioFile(producer.FileProducer):
     """
 
     def __init__(self, path):
-        super(ExposurePortfolioFile, self).__init__(path)
+        super(ExposureModelFile, self).__init__(path)
 
     def _parse(self):
         try:
@@ -116,24 +135,34 @@ class ExposurePortfolioFile(producer.FileProducer):
                 if desc is not None:
                     self._current_meta['listDescription'] = str(desc.text)
 
+                taxsrc = element.find('%staxonomySource' % NRML)
+                if taxsrc is not None:
+                    self._current_meta['taxonomySource'] = str(taxsrc.text)
+
                 asset_category = str(element.get('assetCategory'))
                 self._current_meta['assetCategory'] = asset_category
 
-                unit = str(element.get('unit'))
-                self._current_meta['unit'] = unit
+                # type and unit for area, contents cost, retrofitting cost
+                # and structural cost.
+                attrs = ("areaType", "areaUnit", "cocoType", "cocoUnit",
+                         "recoType", "recoUnit", "stcoType", "stcoUnit")
+                for attr_name in attrs:
+                    attr_value = element.get(attr_name)
+                    if attr_value is not None:
+                        self._current_meta[attr_name] = attr_value
 
             elif event == 'start' and level < 2:
                 # check that the first child of the root element is an
                 # exposure portfolio
-                if level == 1 and element.tag != '%sexposurePortfolio' % NRML:
+                if level == 1 and element.tag != '%sexposureModel' % NRML:
                     raise xml.XMLMismatchError(
                         self.file.name, str(element.tag)[len(NRML):],
-                        'exposurePortfolio')
+                        'exposureModel')
 
                 level += 1
 
             elif event == 'end' and element.tag == '%sassetDefinition' % NRML:
-                site_data = (_to_site(element),
+                site_data = (_to_site(element), _to_occupancy(element),
                              self._to_site_attributes(element))
                 del element
                 yield site_data
@@ -142,30 +171,30 @@ class ExposurePortfolioFile(producer.FileProducer):
         """Build a dict of all node attributes"""
         site_attributes = {}
 
-        # consider all attributes of assetDefinition element as mandatory
-
         site_attributes['assetID'] = element.get('%sid' % GML)
-        asset_value = element.find('%sassetValue' % NRML)
-        try:
-            site_attributes['assetValue'] = float(asset_value.text)
-        except Exception:
-            error_str = 'element assetDefinition: no valid assetValue'
-            raise ValueError(error_str)
-        site_attributes['retrofittingCost'] = float(
-            element.find('%sretrofittingCost' % NRML).text
-        )
 
-        # all of these attributes are in the NRML namespace
-        for (required_attr, attr_type) in (('taxonomy', str),
-                                   ('structureCategory', str)):
+        # Optional elements
+        attrs = (('coco', float), ('reco', float), ('stco', float),
+                 ('area', float), ('number', float), ('limit', float),
+                 ('deductible', float))
+        for (attr_name, attr_type) in attrs:
+            attr_value = element.find('%s%s' % (NRML, attr_name))
+            if attr_value is not None:
+                site_attributes[attr_name] = attr_type(attr_value.text)
+
+        # Mandatory elements
+        for (required_attr, attr_type) in (('taxonomy', str),):
             attr_value = element.find('%s%s' % (NRML, required_attr)).text
             if attr_value is not None:
-                site_attributes[required_attr] = \
-                    attr_type(attr_value)
+                site_attributes[required_attr] = attr_type(attr_value)
             else:
-                error_str = "element assetDefinition: missing required " \
-                    "attribute %s" % required_attr
+                error_str = ("element assetDefinition: missing required "
+                             "attribute %s" % required_attr)
                 raise ValueError(error_str)
+
+        # TODO, al-maisan, Thu, 16 Feb 2012 15:55:01 +0100
+        # add the logic that handles the 'occupants' tags.
+        # https://bugs.launchpad.net/openquake/+bug/942178
 
         site_attributes.update(self._current_meta)
 

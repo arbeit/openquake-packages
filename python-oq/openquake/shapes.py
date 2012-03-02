@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 """Collection of base classes for processing spatially-related data."""
 
@@ -67,8 +66,8 @@ class Region(object):
         """
 
         # Constrain the precision for the coordinates:
-        coordinates = \
-            [(round_float(pt[0]), round_float(pt[1])) for pt in coordinates]
+        coordinates = [(round_float(pt[0]), round_float(pt[1]))
+                       for pt in coordinates]
         polygon = geometry.Polygon(coordinates)
         return cls(polygon)
 
@@ -204,8 +203,8 @@ class GridPoint(object):
         return self.grid.site_at(self)
 
     def hash(self):
-        """Ugly hashing function
-        TODO(jmc): Fixme"""
+        """Ugly hashing function"""
+        # TODO(jmc): Fixme
         return self.__hash__()
 
     def __repr__(self):
@@ -245,7 +244,7 @@ class Grid(object):
             check = self.check_point(site.point)
         except BoundsException:
             LOGGER.debug("Site %s %s isn't on region" %
-                (site.point.site.longitude, site.point.site.latitude))
+                         (site.longitude, site.latitude))
 
         return check
 
@@ -721,6 +720,15 @@ class VulnerabilityFunction(object):
         """
         return len(self.imls) == 0
 
+    @property
+    def stddevs(self):
+        """
+            Convenience method: returns a list of calculated
+            Standard Deviations
+        """
+        return [cov * loss_ratio for cov, loss_ratio in izip(self.covs,
+            self.loss_ratios)]
+
     def loss_ratio_for(self, iml):
         """
         Given 1 or more IML values, interpolate the corresponding loss ratio
@@ -778,7 +786,8 @@ class VulnerabilityFunction(object):
         """
         as_dict = {}
 
-        for iml, loss_ratio, cov in self:
+        for iml, loss_ratio, cov in izip(self.imls, self.loss_ratios,
+                self.covs):
             as_dict[str(iml)] = [loss_ratio, cov]
 
         return json.JSONEncoder().encode(as_dict)
