@@ -1,0 +1,134 @@
+--- a/src/org/opensha/commons/param/Parameter.java
++++ b/src/org/opensha/commons/param/Parameter.java
+@@ -19,6 +19,7 @@
+ package org.opensha.commons.param;
+ 
+ import java.util.ArrayList;
++import java.util.List;
+ import java.util.ListIterator;
+ 
+ import org.dom4j.Element;
+@@ -27,6 +28,7 @@
+ import org.opensha.commons.exceptions.ParameterException;
+ import org.opensha.commons.metadata.XMLSaveable;
+ import org.opensha.commons.param.event.ParameterChangeEvent;
++import org.opensha.commons.param.event.ParameterChangeListener;
+ 
+ /**
+  * <b>Title: </b> Parameter
+@@ -109,7 +111,7 @@
+      * ArrayList of all the objects who want to listen on change of this
+      * paramter
+      */
+-    private transient ArrayList changeListeners;
++    private transient ArrayList<ParameterChangeListener> changeListeners;
+ 
+     /**
+      * ArrayList of all the objects who want to listen if the value for this
+@@ -121,6 +123,10 @@
+     public Parameter() {
+     }
+ 
++    public List<ParameterChangeListener> getChangeListeners() {
++        return changeListeners;
++    }
++
+     /**
+      * If the editable boolean is set to true, the parameter value can be
+      * edited, else an EditableException is thrown.
+@@ -374,8 +380,7 @@
+      * 
+      */
+ 
+-    public synchronized void addParameterChangeListener(
+-            org.opensha.commons.param.event.ParameterChangeListener listener) {
++    public synchronized void addParameterChangeListener(ParameterChangeListener listener) {
+         if (changeListeners == null)
+             changeListeners = new ArrayList();
+         if (!changeListeners.contains(listener))
+--- a/src/org/opensha/commons/param/ParameterAPI.java
++++ b/src/org/opensha/commons/param/ParameterAPI.java
+@@ -18,6 +18,8 @@
+ 
+ package org.opensha.commons.param;
+ 
++import java.util.List;
++
+ import org.dom4j.Element;
+ import org.opensha.commons.data.NamedObjectAPI;
+ import org.opensha.commons.exceptions.ConstraintException;
+@@ -25,6 +27,7 @@
+ import org.opensha.commons.metadata.XMLSaveable;
+ import org.opensha.commons.param.editor.ParameterEditor;
+ import org.opensha.commons.param.event.ParameterChangeEvent;
++import org.opensha.commons.param.event.ParameterChangeListener;
+ 
+ /**
+  * <b>Title:</b> ParameterAPI Interface
+@@ -182,6 +185,8 @@
+      */
+     public void unableToSetValue(E value) throws ConstraintException;
+ 
++    public List<ParameterChangeListener> getChangeListeners();
++
+     /**
+      * Adds a feature to the ParameterChangeFailListener attribute
+      * 
+--- a/src/org/opensha/sha/imr/attenRelImpl/Campbell_2003_AttenRel.java
++++ b/src/org/opensha/sha/imr/attenRelImpl/Campbell_2003_AttenRel.java
+@@ -449,6 +449,7 @@
+ 	 * Allows to reset the change listeners on the parameters
+ 	 */
+ 	public void resetParameterEventListeners() {
++	    saPeriodParam.removeParameterChangeListener(this);
+ 		magParam.removeParameterChangeListener(this);
+ 		distanceRupParam.removeParameterChangeListener(this);
+ 		stdDevTypeParam.removeParameterChangeListener(this);
+@@ -460,6 +461,7 @@
+ 	 * the parameter is changed.
+ 	 */
+ 	protected void initParameterEventListeners() {
++	    saPeriodParam.addParameterChangeListener(this);
+ 		magParam.addParameterChangeListener(this);
+ 		distanceRupParam.addParameterChangeListener(this);
+ 		stdDevTypeParam.addParameterChangeListener(this);
+--- a/src/org/opensha/sha/imr/attenRelImpl/Campbell_2003_SHARE_AttenRel.java
++++ b/src/org/opensha/sha/imr/attenRelImpl/Campbell_2003_SHARE_AttenRel.java
+@@ -4,7 +4,6 @@
+ import org.opensha.commons.param.event.ParameterChangeWarningListener;
+ import org.opensha.sha.earthquake.EqkRupture;
+ import org.opensha.sha.imr.attenRelImpl.constants.AdjustFactorsSHARE;
+-import org.opensha.sha.imr.attenRelImpl.constants.Campbell2003Constants;
+ import org.opensha.sha.imr.param.EqkRuptureParams.RakeParam;
+ 
+ /**
+@@ -53,6 +52,10 @@
+ 
+ 	private double rake;
+ 
++	public void setIper(int iper) {
++	    this.iper = iper;
++	}
++
+ 	public Campbell_2003_SHARE_AttenRel(
+ 			ParameterChangeWarningListener warningListener) {
+ 		super(warningListener);
+@@ -143,13 +146,13 @@
+ 		}
+ 		return f;
+ 	}
+-	
++
+ 	public double getStdDev(){
+-		return getStdDev(iper, rake, stdDevType);
++	    return getStdDev(iper, mag, stdDevType);
+ 	}
+-	
+-	public double getStdDev(int iper, double rake, String stdDevType){
+-		double std = super.getStdDev(iper, rake, stdDevType);
++
++	public double getStdDev(int iper, double mag, String stdDevType){
++		double std = super.getStdDev(iper, mag, stdDevType);
+ 		return std * AdjustFactorsSHARE.sig_AFrock_CAMBPELL2003[iper];
+ 	}
+ 
