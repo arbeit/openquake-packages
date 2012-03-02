@@ -2,3 +2,4 @@ oqpath.patch
 logsink-cfg.patch
 setuptools.patch
 oqmif-db-user
+agpl.patch
