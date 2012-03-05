@@ -1,8 +1,9 @@
 python-oq (0.6.0-1) oneiric; urgency=low
 
-  * OpenQuake rev. 0.6.0 upstream release
+  * OpenQuake rev. 0.6.0 upstream release (LP: #946879)
+  * add postgresql-plpython-9.1 dependency (LP: #929429)
 
- -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 02 Mar 2012 17:47:15 +0100
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 05 Mar 2012 11:05:22 +0100
 
 python-oq (0.5.1-2) oneiric; urgency=low
 
