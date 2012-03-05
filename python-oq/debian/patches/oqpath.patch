@@ -24,7 +24,7 @@
  from openquake.utils import version as utils_version
 --- a/bin/openquake_supervisor
 +++ b/bin/openquake_supervisor
-@@ -26,9 +26,6 @@
+@@ -25,9 +25,6 @@
  import os
  import sys
  
