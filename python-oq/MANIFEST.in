@@ -2,4 +2,3 @@ recursive-include openquake *.sql
 recursive-include openquake *.xsd
 recursive-include openquake *.cfg
 recursive-include openquake *.gem
-include LICENSE README
