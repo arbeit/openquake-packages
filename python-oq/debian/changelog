@@ -1,3 +1,9 @@
+python-oq (0.6.0-6) oneiric; urgency=low
+
+  * Another db user fix
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 07 Mar 2012 17:18:31 +0100
+
 python-oq (0.6.0-5) oneiric; urgency=low
 
   * Fix database users
