@@ -1,5 +1,5 @@
 --- /dev/null
-+++ b/LICENSE
++++ b/openquake/LICENSE
 @@ -0,0 +1,661 @@
 +                    GNU AFFERO GENERAL PUBLIC LICENSE
 +                       Version 3, 19 November 2007
@@ -665,7 +665,31 @@
 --- a/MANIFEST.in
 +++ b/MANIFEST.in
 @@ -1,3 +1,4 @@
-+include LICENSE README
++include openquake/LICENSE openquake/README
  recursive-include openquake *.sql
  recursive-include openquake *.xsd
  recursive-include openquake *.cfg
+--- a/README
++++ /dev/null
+@@ -1,9 +0,0 @@
+-OpenQuake is an open source application that allows users to
+-compute seismic hazard, seismic risk and socio-economic
+-impact of earthquakes on a global scale.
+-
+-Please note: the /usr/bin/openquake script requires a celeryconfig.py
+-file in the PYTHONPATH.  Please make sure this is the case and that your
+-celeryconfig.py file works with your python-celery setup.
+-Feel free to copy /usr/share/pyshared/openquake/celeryconfig.py and
+-revise it as needed.
+--- /dev/null
++++ b/openquake/README
+@@ -0,0 +1,9 @@
++OpenQuake is an open source application that allows users to
++compute seismic hazard, seismic risk and socio-economic
++impact of earthquakes on a global scale.
++
++Please note: the /usr/bin/openquake script requires a celeryconfig.py
++file in the PYTHONPATH.  Please make sure this is the case and that your
++celeryconfig.py file works with your python-celery setup.
++Feel free to copy /usr/share/pyshared/openquake/celeryconfig.py and
++revise it as needed.
