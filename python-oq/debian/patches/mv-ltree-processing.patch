@@ -18,3 +18,20 @@
              self.calc = logictree.LogicTreeProcessor(basepath, source_model_lt,
                                                       gmpe_lt)
  
+@@ -231,12 +228,16 @@
+ 
+     def store_source_model(self, seed):
+         """Generates a source model from the source model logic tree."""
++        if getattr(self, "calc", None) is None:
++            self.pre_execute()
+         store_source_model(self.calc_proxy.job_id, seed,
+                            self.calc_proxy.params, self.calc)
+ 
+     def store_gmpe_map(self, seed):
+         """Generates a hash of tectonic regions and GMPEs, using the logic tree
+         specified in the job config file."""
++        if getattr(self, "calc", None) is None:
++            self.pre_execute()
+         store_gmpe_map(self.calc_proxy.job_id, seed, self.calc)
+ 
+     def generate_erf(self):
