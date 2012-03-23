@@ -1,0 +1,20 @@
+--- a/openquake/calculators/hazard/general.py
++++ b/openquake/calculators/hazard/general.py
+@@ -212,16 +212,13 @@
+ class BaseHazardCalculator(Calculator):
+     """Contains common functionality for Hazard calculators"""
+ 
+-    def __init__(self, job_profile):
+-        super(BaseHazardCalculator, self).__init__(job_profile)
+-
++    def pre_execute(self):
+         basepath = self.calc_proxy.params.get('BASE_PATH')
+ 
+         if not self.calc_proxy['CALCULATION_MODE'] == 'Scenario':
+             source_model_lt = self.calc_proxy.params.get(
+                 'SOURCE_MODEL_LOGIC_TREE_FILE_PATH')
+             gmpe_lt = self.calc_proxy.params.get('GMPE_LOGIC_TREE_FILE_PATH')
+-            # TODO: This should probably be moved into a `pre_execute` method.
+             self.calc = logictree.LogicTreeProcessor(basepath, source_model_lt,
+                                                      gmpe_lt)
+ 

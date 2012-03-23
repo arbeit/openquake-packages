@@ -1,3 +1,15 @@
+python-oq (0.6.0-9) oneiric; urgency=low
+
+  * Turn off accidental worker-side logic tree processing (LP: #962788)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 23 Mar 2012 06:27:36 +0100
+
+python-oq (0.6.0-8) oneiric; urgency=low
+
+  * Package tested and ready for deployment.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 20 Mar 2012 15:54:31 +0100
+
 python-oq (0.6.0-7) oneiric; urgency=low
 
   * All demos pass, rebuild this package
