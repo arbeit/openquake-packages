@@ -1,6 +1,20 @@
 --- a/bin/create_oq_schema
 +++ b/bin/create_oq_schema
-@@ -70,9 +70,8 @@
+@@ -24,13 +24,6 @@
+     help
+ fi
+ 
+-if [ "$(id -u)" != "0" ]; then
+-    echo ""
+-    echo "!! This script should be run as root." 1>&2
+-    echo "!! Press <enter> to continue, or <ctrl>-C to abort"
+-    read
+-fi
+-
+ # Openquake version
+ oq_version="0.6.0"
+ 
+@@ -70,9 +63,8 @@
  oq_admin
  oq_eqcat_reader
  oq_eqcat_writer
@@ -68,22 +82,23 @@
  
  -- hzrdr.hazard_curve
  GRANT SELECT ON hzrdr.hazard_curve TO GROUP openquake;
-@@ -183,25 +183,25 @@
+@@ -182,26 +182,23 @@
+ 
  -- oqmif.exposure_data
  GRANT SELECT ON oqmif.exposure_data TO GROUP openquake;
- GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.exposure_data TO oq_ged4gem;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.exposure_data TO oq_ged4gem;
 -GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.exposure_data TO oq_calculation_init;
 +GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.exposure_data TO oq_job_init;
  
  -- oqmif.exposure_model
  GRANT SELECT ON oqmif.exposure_model TO GROUP openquake;
- GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.exposure_model TO oq_ged4gem;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.exposure_model TO oq_ged4gem;
 -GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.exposure_model TO oq_calculation_init;
 +GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.exposure_model TO oq_job_init;
  
  -- oqmif.occupancy
  GRANT SELECT ON oqmif.occupancy TO GROUP openquake;
- GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.occupancy TO oq_ged4gem;
+-GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.occupancy TO oq_ged4gem;
 -GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.occupancy TO oq_calculation_init;
 +GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.occupancy TO oq_job_init;
  
@@ -99,7 +114,7 @@
  
  -- riskr.loss_curve
  GRANT SELECT ON riskr.loss_curve TO GROUP openquake;
-@@ -241,22 +241,22 @@
+@@ -241,22 +238,22 @@
  
  -- uiapi.input
  GRANT SELECT ON uiapi.input TO GROUP openquake;
@@ -129,7 +144,7 @@
  
  -- uiapi.output
  GRANT SELECT ON uiapi.output TO GROUP openquake;
-@@ -264,12 +264,12 @@
+@@ -264,12 +261,12 @@
  
  -- uiapi.input_set
  GRANT SELECT ON uiapi.input_set TO GROUP openquake;
