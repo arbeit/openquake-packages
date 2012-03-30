@@ -1,3 +1,21 @@
+python-oq (0.6.0-14) oneiric; urgency=low
+
+  * Improved version string, post-installtion actions
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 30 Mar 2012 17:21:40 +0200
+
+python-oq (0.6.0-13) oneiric; urgency=low
+
+  * proper fix for GMF serialization problem (LP: #969014)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 30 Mar 2012 15:14:41 +0200
+
+python-oq (0.6.0-12) oneiric; urgency=low
+
+  * Fix GMF serialization in the hazard event based calculator (LP: #969014)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 30 Mar 2012 12:15:44 +0200
+
 python-oq (0.6.0-11) oneiric; urgency=low
 
   * Fix ERROR: role "oq_ged4gem" does not exist (LP: #968056)
@@ -564,7 +582,7 @@ python-oq (0.3.9-3) natty; urgency=low
 
 python-oq (0.3.9-2) natty; urgency=low
 
-  * Added the python-geoalchemy dependency. 
+  * Added the python-geoalchemy dependency.
 
  -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 07 Jun 2011 10:30:02 +0200
 
