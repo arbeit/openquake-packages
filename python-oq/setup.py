@@ -16,7 +16,7 @@ setup(
     license = "AGPL3",
     keywords = "earthquake seismic hazard risk",
     url = "http://openquake.org/",
-    long_description=read('README'),
+    long_description=read('openquake/README'),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
