@@ -2,7 +2,7 @@
   Documentation for the OpenQuake database schema.
   Please keep these alphabetical by table.
 
-    Copyright (c) 2010-2011, GEM Foundation.
+    Copyright (c) 2010-2012, GEM Foundation.
 
     OpenQuake database is made available under the Open Database License:
     http://opendatacommons.org/licenses/odbl/1.0/. Any rights in individual
@@ -187,27 +187,63 @@ COMMENT ON COLUMN hzrdr.hazard_map_data.hazard_map_id IS 'The foreign key to the
 COMMENT ON COLUMN hzrdr.hazard_map_data.location IS 'Position in the hazard map';
 COMMENT ON COLUMN hzrdr.hazard_map_data.value IS 'IML value for this location';
 
+-- uhs
+COMMENT ON TABLE hzrdr.uh_spectra IS 'Uniform Hazard Spectra
+
+A collection of Uniform Hazard Spectrum which share a set of periods.
+A UH Spectrum has a PoE (Probability of Exceedence) and is conceptually
+composed of a set of 2D matrices, 1 matrix per site/point of interest.
+Each 2D matrix has a number of rows equal to `realizations` and a number of
+columns equal ot the number of `periods`.';
+COMMENT ON COLUMN hzrdr.uh_spectra.periods IS 'There should be at least 1 period value defined.';
+COMMENT ON TABLE hzrdr.uh_spectrum IS 'Uniform Hazard Spectrum
+
+* "Uniform" meaning "the same PoE"
+* "Spectrum" because it covers a range/band of periods/frequencies';
+COMMENT ON TABLE hzrdr.uh_spectrum_data IS 'Uniform Hazard Spectrum Data
+
+A single "row" of data in a UHS matrix for a specific site/point of interest.';
+COMMENT ON COLUMN hzrdr.uh_spectrum_data.realization IS 'Logic tree sample number for this calculation result, from 0 to N.';
+
 
 
 -- oqmif schema tables ------------------------------------------
 COMMENT ON TABLE oqmif.exposure_data IS 'Per-asset risk exposure data';
-COMMENT ON COLUMN oqmif.exposure_data.exposure_model_id IS 'Foreign key to the exposure model';
+COMMENT ON COLUMN oqmif.exposure_data.area IS 'asset area';
 COMMENT ON COLUMN oqmif.exposure_data.asset_ref IS 'A unique identifier (within the exposure model) for the asset at hand';
-COMMENT ON COLUMN oqmif.exposure_data.value IS 'The value of the asset at hand';
-COMMENT ON COLUMN oqmif.exposure_data.taxonomy IS 'A reference to the taxonomy that should be used for the asset at hand';
-COMMENT ON COLUMN oqmif.exposure_data.structure_type IS 'An optional structure type for the asset at hand';
-COMMENT ON COLUMN oqmif.exposure_data.retrofitting_cost IS 'An optional cost of retrofitting for the asset at hand';
+COMMENT ON COLUMN oqmif.exposure_data.deductible IS 'insurance deductible';
+COMMENT ON COLUMN oqmif.exposure_data.coco IS 'contents cost';
+COMMENT ON COLUMN oqmif.exposure_data.ins_limit IS 'insurance coverage limit';
+COMMENT ON COLUMN oqmif.exposure_data.exposure_model_id IS 'Foreign key to the exposure model';
 COMMENT ON COLUMN oqmif.exposure_data.last_update IS 'Date/time of the last change of the exposure data for the asset at hand';
+COMMENT ON COLUMN oqmif.exposure_data.number_of_units IS 'number of assets, people etc.';
+COMMENT ON COLUMN oqmif.exposure_data.reco IS 'retrofitting cost';
+COMMENT ON COLUMN oqmif.exposure_data.stco IS 'structural cost';
+COMMENT ON COLUMN oqmif.exposure_data.taxonomy IS 'A reference to the taxonomy that should be used for the asset at hand';
 
 
 COMMENT ON TABLE oqmif.exposure_model IS 'A risk exposure model';
-COMMENT ON COLUMN oqmif.exposure_model.owner_id IS 'The foreign key to the user who owns the exposure model in question';
-COMMENT ON COLUMN oqmif.exposure_model.name IS 'The exposure model name';
-COMMENT ON COLUMN oqmif.exposure_model.description IS 'An optional description of the risk exposure model at hand';
+COMMENT ON COLUMN oqmif.exposure_model.area_type IS 'area type. one of: aggregated or per_asset';
+COMMENT ON COLUMN oqmif.exposure_model.area_unit IS 'area unit of measure e.g. sqm';
 COMMENT ON COLUMN oqmif.exposure_model.category IS 'The risk category modelled';
-COMMENT ON COLUMN oqmif.exposure_model.unit IS 'The unit of measurement for the exposure data in the model at hand';
+COMMENT ON COLUMN oqmif.exposure_model.coco_type IS 'contents cost type, one of: aggregated, per_area or per_asset';
+COMMENT ON COLUMN oqmif.exposure_model.coco_unit IS 'unit of measure for the contents type';
+COMMENT ON COLUMN oqmif.exposure_model.description IS 'An optional description of the risk exposure model at hand';
+COMMENT ON COLUMN oqmif.exposure_model.input_id IS 'The foreign key to the associated input model file';
 COMMENT ON COLUMN oqmif.exposure_model.last_update IS 'Date/time of the last change of the model at hand';
+COMMENT ON COLUMN oqmif.exposure_model.name IS 'The exposure model name';
+COMMENT ON COLUMN oqmif.exposure_model.owner_id IS 'The foreign key to the user who owns the exposure model in question';
+COMMENT ON COLUMN oqmif.exposure_model.reco_type IS 'retrofitting cost type, one of: aggregated, per_area or per_asset';
+COMMENT ON COLUMN oqmif.exposure_model.reco_unit IS 'unit of measure for the retrofitting type';
+COMMENT ON COLUMN oqmif.exposure_model.stco_type IS 'structural cost type, one of: aggregated, per_area or per_asset';
+COMMENT ON COLUMN oqmif.exposure_model.stco_unit IS 'unit of measure for the structural type';
+COMMENT ON COLUMN oqmif.exposure_model.taxonomy_source IS 'the taxonomy system used to classify the assets';
 
+
+COMMENT ON TABLE oqmif.occupancy IS 'Occupancy for a given exposure data set';
+COMMENT ON COLUMN oqmif.occupancy.exposure_data_id IS 'Foreign key to the exposure data set to which the occupancy data applies.';
+COMMENT ON COLUMN oqmif.occupancy.description IS 'describes the occupancy data e.g. day, night etc.';
+COMMENT ON COLUMN oqmif.occupancy.occupants IS 'number of occupants';
 
 
 -- riski schema tables ------------------------------------------
@@ -220,8 +256,9 @@ COMMENT ON COLUMN riski.vulnerability_function.last_update IS 'Date/time of the 
 
 
 COMMENT ON TABLE riski.vulnerability_model IS 'A risk vulnerability model';
-COMMENT ON COLUMN riski.vulnerability_model.description IS 'An optional description of the risk vulnerability model at hand';
 COMMENT ON COLUMN riski.vulnerability_model.category IS 'The risk category modelled';
+COMMENT ON COLUMN riski.vulnerability_model.description IS 'An optional description of the risk vulnerability model at hand';
+COMMENT ON COLUMN riski.vulnerability_model.input_id IS 'The foreign key to the associated input model file';
 COMMENT ON COLUMN riski.vulnerability_model.last_update IS 'Date/time of the last change of the model at hand';
 
 

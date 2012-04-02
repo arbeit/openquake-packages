@@ -1,5 +1,7 @@
+serialize-gmf.patch
+mv-ltree-processing.patch
+licsense.patch
+celerconfig.patch
 oqpath.patch
 logsink-cfg.patch
-setuptools.patch
-openquake.patch
 oqmif-db-user

@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 
 """
@@ -85,6 +84,30 @@ def kvs_op(dop, *kvs_args):
     conn = _redis()
     op = getattr(conn, dop)
     return op(*kvs_args)
+
+
+def failure_counters(job_id, area=None):
+    """Return a list of 2-tuples with failure keys/counters for the given area.
+
+    :param int job_id: identifier of the job in question
+    :param str area: computation area, one of:
+        "g" : general
+        "h" : hazard
+        "r" : risk
+    :returns: a potentially empty list of 2-tuples with failure keys/counters
+        for the given area.
+    """
+    assert area is None or area in ("g", "h", "r"), "Invalid area."
+
+    if area:
+        pattern = "oqs/%s/%s/*-failures*" % (job_id, area)
+    else:
+        pattern = "oqs/%s/*-failures*" % job_id
+
+    result = keys = kvs_op("keys", pattern)
+    if keys:
+        result = zip(keys, [int(c) for c in kvs_op("mget", keys)])
+    return result
 
 
 def pk_set(job_id, skey, value):

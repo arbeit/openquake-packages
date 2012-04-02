@@ -1,6 +1,6 @@
 --- a/bin/cache_gc.py
 +++ b/bin/cache_gc.py
-@@ -31,9 +31,6 @@
+@@ -30,9 +30,6 @@
  import getopt
  import sys
  
@@ -12,16 +12,16 @@
  
 --- a/bin/openquake
 +++ b/bin/openquake
-@@ -67,9 +67,6 @@
+@@ -63,9 +63,6 @@
  except ImportError:
      sys.path.append('/usr/openquake')
  
 -import oqpath
 -oqpath.set_oq_path()
 -
- from openquake import flags
  from openquake import __version__
- 
+ from openquake.export import core as export
+ from openquake.utils import version as utils_version
 --- a/bin/openquake_supervisor
 +++ b/bin/openquake_supervisor
 @@ -25,9 +25,6 @@

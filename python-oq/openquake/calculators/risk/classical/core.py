@@ -1,18 +1,17 @@
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 
 # pylint: disable=W0232
@@ -26,8 +25,6 @@ from celery.exceptions import TimeoutError
 from numpy import empty, linspace
 from numpy import array, concatenate
 from numpy import subtract, mean
-
-from scipy import sqrt, stats, log, exp
 
 from openquake import kvs
 from openquake import logs
@@ -45,7 +42,8 @@ from openquake.calculators.risk.general import loop
 LOGGER = logs.LOG
 
 
-def compute_loss_ratio_curve(vuln_function, hazard_curve, steps):
+def compute_loss_ratio_curve(vuln_function, hazard_curve, steps,
+        distribution=None):
     """Compute a loss ratio curve for a specific hazard curve (e.g., site),
     by applying a given vulnerability function.
 
@@ -63,7 +61,7 @@ def compute_loss_ratio_curve(vuln_function, hazard_curve, steps):
         Number of steps between loss ratios.
     """
 
-    lrem = _compute_lrem(vuln_function, steps)
+    lrem = _compute_lrem(vuln_function, steps, distribution)
     lrem_po = _compute_lrem_po(vuln_function, lrem, hazard_curve)
     loss_ratios = _generate_loss_ratios(vuln_function, steps)
 
@@ -114,7 +112,7 @@ def _generate_loss_ratios(vuln_function, steps):
 
 
 @MemoizeMutable
-def _compute_lrem(vuln_function, steps, distribution=None):
+def _compute_lrem(vuln_function, steps, distribution='LN'):
     """Compute the LREM (Loss Ratio Exceedance Matrix).
 
     :param vuln_function:
@@ -123,28 +121,25 @@ def _compute_lrem(vuln_function, steps, distribution=None):
         :class:`openquake.shapes.VulnerabilityFunction`
     :param int steps:
         Number of steps between loss ratios.
+    :param str: The distribution type:
+                'LN' LogNormal
+                'BT' BetaDistribution
     """
 
-    if distribution is None:
-        # this is so we can memoize the thing
-        distribution = stats.lognorm
+    dist = {'LN': general.Lognorm,
+            'BT': general.BetaDistribution}.get(distribution,
+                        general.Lognorm)
 
     loss_ratios = _generate_loss_ratios(vuln_function, steps)
+
     # LREM has number of rows equal to the number of loss ratios
     # and number of columns equal to the number if imls
     lrem = empty((loss_ratios.size, vuln_function.imls.size), float)
 
-    for idx, value in enumerate(vuln_function):
-        mean_val, cov = value[1:]
-
-        stddev = cov * mean_val
-        variance = stddev ** 2.0
-        mu = log(mean_val ** 2.0 / sqrt(variance + mean_val ** 2.0))
-        sigma = sqrt(log((variance / mean_val ** 2.0) + 1.0))
-
-        for row, value in enumerate(lrem):
-            lrem[row][idx] = distribution.sf(loss_ratios[row],
-                    sigma, scale=exp(mu))
+    for col, _ in enumerate(vuln_function):
+        for row, loss_ratio in enumerate(loss_ratios):
+            lrem[row][col] = dist.survival_function(loss_ratio,
+                col=col, vf=vuln_function)
 
     return lrem
 
@@ -230,8 +225,6 @@ class ClassicalRiskCalculator(general.ProbabilisticRiskCalculator):
 
     def execute(self):
         """Core Classical Risk calculation starts here."""
-        general.preload(self)
-
         celery_tasks = []
         for block_id in self.calc_proxy.blocks_keys:
             LOGGER.debug("starting task block, block_id = %s of %s"
@@ -280,24 +273,21 @@ class ClassicalRiskCalculator(general.ProbabilisticRiskCalculator):
         for point in block.grid(self.calc_proxy.region):
             hazard_curve = self._get_db_curve(point.site)
 
-            asset_key = kvs.tokens.asset_key(self.calc_proxy.job_id,
-                            point.row, point.column)
-            for asset in kvs.get_list_json_decoded(asset_key):
-                LOGGER.debug("processing asset %s" % (asset))
+            assets = self.assets_for_cell(self.calc_proxy.job_id, point.site)
+            for asset in assets:
+                LOGGER.debug("processing asset %s" % asset)
 
                 loss_ratio_curve = self.compute_loss_ratio_curve(
                     point, asset, hazard_curve, vuln_curves)
 
                 if loss_ratio_curve:
-                    loss_curve = self.compute_loss_curve(point,
-                            loss_ratio_curve, asset)
+                    loss_curve = self.compute_loss_curve(
+                        point, loss_ratio_curve, asset)
 
-                    for loss_poe in conditional_loss_poes(
-                        self.calc_proxy.params):
-
+                    for poe in conditional_loss_poes(self.calc_proxy.params):
                         compute_conditional_loss(
-                                self.calc_proxy.job_id, point.column,
-                                point.row, loss_curve, asset, loss_poe)
+                            self.calc_proxy.job_id, point.column,
+                            point.row, loss_curve, asset, poe)
 
         return True
 
@@ -322,7 +312,7 @@ class ClassicalRiskCalculator(general.ProbabilisticRiskCalculator):
             loss_ratio_curve = compute_loss_ratio_curve(
                     vuln_function, hazard_curve,
                     job_profile.lrem_steps_per_interval)
-            return compute_loss_curve(loss_ratio_curve, asset['assetValue'])
+            return compute_loss_curve(loss_ratio_curve, asset.value)
 
         bcr = general.compute_bcr_for_block(calc_proxy.job_id, points,
             get_loss_curve, float(calc_proxy.params['INTEREST_RATE']),
@@ -344,12 +334,12 @@ class ClassicalRiskCalculator(general.ProbabilisticRiskCalculator):
         :type loss_ratio_curve: :py:class `openquake.shapes.Curve`
         :param asset: the asset for which to compute the loss curve
         :type asset: :py:class:`dict` as provided by
-               :py:class:`openquake.parser.exposure.ExposurePortfolioFile`
+               :py:class:`openquake.parser.exposure.ExposureModelFile`
         """
 
-        loss_curve = compute_loss_curve(loss_ratio_curve, asset['assetValue'])
+        loss_curve = compute_loss_curve(loss_ratio_curve, asset.value)
         loss_key = kvs.tokens.loss_curve_key(
-            self.calc_proxy.job_id, point.row, point.column, asset['assetID'])
+            self.calc_proxy.job_id, point.row, point.column, asset.asset_ref)
 
         kvs.get_client().set(loss_key, loss_curve.to_json())
 
@@ -364,7 +354,7 @@ class ClassicalRiskCalculator(general.ProbabilisticRiskCalculator):
         :type point: :py:class:`openquake.shapes.GridPoint`
         :param asset: the asset used to compute the loss curve
         :type asset: :py:class:`dict` as provided by
-            :py:class:`openquake.parser.exposure.ExposurePortfolioFile`
+            :py:class:`openquake.parser.exposure.ExposureModelFile`
         :param hazard_curve: the hazard curve used to compute the
             loss ratio curve
         :type hazard_curve: :py:class:`openquake.shapes.Curve`
@@ -372,23 +362,22 @@ class ClassicalRiskCalculator(general.ProbabilisticRiskCalculator):
 
         # we get the vulnerability function related to the asset
 
-        vuln_function_reference = asset["taxonomy"]
+        vuln_function_reference = asset.taxonomy
         vuln_function = vuln_curves.get(vuln_function_reference, None)
 
         if not vuln_function:
-            LOGGER.error(
-                "Unknown vulnerability function %s for asset %s"
-                % (asset["taxonomy"],
-                asset["assetID"]))
+            LOGGER.error("Unknown vulnerability function %s for asset %s"
+                         % (asset.taxonomy, asset.asset_ref))
 
             return None
 
         lrem_steps = self.calc_proxy.oq_job_profile.lrem_steps_per_interval
         loss_ratio_curve = compute_loss_ratio_curve(
-            vuln_function, hazard_curve, lrem_steps)
+            vuln_function, hazard_curve, lrem_steps,
+            self.calc_proxy.params.get("probabilisticDistribution"))
 
         loss_ratio_key = kvs.tokens.loss_ratio_key(
-            self.calc_proxy.job_id, point.row, point.column, asset['assetID'])
+            self.calc_proxy.job_id, point.row, point.column, asset.asset_ref)
 
         kvs.get_client().set(loss_ratio_key, loss_ratio_curve.to_json())
 

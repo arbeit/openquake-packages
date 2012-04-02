@@ -1,7 +1,7 @@
 /*
   Roles and permissions for the OpenQuake database.
 
-    Copyright (c) 2010-2011, GEM Foundation.
+    Copyright (c) 2010-2012, GEM Foundation.
 
     OpenQuake database is made available under the Open Database License:
     http://opendatacommons.org/licenses/odbl/1.0/. Any rights in individual
@@ -47,9 +47,13 @@ GRANT ALL ON SEQUENCE hzrdr.hazard_curve_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE hzrdr.hazard_curve_data_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE hzrdr.hazard_map_data_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE hzrdr.hazard_map_id_seq to GROUP openquake;
+GRANT ALL ON SEQUENCE hzrdr.uh_spectra_id_seq to GROUP openquake;
+GRANT ALL ON SEQUENCE hzrdr.uh_spectrum_id_seq to GROUP openquake;
+GRANT ALL ON SEQUENCE hzrdr.uh_spectrum_data_id_seq to GROUP openquake;
 
 GRANT ALL ON SEQUENCE oqmif.exposure_data_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE oqmif.exposure_model_id_seq to GROUP openquake;
+GRANT ALL ON SEQUENCE oqmif.occupancy_id_seq to GROUP openquake;
 
 GRANT ALL ON SEQUENCE riski.vulnerability_function_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE riski.vulnerability_model_id_seq to GROUP openquake;
@@ -164,13 +168,32 @@ GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdr.hazard_map TO oq_reslt_writer;
 GRANT SELECT ON hzrdr.hazard_map_data TO GROUP openquake;
 GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdr.hazard_map_data TO oq_reslt_writer;
 
+-- hzrdr.uh_spectra
+GRANT SELECT ON hzrdr.uh_spectra TO GROUP openquake;
+GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdr.uh_spectra TO oq_reslt_writer;
+
+-- hzrdr.uh_spectrum
+GRANT SELECT ON hzrdr.uh_spectrum TO GROUP openquake;
+GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdr.uh_spectrum TO oq_reslt_writer;
+
+-- hzrdr.uh_spectrum_data
+GRANT SELECT ON hzrdr.uh_spectrum_data TO GROUP openquake;
+GRANT SELECT,INSERT,UPDATE,DELETE ON hzrdr.uh_spectrum_data TO oq_reslt_writer;
+
 -- oqmif.exposure_data
 GRANT SELECT ON oqmif.exposure_data TO GROUP openquake;
 GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.exposure_data TO oq_ged4gem;
+GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.exposure_data TO oq_calculation_init;
 
 -- oqmif.exposure_model
 GRANT SELECT ON oqmif.exposure_model TO GROUP openquake;
 GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.exposure_model TO oq_ged4gem;
+GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.exposure_model TO oq_calculation_init;
+
+-- oqmif.occupancy
+GRANT SELECT ON oqmif.occupancy TO GROUP openquake;
+GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.occupancy TO oq_ged4gem;
+GRANT SELECT,INSERT,UPDATE,DELETE ON oqmif.occupancy TO oq_calculation_init;
 
 -- riski.vulnerability_function
 GRANT SELECT ON riski.vulnerability_function TO GROUP openquake;

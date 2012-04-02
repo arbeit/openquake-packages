@@ -89,9 +89,9 @@ if [ -f /usr/lib/postgresql/9.1/bin/postgres ]; then
         done
     fi
     # Make sure the celeryd  processes are gone.
-    sleep 1
+    sleep 3
     for pid in `ps ax | grep celeryd | grep -v grep | awk '{print $1}'`; do
-        kill -15 $pid
+        kill -9 $pid
     done
 
     /etc/init.d/postgresql restart
@@ -145,6 +145,10 @@ if [ -f /usr/lib/postgresql/9.1/bin/postgres ]; then
         echo "============================================================"
         echo ""
     fi
+
+    # Restart the remaining services just to be on the safe side.
+    /etc/init.d/rabbitmq-server restart
+    /etc/init.d/redis-server restart
 
     # Restart celeryd
     if [ -x /etc/init.d/celeryd ]; then

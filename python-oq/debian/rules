@@ -7,6 +7,7 @@
 # This special exception was added by Craig Small in version 0.37 of dh-make.
 
 # Uncomment this to turn on verbose mode.
+export DISTUTILS_DEBUG=1
 export DH_VERBOSE=1
 export DH_OPTIONS=-v
 
@@ -15,7 +16,7 @@ export DH_OPTIONS
 
 
 %:
-	dh --with quilt $@
+	dh $@ --with quilt
 
 override_dh_quilt_patch:
 	dh_quilt_patch

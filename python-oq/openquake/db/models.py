@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 # pylint: disable=C0302
 
@@ -23,9 +22,48 @@
 Model representations of the OpenQuake DB tables.
 '''
 
+from collections import namedtuple
 from datetime import datetime
 from django.contrib.gis.db import models
 from django.contrib.gis.geos.geometry import GEOSGeometry
+
+
+def per_asset_value(exd):
+    """Return per-asset value for the given exposure data set.
+
+    Calculate per asset value by considering the given exposure data (`exd`)
+    as follows:
+
+        case 1: cost type: aggregated:
+            cost = economic value
+        case 2: cost type: per asset:
+            cost * number (of assets) = economic value
+        case 3: cost type: per area and area type: aggregated:
+            cost * area = economic value
+        case 4: cost type: per area and area type: per asset:
+            cost * area * number = economic value
+
+    The same "formula" applies to contenst/retrofitting cost analogously.
+
+    :param exd: a named tuple with the following properties:
+        - cost
+        - cost_type
+        - area
+        - area_type
+        - number_of_units
+    :returns: the per-asset value as a `float`
+    :raises: `ValueError` in case of a malformed (risk exposure data) input
+    """
+    if exd.cost_type == "aggregated":
+        return exd.cost
+    elif exd.cost_type == "per_asset":
+        return exd.cost * exd.number_of_units
+    elif exd.cost_type == "per_area":
+        if exd.area_type == "aggregated":
+            return exd.cost * exd.area
+        elif exd.area_type == "per_asset":
+            return exd.cost * exd.area * exd.number_of_units
+    raise ValueError("Invalid input: '%s'" % str(exd))
 
 
 def model_equals(model_a, model_b, ignore=None):
@@ -528,7 +566,7 @@ class OqCalculation(models.Model):
     An OpenQuake engine run started by the user
     '''
     owner = models.ForeignKey('OqUser')
-    description = models.TextField()
+    description = models.TextField(default='')
     path = models.TextField(null=True, unique=True)
     STATUS_CHOICES = (
         (u'pending', u'Pending'),
@@ -569,6 +607,7 @@ class OqJobProfile(models.Model):
     Parameters needed to run an OpenQuake job
     '''
     owner = models.ForeignKey('OqUser')
+    description = models.TextField(default='')
     CALC_MODE_CHOICES = (
         (u'classical', u'Classical PSHA'),
         (u'event_based', u'Probabilistic Event-Based'),
@@ -647,10 +686,11 @@ class OqJobProfile(models.Model):
     include_subduction_fault_source = models.NullBooleanField(null=True)
     lrem_steps_per_interval = models.IntegerField(null=True)
     loss_curves_output_prefix = models.TextField(null=True)
+    # Only used for Event-Based Risk calculations.
+    loss_histogram_bins = models.IntegerField(null=True)
     maximum_distance = models.FloatField(null=True)
     quantile_levels = FloatArrayField(null=True)
     reference_depth_to_2pt5km_per_sec_param = models.FloatField(null=True)
-    risk_cell_size = models.FloatField(null=True)
     rupture_aspect_ratio = models.FloatField(null=True)
     RUPTURE_FLOATING_TYPE_CHOICES = (
         ('alongstrike', 'Only along strike ( rupture full DDW)'),
@@ -756,6 +796,8 @@ class Output(models.Model):
         (u'loss_map', u'Loss Map'),
         (u'collapse_map', u'Collapse map'),
         (u'bcr_distribution', u'Benefit-cost ratio distribution'),
+        (u'uh_spectra', u'Uniform Hazard Spectra'),
+        (u'agg_loss_curve', u'Aggregate Loss Curve'),
     )
     output_type = models.TextField(choices=OUTPUT_TYPE_CHOICES)
     # Number of bytes in the file:
@@ -859,6 +901,52 @@ class GmfData(models.Model):
 
     class Meta:  # pylint: disable=C0111,W0232
         db_table = 'hzrdr\".\"gmf_data'
+
+
+class UhSpectra(models.Model):
+    """Uniform Hazard Spectra
+
+    A Collection of Uniform Hazard Spectrum which share a set of periods.
+    A UH Spectrum has a PoE (Probability of Exceedence) and is conceptually
+    composed of a set of 2D matrices, 1 matrix per site/point of interest.
+    Each 2D matrix has a number of row equal to ``realizations`` and a number
+    of columns equal to the number of ``periods``.
+    """
+    output = models.ForeignKey('Output')
+    timespan = models.FloatField()
+    realizations = models.IntegerField()
+    periods = FloatArrayField()
+
+    class Meta:  # pylint: disable=C0111,W0232
+        db_table = 'hzrdr\".\"uh_spectra'
+
+
+class UhSpectrum(models.Model):
+    """Uniform Hazard Spectrum
+
+    * "Uniform" meaning "the same PoE"
+    * "Spectrum" because it covers a range/band of periods/frequencies
+    """
+    uh_spectra = models.ForeignKey('UhSpectra')
+    poe = models.FloatField()
+
+    class Meta:  # pylint: disable=C0111,W0232
+        db_table = 'hzrdr\".\"uh_spectrum'
+
+
+class UhSpectrumData(models.Model):
+    """Uniform Hazard Spectrum Data
+
+    A single "row" of data in a UHS matrix for a specific site/point of
+    interest.
+    """
+    uh_spectrum = models.ForeignKey('UhSpectrum')
+    realization = models.IntegerField()
+    sa_values = FloatArrayField()
+    location = models.PointField(srid=4326)
+
+    class Meta:  # pylint: disable=C0111,W0232
+        db_table = 'hzrdr\".\"uh_spectrum_data'
 
 
 ## Tables in the 'riskr' schema.
@@ -1003,14 +1091,50 @@ class ExposureModel(models.Model):
     '''
 
     owner = models.ForeignKey("OqUser")
+    input = models.ForeignKey("Input")
     name = models.TextField()
     description = models.TextField(null=True)
     category = models.TextField()
-    unit = models.TextField()
+    taxonomy_source = models.TextField(
+        null=True, help_text="the taxonomy system used to classify the assets")
+    AREA_CHOICES = (
+        (u'aggregated', u'Aggregated area value'),
+        (u'per_asset', u'Per asset area value'),
+    )
+    area_type = models.TextField(null=True, choices=AREA_CHOICES)
+    area_unit = models.TextField(null=True)
+    COST_CHOICES = (
+        (u'aggregated', u'Aggregated economic value'),
+        (u'per_area', u'Per area economic value'),
+        (u'per_asset', u'Per asset economic value'),
+    )
+    stco_type = models.TextField(null=True, choices=COST_CHOICES,
+                                 help_text="structural cost type")
+    stco_unit = models.TextField(null=True, help_text="structural cost unit")
+    reco_type = models.TextField(null=True, choices=COST_CHOICES,
+                                 help_text="retrofitting cost type")
+    reco_unit = models.TextField(null=True, help_text="retrofitting cost unit")
+    coco_type = models.TextField(null=True, choices=COST_CHOICES,
+                                 help_text="contents cost type")
+    coco_unit = models.TextField(null=True, help_text="contents cost unit")
+
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
 
     class Meta:  # pylint: disable=C0111,W0232
         db_table = 'oqmif\".\"exposure_model'
+
+
+class Occupancy(models.Model):
+    '''
+    Asset occupancy data
+    '''
+
+    exposure_data = models.ForeignKey("ExposureData")
+    description = models.TextField()
+    occupants = models.IntegerField()
+
+    class Meta:  # pylint: disable=C0111,W0232
+        db_table = 'oqmif\".\"occupancy'
 
 
 class ExposureData(models.Model):
@@ -1018,14 +1142,49 @@ class ExposureData(models.Model):
     Per-asset risk exposure data
     '''
 
+    REXD = namedtuple(
+        "REXD", "cost, cost_type, area, area_type, number_of_units")
+
     exposure_model = models.ForeignKey("ExposureModel")
     asset_ref = models.TextField()
-    value = models.FloatField()
     taxonomy = models.TextField()
-    structure_type = models.TextField(null=True)
-    retrofitting_cost = models.FloatField(null=True)
-    last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     site = models.PointField(srid=4326)
+    # Override the default manager with a GeoManager instance in order to
+    # enable spatial queries.
+    objects = models.GeoManager()
+
+    stco = models.FloatField(null=True, help_text="structural cost")
+    reco = models.FloatField(null=True, help_text="retrofitting cost")
+    coco = models.FloatField(null=True, help_text="contents cost")
+
+    number_of_units = models.FloatField(
+        null=True, help_text="number of assets, people etc.")
+    area = models.FloatField(null=True)
+
+    ins_limit = models.FloatField(
+        null=True, help_text="insurance coverage limit")
+    deductible = models.FloatField(
+        null=True, help_text="insurance deductible")
+
+    last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+
+    @property
+    def value(self):
+        """The structural per-asset value."""
+        exd = self.REXD(
+            cost=self.stco, cost_type=self.exposure_model.stco_type,
+            area=self.area, area_type=self.exposure_model.area_type,
+            number_of_units=self.number_of_units)
+        return per_asset_value(exd)
+
+    @property
+    def retrofitting_cost(self):
+        """The retrofitting per-asset value."""
+        exd = self.REXD(
+            cost=self.reco, cost_type=self.exposure_model.reco_type,
+            area=self.area, area_type=self.exposure_model.area_type,
+            number_of_units=self.number_of_units)
+        return per_asset_value(exd)
 
     class Meta:  # pylint: disable=C0111,W0232
         db_table = 'oqmif\".\"exposure_data'
@@ -1040,6 +1199,7 @@ class VulnerabilityModel(models.Model):
     '''
 
     owner = models.ForeignKey("OqUser")
+    input = models.ForeignKey("Input")
     name = models.TextField()
     description = models.TextField(null=True)
     imt = models.TextField(choices=OqJobProfile.IMT_CHOICES)

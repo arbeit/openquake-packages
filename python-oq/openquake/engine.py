@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 
 """The 'Engine' is responsible for instantiating calculators and running jobs.
@@ -32,6 +31,7 @@ from django.db import close_connection
 from django.db import transaction
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
+from django.core.exceptions import ObjectDoesNotExist
 
 from openquake.calculators.hazard import CALCULATORS as HAZ_CALCS
 from openquake.calculators.risk import CALCULATORS as RISK_CALCS
@@ -43,7 +43,6 @@ from openquake.db.models import InputSet
 from openquake.db.models import OqCalculation
 from openquake.db.models import OqJobProfile
 from openquake.db.models import OqUser
-from openquake.flags import FLAGS
 from openquake import kvs
 from openquake import logs
 from openquake import shapes
@@ -68,7 +67,7 @@ RE_INCLUDE = re.compile(r'^(.*)_INCLUDE')
 # pylint: disable=R0902
 class CalculationProxy(object):
     """Contains everything a calculator needs to run a calculation. This
-    includes: an :class:`OqJobProfile` object, an :class:`OqCalclation`, and a
+    includes: an :class:`OqJobProfile` object, an :class:`OqCalculation`, and a
     dictionary of all of the calculation config params (which is a basically a
     duplication of the :class:`OqJobProfile` member; in the future we would
     like to remove this duplication).
@@ -81,7 +80,7 @@ class CalculationProxy(object):
     # pylint: disable=R0913
     def __init__(self, params, calculation_id, sections=list(), base_path=None,
                  serialize_results_to=list(), oq_job_profile=None,
-                 oq_calculation=None):
+                 oq_calculation=None, log_level='warn'):
         """
         :param dict params: Dict of job config params.
         :param int calculation_id:
@@ -96,6 +95,10 @@ class CalculationProxy(object):
             :class:`openquake.db.models.OqCalculation` instance; database
             representation of the runtime thing we refer to as the
             'calculation'.
+        :param str log_level:
+            One of 'debug', 'info', 'warn', 'error', 'critical'.
+
+            Defaults to 'warn'.
         """
         self._calculation_id = calculation_id
         mark_job_as_current(calculation_id)  # enables KVS gc
@@ -110,6 +113,14 @@ class CalculationProxy(object):
 
         self.oq_job_profile = oq_job_profile
         self.oq_calculation = oq_calculation
+        self.params['debug'] = log_level
+        self._log_level = log_level
+
+    @property
+    def log_level(self):
+        """The log level for this calculation. (One of 'debug', 'info', 'warn',
+        'error', 'critical'."""
+        return self._log_level
 
     @property
     def base_path(self):
@@ -130,7 +141,8 @@ class CalculationProxy(object):
         calculation = OqCalculation.objects.get(id=job_id)
         job_profile = calculation.oq_job_profile
         job = CalculationProxy(params, job_id, oq_job_profile=job_profile,
-                               oq_calculation=calculation)
+                               oq_calculation=calculation,
+                               log_level=params['debug'])
         return job
 
     @staticmethod
@@ -216,7 +228,7 @@ class CalculationProxy(object):
         self._slurp_files()
         key = kvs.tokens.generate_job_key(self.job_id)
         data = self.params.copy()
-        data['debug'] = FLAGS.debug
+        data['debug'] = self.log_level
         kvs.set_value_json_encoded(key, data)
 
     def sites_to_compute(self):
@@ -335,13 +347,13 @@ def read_sites_from_exposure(calc_proxy):
     path = os.path.join(calc_proxy.base_path,
                         calc_proxy.params[jobconf.EXPOSURE])
 
-    reader = exposure.ExposurePortfolioFile(path)
+    reader = exposure.ExposureModelFile(path)
     constraint = calc_proxy.region
 
     logs.LOG.debug(
         "Constraining exposure parsing to %s" % constraint)
 
-    for site, _asset_data in reader.filter(constraint):
+    for site, _, _ in reader.filter(constraint):
 
         # we don't want duplicates (bug 812395):
         if not site in sites:
@@ -378,7 +390,7 @@ def _job_from_file(config_file, output_type, owner_username='openquake'):
 
     params, sections = _parse_config_file(config_file)
     params, sections = _prepare_config_parameters(params, sections)
-    job_profile = _prepare_job(params, sections)
+    job_profile = _prepare_job(params, sections, owner_username)
 
     validator = jobconf.default_validators(sections, params)
     is_valid, errors = validator.is_valid()
@@ -406,7 +418,9 @@ def _job_from_file(config_file, output_type, owner_username='openquake'):
 
     job = CalculationProxy(params, calculation_id, sections=sections,
                            base_path=base_path,
-                           serialize_results_to=serialize_results_to)
+                           serialize_results_to=serialize_results_to,
+                           oq_calculation=calculation,
+                           oq_job_profile=job_profile)
     job.to_kvs()
 
     return job
@@ -523,7 +537,7 @@ def _insert_input_files(params, input_set):
 
 
 @transaction.commit_on_success(using='job_init')
-def _prepare_job(params, sections, owner_username='openquake'):
+def _prepare_job(params, sections, owner_username):
     """
     Create a new OqCalculation and fill in the related OqJobProfile entry.
 
@@ -533,6 +547,8 @@ def _prepare_job(params, sections, owner_username='openquake'):
         The job config params.
     :params sections:
         The job config file sections, as a list of strings.
+    :params owner_username:
+        The username of the user who will own the returned job profile.
 
     :returns:
         A new :class:`openquake.db.models.OqJobProfile` object.
@@ -553,7 +569,17 @@ def _prepare_job(params, sections, owner_username='openquake'):
         return job_profile
 
     # TODO specify the owner as a command line parameter
-    owner = OqUser.objects.get(user_name=owner_username)
+    # See if the current user exists
+    # If not, create a record for them
+    try:
+        owner = OqUser.objects.get(user_name=owner_username)
+    except ObjectDoesNotExist:
+        # This user doesn't exist; let's fix that.
+        # NOTE: The Organization is currently hardcoded to 1.
+        # This org is added when the database is bootstrapped.
+        owner = OqUser(user_name=owner_username, full_name=owner_username,
+                       organization_id=1)
+        owner.save()
 
     input_set = InputSet(upload=None, owner=owner)
     input_set.save()
@@ -633,7 +659,8 @@ def _store_input_parameters(params, calc_mode, job_profile):
         job_profile.damping = None
 
 
-def run_calculation(job_profile, params, sections, output_type='db'):
+def run_calculation(job_profile, params, sections, output_type='db',
+                    log_level='warn'):
     """Given an :class:`openquake.db.models.OqJobProfile` object, create a new
     :class:`openquake.db.models.OqCalculation` object and run the calculation.
 
@@ -652,7 +679,10 @@ def run_calculation(job_profile, params, sections, output_type='db'):
         A list of sections parsed from the calculation config file.
     :param output_type:
         'db' or 'xml' (defaults to 'db')
+    :param str log_level:
+        One of 'debug', 'info', 'warn', 'error', or 'critical'.
 
+        Defaults to 'warn'.
     :returns:
         :class:`openquake.db.models.OqCalculation` instance.
     """
@@ -661,6 +691,7 @@ def run_calculation(job_profile, params, sections, output_type='db'):
 
     calculation = OqCalculation(owner=job_profile.owner)
     calculation.oq_job_profile = job_profile
+    calculation.description = job_profile.description
     calculation.status = 'running'
     calculation.save()
 
@@ -680,7 +711,8 @@ def run_calculation(job_profile, params, sections, output_type='db'):
     calc_proxy = CalculationProxy(params, calculation.id, sections=sections,
                                   serialize_results_to=serialize_results_to,
                                   oq_job_profile=job_profile,
-                                  oq_calculation=calculation)
+                                  oq_calculation=calculation,
+                                  log_level=log_level)
 
     # closing all db connections to make sure they're not shared between
     # supervisor and job executor processes. otherwise if one of them closes
@@ -691,7 +723,7 @@ def run_calculation(job_profile, params, sections, output_type='db'):
     if not calc_pid:
         # calculation executor process
         try:
-            logs.init_logs_amqp_send(level=FLAGS.debug, job_id=calculation.id)
+            logs.init_logs_amqp_send(level=log_level, job_id=calculation.id)
             _launch_calculation(calc_proxy, sections)
         except Exception, ex:
             logs.LOG.critical("Calculation failed with exception: '%s'"
@@ -707,6 +739,7 @@ def run_calculation(job_profile, params, sections, output_type='db'):
     supervisor_pid = os.fork()
     if not supervisor_pid:
         # supervisor process
+        logs.set_logger_level(logs.logging.root, log_level)
         supervisor_pid = os.getpid()
         calculation.supervisor_pid = supervisor_pid
         calculation.job_pid = calc_pid
@@ -735,11 +768,15 @@ def _launch_calculation(calc_proxy, sections):
         List of config file sections. Example::
             ['general', 'HAZARD', 'RISK']
     """
-    # This should be moved to the analyze() method of the base Calculator
-    # class, or something like that.
+    # TODO(LB):
+    # In the future, this should be moved to the initialize() method of the
+    # base Calculator class, or something like that. For now, we don't want it
+    # there because it would get called twice in a Hazard+Risk calculation.
+    # This is going to need some thought.
     # Ignoring 'Access to a protected member'
     # pylint: disable=W0212
     calc_proxy._record_initial_stats()
+
     calc_proxy.to_kvs()
 
     output_dir = os.path.join(calc_proxy.base_path, calc_proxy['OUTPUT_DIR'])
@@ -757,16 +794,22 @@ def _launch_calculation(calc_proxy, sections):
         calculator = calc_class(calc_proxy)
         logs.LOG.debug("Launching calculation with id=%s and type='%s'"
                        % (calc_proxy.job_id, job_type))
+
+        calculator.initialize()
+        calculator.pre_execute()
         calculator.execute()
+        calculator.post_execute()
 
 
-def import_job_profile(path_to_cfg):
+def import_job_profile(path_to_cfg, user_name='openquake'):
     """Given the path to a job config file, create a new
     :class:`openquake.db.models.OqJobProfile` and save it to the DB, and return
     it.
 
     :param str path_to_cfg:
         Path to a job config file.
+    :param user_name:
+        The user performing this action.
 
     :returns:
         A tuple of :class:`openquake.db.models.OqJobProfile` instance,
@@ -784,5 +827,5 @@ def import_job_profile(path_to_cfg):
     if not is_valid:
         raise jobconf.ValidationException(errors)
 
-    job_profile = _prepare_job(params, sections)
+    job_profile = _prepare_job(params, sections, user_name)
     return job_profile, params, sections

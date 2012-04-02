@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright (c) 2010-2011, GEM Foundation.
+# Copyright (c) 2010-2012, GEM Foundation.
 #
-# OpenQuake is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3
-# only, as published by the Free Software Foundation.
+# OpenQuake is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License version 3 for more details
-# (a copy is included in the LICENSE file that accompanied this code).
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
-# version 3 along with OpenQuake.  If not, see
-# <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
+# You should have received a copy of the GNU Affero General Public License
+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
 """
 NRML serialization of risk-related data sets.
@@ -28,14 +27,17 @@ from collections import defaultdict
 
 from lxml import etree
 
-from openquake.db import models
-
 from openquake import shapes
 from openquake import writer
 from openquake import xml
-
+from openquake.db import models
 from openquake.output import nrml
-from openquake.xml import NRML_NS, GML_NS
+from openquake.xml import GML
+from openquake.xml import GML_NS
+from openquake.xml import NRML
+from openquake.xml import NRML_NS
+from openquake.xml import NSMAP
+
 
 NAMESPACES = {'gml': GML_NS, 'nrml': NRML_NS}
 
@@ -466,22 +468,17 @@ class LossMapDBWriter(writer.DBWriter):
         """
         for loss, asset in values:
 
-            kwargs = {
-                'loss_map_id': self.metadata.id,
-                'asset_ref': asset['assetID'],
-                'location': "POINT(%s %s)" % (site.longitude, site.latitude),
-            }
-
+            kwargs = dict(
+                loss_map_id=self.metadata.id, location=site.point.to_wkt())
             if self.metadata.scenario:
-                kwargs.update({
-                    'value': float(loss.get('mean_loss')),
-                    'std_dev': float(loss.get('stddev_loss')),
-                })
+                kwargs['asset_ref'] = asset['assetID']
+                kwargs['value'] = float(loss.get('mean_loss'))
+                kwargs['std_dev'] = float(loss.get('stddev_loss'))
+
             else:
-                kwargs.update({
-                    'value': float(loss.get('value')),
-                    'std_dev': 0.0,
-                })
+                kwargs['asset_ref'] = asset.asset_ref
+                kwargs['value'] = float(loss.get('value'))
+                kwargs['std_dev'] = 0.0
 
             self.bulk_inserter.add_entry(**kwargs)
 
@@ -555,25 +552,16 @@ class BaseCurveXMLWriter(nrml.TreeNRMLWriter):
 
         self.result_el = None
 
-    def write(self, point, values):
-        if isinstance(point, shapes.GridPoint):
-            point = point.site
-        asset_object = values[1]
+    def write(self, point, _values):
         if self.root_node is None:
             # nrml:nrml, needs gml:id
             self._create_root_element()
 
-            if 'nrml_id' in asset_object:
-                nrml.set_gml_id(self.root_node, str(asset_object['nrml_id']))
-            else:
-                nrml.set_gml_id(self.root_node, nrml.NRML_DEFAULT_ID)
+            nrml.set_gml_id(self.root_node, nrml.NRML_DEFAULT_ID)
 
             # nrml:riskResult, needs gml:id
             result_el = etree.SubElement(self.root_node, xml.RISK_RESULT_TAG)
-            if 'riskres_id' in asset_object:
-                nrml.set_gml_id(result_el, str(asset_object['riskres_id']))
-            else:
-                nrml.set_gml_id(result_el, nrml.RISKRESULT_DEFAULT_ID)
+            nrml.set_gml_id(result_el, nrml.RISKRESULT_DEFAULT_ID)
 
             etree.SubElement(result_el, xml.NRML_CONFIG_TAG)
 
@@ -608,44 +596,35 @@ class CurveXMLWriter(BaseCurveXMLWriter):
         :type point: :py:class:`openquake.shapes.Site`,
                      :py:class:`openquake.shapes.GridPoint`
 
-        :param values: is a pair of (loss map values, asset_object)
+        :param values: is a pair of (loss map values, asset)
         :type values: with the following members
             :py:class:`openquake.shapes.Curve`
 
-            :py:class:`dict` (asset_object)
-                ***assetID*** - the assetID
-                ***endBranchLabel*** - endBranchLabel
-                ***riskres_id*** - for example, 'rr'
-                ***list_id*** - 'list'
+            :py:class:`openquake.db.models.ExposureData``
         """
         super(CurveXMLWriter, self).write(point, values)
 
         if isinstance(point, shapes.GridPoint):
             point = point.site
 
-        (curve_object, asset_object) = values
+        (curve_object, asset) = values
 
         # container element, needs gml:id
         if self.curve_list_el is None:
             self.curve_list_el = etree.SubElement(self.result_el,
-                self.container_tag)
+                                                  self.container_tag)
 
-        if 'list_id' in asset_object:
-            nrml.set_gml_id(self.curve_list_el, str(
-                asset_object['list_id']))
-        else:
-            nrml.set_gml_id(self.curve_list_el, self.CONTAINER_DEFAULT_ID)
+        nrml.set_gml_id(self.curve_list_el, self.CONTAINER_DEFAULT_ID)
 
-        asset_id = str(asset_object['assetID'])
         try:
-            asset_el = self.assets_per_id[asset_id]
+            asset_el = self.assets_per_id[asset.asset_ref]
         except KeyError:
 
             # nrml:asset, needs gml:id
             asset_el = etree.SubElement(self.curve_list_el,
                 xml.RISK_ASSET_TAG)
-            nrml.set_gml_id(asset_el, asset_id)
-            self.assets_per_id[asset_id] = asset_el
+            nrml.set_gml_id(asset_el, asset.asset_ref)
+            self.assets_per_id[asset.asset_ref] = asset_el
 
         # check if nrml:site is already existing
         site_el = asset_el.find(xml.RISK_SITE_TAG)
@@ -660,7 +639,7 @@ class CurveXMLWriter(BaseCurveXMLWriter):
 
         elif not xml.element_equal_to_site(site_el, point):
             error_msg = "asset %s cannot have two differing sites: %s, %s " \
-                % (asset_id, xml.lon_lat_from_site(site_el), point)
+                % (asset.asset_ref, xml.lon_lat_from_site(site_el), point)
             raise ValueError(error_msg)
 
         # loss/loss ratio curves - sub-element already created?
@@ -669,11 +648,6 @@ class CurveXMLWriter(BaseCurveXMLWriter):
             curves_el = etree.SubElement(asset_el, self.curves_tag)
 
         curve_el = etree.SubElement(curves_el, self.curve_tag)
-
-        # attribute for endBranchLabel (optional)
-        if 'endBranchLabel' in asset_object:
-            curve_el.set(xml.RISK_END_BRANCH_ATTR_NAME,
-                str(asset_object[xml.RISK_END_BRANCH_ATTR_NAME]))
 
         abscissa_el = etree.SubElement(curve_el, self.abscissa_tag)
         abscissa_el.text = _curve_vals_as_gmldoublelist(curve_object)
@@ -726,11 +700,11 @@ class LossCurveDBReader(object):
         for datum in loss_curve_data:
             curve = shapes.Curve(zip(datum.losses, datum.poes))
 
-            asset_object = asset.copy()
-            asset_object['assetID'] = datum.asset_ref
+            asset = asset.copy()
+            asset['assetID'] = datum.asset_ref
 
             loc = datum.location
-            curves.append((shapes.Site(loc.x, loc.y), (curve, asset_object)))
+            curves.append((shapes.Site(loc.x, loc.y), (curve, asset)))
 
         return curves
 
@@ -774,7 +748,7 @@ class LossCurveDBWriter(writer.DBWriter):
                     calculated
         :type key: :py:class:`openquake.shapes.Site`
 
-        :param values: a tuple (curve, asset_object). See
+        :param values: a tuple (curve, asset). See
         :py:meth:`insert_asset_loss_curve` for more details.
         """
         point = key
@@ -782,16 +756,16 @@ class LossCurveDBWriter(writer.DBWriter):
         if isinstance(point, shapes.GridPoint):
             point = point.site
 
-        curve, asset_object = values
+        curve, asset = values
 
-        self.insert_asset_loss_curve(asset_object, point, curve)
+        self.insert_asset_loss_curve(asset, point, curve)
 
-    def insert_asset_loss_curve(self, asset_object, point, curve):
+    def insert_asset_loss_curve(self, asset, point, curve):
         """
         Store into the database the loss curve of a given asset.
 
-        :param asset_object: the asset for which the loss curve is being stored
-        :type asset_object: :py:class:`dict`
+        :param asset: the asset for which the loss curve is being stored
+        :type asset: :py:class:`openquake.db.models.ExposureData`
 
         :param point: the location of the asset
         :type point: :py:class:`openquake.shapes.Site`
@@ -799,26 +773,24 @@ class LossCurveDBWriter(writer.DBWriter):
         :param curve: the loss curve
         :type curve: :py:class:`openquake.shapes.Curve`
 
-        The asset_object contains at least this items:
-            * **assetID** - the assetID
-            * **assetValueUnit** - the unit of the value (e.g. EUR)
+        The asset contains at least this items:
+            * **asset_ref** - the assetID
+            * **exposure_model.stco_unit** - the unit of the value (e.g. EUR)
 
         """
 
         if self.curve is None:
             self.curve = models.LossCurve(output=self.output,
-                unit=asset_object.get('assetValueUnit'),
-                # The following attributes (endBranchLabel, lossCategory) are
-                # currently not passed in by the calculators
-                end_branch_label=asset_object.get('endBranchLabel'),
-                category=asset_object.get('lossCategory'))
+                unit=asset.exposure_model.stco_unit,
+                end_branch_label=None,
+                category=asset.exposure_model.category)
             self.curve.save()
 
-        # Note: asset_object has lon and lat attributes that appear to contain
+        # Note: asset has lon and lat attributes that appear to contain
         # the same coordinates as point
         self.bulk_inserter.add_entry(
             loss_curve_id=self.curve.id,
-            asset_ref=asset_object['assetID'],
+            asset_ref=asset.asset_ref,
             location="POINT(%s %s)" % (point.longitude, point.latitude),
             losses=[float(x) for x in curve.abscissae],
             poes=[float(y) for y in curve.ordinates])
@@ -883,3 +855,40 @@ def create_loss_curve_writer(job_id, serialize_to, nrml_path, curve_mode):
         writers.append(writer_class(nrml_path))
 
     return writer.compose_writers(writers)
+
+
+class AggregateLossCurveXMLWriter(object):
+    """Writes an aggregate loss curve to NRML XML."""
+
+    def __init__(self, path):
+        """
+        :param path:
+            Full path to the resulting XML file (including file name).
+        """
+        self.path = path
+
+    def serialize(self, loss_values, poe_values):
+        """Write aggregate loss curve values to XML.
+
+        :param loss_values:
+            An iterable of loss values (`float` types).
+        :param poe_values:
+            An iterable of Probability of Exceedance (PoE) values (`float`
+            types).
+        """
+        with open(self.path, 'w') as fh:
+
+            root = etree.Element('%snrml' % NRML, nsmap=NSMAP)
+            root.set('%sid' % GML, 'n1')
+            risk_result = etree.SubElement(root, 'riskResult')
+            risk_result.set('%sid' % GML, 'rr1')
+            agg_lc = etree.SubElement(risk_result, 'aggregateLossCurve')
+            agg_lc.set('%sid' % GML, 'alc1')
+            loss = etree.SubElement(agg_lc, 'loss')
+            loss.text = ' '.join([str(x) for x in loss_values])
+            poes = etree.SubElement(agg_lc, 'poE')
+            poes.text = ' '.join([str(x) for x in poe_values])
+
+            fh.write(etree.tostring(
+                root, pretty_print=True, xml_declaration=True,
+                encoding='UTF-8'))
