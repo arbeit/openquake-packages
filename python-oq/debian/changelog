@@ -1,3 +1,9 @@
+python-oq (0.6.1-1) oneiric; urgency=low
+
+  * OpenQuake 0.6.1 upstream release (LP: #971541)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 03 Apr 2012 08:52:39 +0200
+
 python-oq (0.6.0-14) oneiric; urgency=low
 
   * Improved version string, post-installtion actions
