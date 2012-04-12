@@ -96,9 +96,10 @@ if [ -f /usr/lib/postgresql/9.1/bin/postgres ]; then
 
     /etc/init.d/postgresql restart
 
+    pgport=`cat /etc/postgresql/9.1/main/postgresql.conf | perl -wane ' if ($_ =~ /^\s*port\s*=/) { s/^\s*port\s*=\s*(\d+).*$/$1/; print $_; }'`
     LOGFILE=/var/tmp/openquake-db-installation
     rm -f $LOGFILE
-    su -c "/usr/bin/oq_create_db --yes --db-name=openquake --schema-path=$IDIR/db/schema > $LOGFILE 2>&1" postgres
+    su -c "/usr/bin/oq_create_db --yes --db-name=openquake --db-port=$pgport --schema-path=$IDIR/db/schema > $LOGFILE 2>&1" postgres
     for dbu in oq_admin oq_job_init oq_job_superv oq_reslt_writer
     do
         su -c "psql -c \"ALTER ROLE $dbu WITH PASSWORD 'openquake'\" >> $LOGFILE 2>&1" postgres
