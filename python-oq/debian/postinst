@@ -94,7 +94,7 @@ if [ -f /usr/lib/postgresql/9.1/bin/postgres ]; then
         kill -9 $pid
     done
 
-    /etc/init.d/postgresql restart
+    /etc/init.d/postgresql restart 9.1
 
     pgport=`cat /etc/postgresql/9.1/main/postgresql.conf | perl -wane ' if ($_ =~ /^\s*port\s*=/) { s/^\s*port\s*=\s*(\d+).*$/$1/; print $_; }'`
     LOGFILE=/var/tmp/openquake-db-installation
@@ -102,7 +102,7 @@ if [ -f /usr/lib/postgresql/9.1/bin/postgres ]; then
     su -c "/usr/bin/oq_create_db --yes --db-name=openquake --db-port=$pgport --schema-path=$IDIR/db/schema > $LOGFILE 2>&1" postgres
     for dbu in oq_admin oq_job_init oq_job_superv oq_reslt_writer
     do
-        su -c "psql -c \"ALTER ROLE $dbu WITH PASSWORD 'openquake'\" >> $LOGFILE 2>&1" postgres
+        su -c "psql -p $pgport -c \"ALTER ROLE $dbu WITH PASSWORD 'openquake'\" >> $LOGFILE 2>&1" postgres
     done
     chmod 644 $LOGFILE
 
@@ -113,7 +113,7 @@ if [ -f /usr/lib/postgresql/9.1/bin/postgres ]; then
         echo "    https://bugs.launchpad.net/openquake/+filebug"
         echo "and attach this file to it:"
         echo "    $LOGFILE"
-        su -c "psql -c \"DROP DATABASE openquake\" >/dev/null 2>&1" postgres
+        su -c "psql -$pgport c \"DROP DATABASE openquake\" >/dev/null 2>&1" postgres
         exit 1
     fi
 
@@ -132,7 +132,7 @@ if [ -f /usr/lib/postgresql/9.1/bin/postgres ]; then
             echo "local   openquake   $dbu                   md5" >> $PG_ROOT/pg_hba.conf
         done
         cat $PG_ROOT/pg_hba.conf.orig | grep -v 'local..*oq_' >> $PG_ROOT/pg_hba.conf
-        /etc/init.d/postgresql reload
+        /etc/init.d/postgresql reload 9.1
     else
         echo ""
         echo "============================================================"
