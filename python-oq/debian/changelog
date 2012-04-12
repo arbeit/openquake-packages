@@ -1,3 +1,9 @@
+python-oq (0.6.1-2) oneiric; urgency=low
+
+  * Fix oq_restart_workers script so it uses the correct db table (oq_job)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 04 Apr 2012 11:29:36 +0200
+
 python-oq (0.6.1-1) oneiric; urgency=low
 
   * OpenQuake 0.6.1 upstream release (LP: #971541)
