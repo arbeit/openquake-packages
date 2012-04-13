@@ -8,7 +8,21 @@
      --db-user=user      Run all commands as this database user [postgres].
      --no-tab-spaces     Don't check/create table spaces and their paths
      --schema-path=path  Absolute path to directory with the schema files.
-@@ -42,6 +43,7 @@
+@@ -24,13 +25,6 @@
+     help
+ fi
+ 
+-if [ "$(id -u)" != "0" ]; then
+-    echo ""
+-    echo "!! This script should be run as root." 1>&2
+-    echo "!! Press <enter> to continue, or <ctrl>-C to abort"
+-    read
+-fi
+-
+ # Openquake version
+ oq_version="0.6.1"
+ 
+@@ -42,6 +36,7 @@
  # What table spaces should be created?
  tspace_list="admin eqcat hzrdi hzrdr oqmif riski riskr uiapi"
  
@@ -16,7 +30,7 @@
  schema_path=""
  db_name=""
  user_interaction="on"
-@@ -90,6 +92,9 @@
+@@ -89,6 +84,9 @@
      --db-name=*)
          db_name=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
          ;;
@@ -26,7 +40,7 @@
      --db-user=*)
          db_admin_user=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
          ;;
-@@ -135,13 +140,13 @@
+@@ -134,13 +132,13 @@
  
      # Drop database
      echo ".. Dropping database $db_name .."
@@ -42,7 +56,7 @@
          done
      fi
  else
-@@ -149,7 +154,7 @@
+@@ -148,7 +146,7 @@
  fi
  
  echo -n ".. Current table spaces: "
@@ -51,7 +65,7 @@
  
  if [ "$check_table_spaces" == "on" ]; then
      # Create table spaces if needed.
-@@ -170,12 +175,12 @@
+@@ -169,12 +167,12 @@
          fi
  
          # Create the actual table space.
@@ -68,7 +82,7 @@
              fi
          fi
      done
-@@ -191,52 +196,52 @@
+@@ -190,52 +188,52 @@
  
  # Create the OpenQuake database
  echo ".. Creating database $db_name .."
@@ -133,7 +147,7 @@
      fi
  done
  
-@@ -244,12 +249,12 @@
+@@ -243,12 +241,12 @@
  security_file="$schema_path/security.sql"
  if [ -r $security_file ]; then
      echo ".. Running security settings file: $security_file .."
