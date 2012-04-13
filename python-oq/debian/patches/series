@@ -1,3 +1,4 @@
+settings-py.patch
 create_oq_schema.patch
 oq-restart.patch
 config.patch

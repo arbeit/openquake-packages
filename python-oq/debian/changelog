@@ -1,3 +1,9 @@
+python-oq (0.6.1-6) oneiric; urgency=low
+
+  * Remove spurious 'oqmif' db user from settings.py (LP: #980769)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 13 Apr 2012 14:35:54 +0200
+
 python-oq (0.6.1-5) oneiric; urgency=low
 
   * Pass the postgres port to the 'createlang' command as well.
