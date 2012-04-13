@@ -10,9 +10,15 @@ python-oq (0.6.1-1) oneiric; urgency=low
 
  -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 03 Apr 2012 08:52:39 +0200
 
+python-oq (0.6.0-15) oneiric; urgency=low
+
+  * Support machines with multiple postgres versions (LP: #979881)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 12 Apr 2012 18:56:58 +0200
+
 python-oq (0.6.0-14) oneiric; urgency=low
 
-  * Improved version string, post-installtion actions
+  * Improved version string, post-installation actions
 
  -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 30 Mar 2012 17:21:40 +0200
 
