@@ -1,3 +1,9 @@
+python-oq (0.6.1-4) oneiric; urgency=low
+
+  * Fix psql invocation.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 13 Apr 2012 06:01:12 +0200
+
 python-oq (0.6.1-3) oneiric; urgency=low
 
   * Support machines with multiple postgres versions (LP: #979881)

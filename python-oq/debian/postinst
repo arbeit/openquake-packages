@@ -113,7 +113,7 @@ if [ -f /usr/lib/postgresql/9.1/bin/postgres ]; then
         echo "    https://bugs.launchpad.net/openquake/+filebug"
         echo "and attach this file to it:"
         echo "    $LOGFILE"
-        su -c "psql -$pgport c \"DROP DATABASE openquake\" >/dev/null 2>&1" postgres
+        su -c "psql -p $pgport c \"DROP DATABASE openquake\" >/dev/null 2>&1" postgres
         exit 1
     fi
 
