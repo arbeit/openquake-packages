@@ -1,3 +1,9 @@
+python-oq (0.6.1-7) oneiric; urgency=low
+
+  * delete obsolete .pyc files in /usr/openquake (LP: #984912)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 19 Apr 2012 10:28:45 +0200
+
 python-oq (0.6.1-6) oneiric; urgency=low
 
   * Remove spurious 'oqmif' db user from settings.py (LP: #980769)
