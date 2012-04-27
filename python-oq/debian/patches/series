@@ -1,8 +1,6 @@
+settings-py.patch
 create_oq_schema.patch
-serialize-gmf.patch
-mv-ltree-processing.patch
-licsense.patch
-celerconfig.patch
+oq-restart.patch
+config.patch
 oqpath.patch
 logsink-cfg.patch
-oqmif-db-user

@@ -12,7 +12,7 @@
  
 --- a/bin/openquake
 +++ b/bin/openquake
-@@ -63,9 +63,6 @@
+@@ -79,9 +79,6 @@
  except ImportError:
      sys.path.append('/usr/openquake')
  

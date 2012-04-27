@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name = "openquake",
-    version = "0.6.0",
+    version = "0.6.1",
     author = "The OpenQuake team",
     author_email = "info@openquake.org",
     description = ("Computes hazard, risk and socio-economic impact of "
@@ -16,7 +16,7 @@ setup(
     license = "AGPL3",
     keywords = "earthquake seismic hazard risk",
     url = "http://openquake.org/",
-    long_description=read('README'),
+    long_description=read('openquake/README'),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",

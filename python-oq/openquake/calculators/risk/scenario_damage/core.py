@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Copyright (c) 2010-2012, GEM Foundation.
 #
 # OpenQuake is free software: you can redistribute it and/or modify it
@@ -15,19 +13,27 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 
+# pylint: disable=W0232
+
 """
-Helper code to set up system path values properly (for bin/ scripts).
+This module performs risk calculations using the scenario
+damage assessment approach.
 """
 
-import os
-import sys
+from openquake import logs
+from openquake.calculators.risk import general
 
 
-def set_oq_path():
-    """
-    Adds the current directory to the system PATH so scripts can be run from
-    root source dir.
-    """
-    if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                  'openquake')):
-        sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+LOGGER = logs.LOG
+
+
+class ScenarioDamageRiskCalculator(general.BaseRiskCalculator):
+    """Scenario Damage method for performing risk calculations."""
+
+    def pre_execute(self):
+        pass
+
+    def execute(self):
+        """Entry point for triggering the computation."""
+
+        LOGGER.debug("Executing scenario damage risk computation [TODO]")
