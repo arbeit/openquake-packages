@@ -1,3 +1,9 @@
+python-oq (0.6.1-8) oneiric; urgency=low
+
+  * Re-apply fix for ERROR: role "oq_ged4gem" does not exist (LP: #968056)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 02 May 2012 10:23:40 +0200
+
 python-oq (0.6.1-7) oneiric; urgency=low
 
   * delete obsolete .pyc files in /usr/openquake (LP: #984912)
