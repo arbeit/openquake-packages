@@ -1,3 +1,9 @@
+python-oq (0.6.1-9) oneiric; urgency=low
+
+  * Fix db router config for the oqmif schema (LP: #993256)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 02 May 2012 15:23:40 +0200
+
 python-oq (0.6.1-8) oneiric; urgency=low
 
   * Re-apply fix for ERROR: role "oq_ged4gem" does not exist (LP: #968056)
