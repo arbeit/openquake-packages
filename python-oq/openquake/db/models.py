@@ -213,6 +213,9 @@ class OqUser(djm.Model):
     data_is_open = djm.BooleanField(default=True)
     last_update = djm.DateTimeField(editable=False, default=datetime.utcnow)
 
+    def __str__(self):
+        return "%s||%s" % (self.user_name, self.organization.id)
+
     class Meta:  # pylint: disable=C0111,W0232
         db_table = 'admin\".\"oq_user'
 
@@ -571,6 +574,7 @@ class Input(djm.Model):
         (u'lt_gmpe', u'GMPE Logic Tree'),
         (u'exposure', u'Exposure'),
         (u'vulnerability', u'Vulnerability'),
+        (u'fragility', u'Fragility'),
         (u'vulnerability_retrofitted', u'Vulnerability Retroffited'),
         (u'rupture', u'Rupture'),
     )
@@ -691,6 +695,7 @@ class OqJobProfile(djm.Model):
         (u'classical', u'Classical PSHA'),
         (u'event_based', u'Probabilistic Event-Based'),
         (u'scenario', u'Scenario'),
+        (u'scenario_damage', u'Scenario Damage'),
         (u'disaggregation', u'Disaggregation'),
         (u'uhs', u'UHS'),  # Uniform Hazard Spectra
         # Benefit-cost ratio calculator based on Classical PSHA risk calc
@@ -850,6 +855,7 @@ class OqJobProfile(djm.Model):
     depth_to_1pt_0km_per_sec = djm.FloatField(default=100.0)
     asset_life_expectancy = djm.FloatField(null=True)
     interest_rate = djm.FloatField(null=True)
+    epsilon_random_seed = djm.IntegerField(null=True)
 
     class Meta:  # pylint: disable=C0111,W0232
         db_table = 'uiapi\".\"oq_job_profile'
@@ -1398,6 +1404,11 @@ class FragilityModel(djm.Model):
     imls = FloatArrayField(null=True, help_text="Intensity measure levels")
     imt = djm.TextField(null=True, choices=OqJobProfile.IMT_CHOICES,
                            help_text="Intensity measure type")
+    iml_unit = djm.TextField(null=True, help_text="IML unit of measurement")
+    min_iml = djm.FloatField(
+        null=True, help_text="Minimum IML value, for continuous models only")
+    max_iml = djm.FloatField(
+        null=True, help_text="Maximum IML value, for continuous models only")
     last_update = djm.DateTimeField(editable=False, default=datetime.utcnow)
 
     class Meta:  # pylint: disable=C0111,W0232

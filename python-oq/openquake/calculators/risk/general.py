@@ -20,10 +20,12 @@
 # Silence 'Too many lines in module'
 # pylint: disable=C0302
 
-from collections import defaultdict
-from collections import OrderedDict
 import math
 import os
+import random
+
+from collections import defaultdict
+from collections import OrderedDict
 
 from celery.task import task
 
@@ -38,7 +40,6 @@ from numpy import where
 from numpy import zeros
 from scipy import sqrt, log
 from scipy import stats
-from scipy.stats import norm
 
 from openquake.calculators.base import Calculator
 from openquake.db import models
@@ -143,7 +144,6 @@ class BaseRiskCalculator(Calculator):
     def pre_execute(self):
         """Make sure the exposure and vulnerability data is in the database."""
         self.store_exposure_assets()
-        self.store_fragility_model()
         self.store_vulnerability_model()
         self.partition()
 
@@ -516,6 +516,11 @@ class EpsilonProvider(object):
         self.__dict__.update(params)
         self.samples = None
 
+        self.rnd = random.Random()
+        eps_rnd_seed = params.get("EPSILON_RANDOM_SEED")
+        if eps_rnd_seed is not None:
+            self.rnd.seed(int(eps_rnd_seed))
+
     def epsilon(self, asset):
         """Sample from the standard normal distribution for the given asset.
 
@@ -532,7 +537,7 @@ class EpsilonProvider(object):
         correlation = getattr(self, "ASSET_CORRELATION", None)
         if not correlation:
             # Sample per asset
-            return norm.rvs(loc=0, scale=1)
+            return self.rnd.normalvariate(0, 1)
         elif correlation != "perfect":
             raise ValueError('Invalid "ASSET_CORRELATION": %s' % correlation)
         else:
@@ -543,7 +548,7 @@ class EpsilonProvider(object):
                 samples = self.samples = dict()
 
             if asset.taxonomy not in samples:
-                samples[asset.taxonomy] = norm.rvs(loc=0, scale=1)
+                samples[asset.taxonomy] = self.rnd.normalvariate(0, 1)
             return samples[asset.taxonomy]
 
 
@@ -1173,3 +1178,22 @@ class AggregateLossCurve(object):
                 self.losses, loss_range), tses), time_span)
 
         return _generate_curve(loss_range, probs_of_exceedance)
+
+
+def load_gmvs_at(job_id, point):
+    """
+    From the KVS, load all the ground motion values for the given point. We
+    expect one ground motion value per realization of the job.
+    Since there can be tens of thousands of realizations, this could return a
+    large list.
+
+    Note(LB): In the future, we may want to refactor this (and the code which
+    uses the values) to use a generator instead.
+
+    :param point: :py:class:`openquake.shapes.GridPoint` object
+
+    :returns: List of ground motion values (as floats). Each value represents a
+                realization of the calculation for a single point.
+    """
+    gmfs_key = kvs.tokens.ground_motion_values_key(job_id, point)
+    return [float(x['mag']) for x in kvs.get_list_json_decoded(gmfs_key)]

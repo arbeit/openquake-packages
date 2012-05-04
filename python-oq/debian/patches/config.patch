@@ -20,7 +20,7 @@
  
  [amqp]
  host = localhost
-@@ -76,4 +76,4 @@
+@@ -73,4 +73,4 @@
  # This setting should only be enabled during development but be omitted/turned
  # off in production. It enables statistics counters for debugging purposes. At
  # least one Q/A test requires these.
