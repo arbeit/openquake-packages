@@ -1,3 +1,27 @@
+python-oq (0.7.0-4) precise; urgency=low
+
+  * fix typo in oq_restart script (LP: #994565)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 04 May 2012 15:01:54 +0200
+
+python-oq (0.7.0-3) precise; urgency=low
+
+  * Correct the version displayed by OpenQuake (on demand).
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 04 May 2012 08:20:18 +0200
+
+python-oq (0.7.0-2) oneiric; urgency=low
+
+  * Fix bug in the classical PSHA calculator (LP: #984055)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 02 May 2012 22:00:59 +0200
+
+python-oq (0.7.0-1) oneiric; urgency=low
+
+  * Upstream release, rev. 0.7.0
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 02 May 2012 21:34:03 +0200
+
 python-oq (0.6.1-9) oneiric; urgency=low
 
   * Fix db router config for the oqmif schema (LP: #993256)
