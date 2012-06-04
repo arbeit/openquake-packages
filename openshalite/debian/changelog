@@ -1,3 +1,10 @@
+openshalite (1.2-10) oneiric; urgency=low
+
+  * Added GMPE (Atkinson and Boore 2006) (LP: #1002352)
+  * Fix for CY_2008 GMPE SA param NullPointerException (LP: #984838)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 22 May 2012 10:15:49 +0200
+
 openshalite (1.2-9) oneiric; urgency=low
 
   * Campbell GMPE stddev bugfix (LP: #942484)

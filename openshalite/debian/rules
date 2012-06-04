@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 export JAVA_HOME=/usr/lib/jvm/default-java
-export CLASSPATH=/usr/share/java/commons-math.jar:/usr/share/java/dom4j.jar:/usr/share/java/commons-lang.jar
+export CLASSPATH=/usr/share/java/commons-math.jar:/usr/share/java/dom4j.jar:/usr/share/java/commons-lang.jar:/usr/share/java/commons-logging.jar
 
 build-arch: build
 build-indep: build
