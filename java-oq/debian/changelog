@@ -1,3 +1,10 @@
+java-oq (0.7.0-2) quantal; urgency=low
+
+  * increase the default timeout for java redis clients to a minute
+    (LP: #1015597)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 21 Jun 2012 14:28:17 +0200
+
 java-oq (0.7.0-1) oneiric; urgency=low
 
   * increase the default timeout for java redis clients to 10 seconds
