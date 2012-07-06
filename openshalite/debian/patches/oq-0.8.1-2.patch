@@ -1,0 +1,36 @@
+--- a/src/org/opensha/sha/imr/attenRelImpl/Campbell_2003_SHARE_AttenRel.java
++++ b/src/org/opensha/sha/imr/attenRelImpl/Campbell_2003_SHARE_AttenRel.java
+@@ -101,6 +101,7 @@
+ 		if (rRup > USER_MAX_DISTANCE) {
+ 			return VERY_SMALL_MEAN;
+ 		} else {
++			setPeriodIndex();
+ 			return getMean(iper, mag, rRup, rake);
+ 		}
+ 	}
+@@ -148,6 +149,7 @@
+ 	}
+ 
+ 	public double getStdDev(){
++		setPeriodIndex();
+ 	    return getStdDev(iper, mag, stdDevType);
+ 	}
+ 
+--- a/src/org/opensha/sha/imr/attenRelImpl/ToroEtAl_2002_SHARE_AttenRel.java
++++ b/src/org/opensha/sha/imr/attenRelImpl/ToroEtAl_2002_SHARE_AttenRel.java
+@@ -105,6 +105,7 @@
+ 		if (rJB > USER_MAX_DISTANCE) {
+ 			return VERY_SMALL_MEAN;
+ 		} else {
++			setPeriodIndex();
+ 			return getMean(iper, mag, rJB, rake);
+ 		}
+ 	}
+@@ -157,6 +158,7 @@
+ 	}
+ 
+ 	public double getStdDev() {
++		setPeriodIndex();
+ 		return getStdDev(iper, mag, rJB, stdDevType);
+ 	}
+ 
