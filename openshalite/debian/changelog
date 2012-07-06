@@ -1,3 +1,9 @@
+openshalite (1.2-11) precise; urgency=low
+
+  * Added SA periods as requested by SHARE project (LP: #1013076)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 14 Jun 2012 11:40:13 +0200
+
 openshalite (1.2-10) oneiric; urgency=low
 
   * Added GMPE (Atkinson and Boore 2006) (LP: #1002352)
