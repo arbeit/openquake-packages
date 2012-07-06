@@ -2,7 +2,7 @@ openshalite (1.2-12) oneiric; urgency=low
 
   * Toro campbell bug, fix Spectral Acceleration period (LP: #1021715)
 
- -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 06 Jul 2012 15:28:36 +0200
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 06 Jul 2012 15:34:55 +0200
 
 openshalite (1.2-11) precise; urgency=low
 
