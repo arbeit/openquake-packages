@@ -1,3 +1,10 @@
+openshalite (1.2-13) precise; urgency=low
+
+  * fixes bug in toro et al 2002 for periods equal to 3 and 4 s
+    (LP: #1023419)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 11 Jul 2012 16:21:52 +0200
+
 openshalite (1.2-12) oneiric; urgency=low
 
   * Toro campbell bug, fix Spectral Acceleration period (LP: #1021715)
