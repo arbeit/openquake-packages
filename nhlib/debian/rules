@@ -17,7 +17,7 @@ export DH_OPTIONS=-v
 	dh --with python2 --buildsystem=python_distutils $@ 
 
 override_dh_installdocs:
-	mkdir -p debian/python-nhlib/usr/share/doc/python-nhlib
+	mkdir -p debian/python-nhlib/usr/share/doc
 	cp -a doc debian/python-nhlib/usr/share/doc/python-nhlib
 	cd doc; PYTHONPATH=".." make html
 	cp -a doc/build/html debian/python-nhlib/usr/share/doc/python-nhlib
