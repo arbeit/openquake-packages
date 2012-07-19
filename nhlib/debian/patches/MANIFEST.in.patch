@@ -1,0 +1,8 @@
+--- a/MANIFEST.in
++++ b/MANIFEST.in
+@@ -1,5 +1,4 @@
+ include LICENSE README
+ recursive-include nhlib *.py
+-recursive-include tests *.py *.csv
+ include doc/Makefile doc/conf.py
+ recursive-include doc *.rst
