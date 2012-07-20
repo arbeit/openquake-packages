@@ -20,6 +20,7 @@
     <xs:include schemaLocation="./hazard/logic_tree.xsd"/>
     <xs:include schemaLocation="./hazard/raw_source_model.xsd"/>
     <xs:include schemaLocation="./hazard/rupture.xsd"/>
+    <xs:include schemaLocation="./hazard/site_model.xsd"/>
     <xs:include schemaLocation="./hazard/source_model.xsd"/>
     <xs:include schemaLocation="./hazard/uhs.xsd"/>
     <xs:include schemaLocation="./risk/agg_loss_curve.xsd"/>
@@ -31,6 +32,7 @@
     <xs:include schemaLocation="./risk/loss_curve.xsd"/>
     <xs:include schemaLocation="./risk/loss_map.xsd"/>
     <xs:include schemaLocation="./risk/vulnerability.xsd"/>
+    <xs:include schemaLocation="./risk/collapse_map.xsd"/>
 
     <xs:annotation>
         <xs:appinfo>
@@ -59,6 +61,8 @@
                         <xs:element ref="dmgDistPerAsset"/>
                         <xs:element ref="dmgDistPerTaxonomy"/>
                         <xs:element ref="totalDmgDist"/>
+                        <xs:element ref="collapseMap"/>
+                        <xs:element ref="siteModel"/>
                     </xs:choice>
                 </xs:sequence>
             </xs:extension>
