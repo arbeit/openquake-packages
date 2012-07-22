@@ -1,3 +1,9 @@
+python-oq (0.8.1-2) precise; urgency=low
+
+  * Fix for region discretization bug (LP: #1027041)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Sun, 22 Jul 2012 10:12:25 +0200
+
 python-oq (0.8.1-1) precise; urgency=low
 
   * new upstream release (LP: #1027030)
