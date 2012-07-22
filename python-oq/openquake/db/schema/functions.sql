@@ -2,17 +2,17 @@
   Functions used in the OpenQuake database.
 
   Copyright (c) 2010-2012, GEM Foundation.
- 
+
   OpenQuake is free software: you can redistribute it and/or modify it
   under the terms of the GNU Affero General Public License as published
   by the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
- 
+
   OpenQuake is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -254,6 +254,21 @@ AS $$
             raise Exception(fmt("%s (%s) and %s (%s) must both be either "
                                 "defined or undefined" %
                                 (a, NEW[a], b, NEW[b])))
+    def check_nor(keys):
+        """Raise exception if any one of the items is defined."""
+        defined = []
+        for key in keys:
+            if NEW[key] is not None:
+                defined.append(key)
+        if defined:
+            raise Exception(fmt("We are in counting mode: neither of these "
+                                "must be set %s" % defined))
+
+    if NEW["unit_type"] == "count":
+        check_xor("coco_unit", "coco_type")
+        check_nor(["area_unit", "area_type", "reco_unit", "reco_type",
+                   "stco_unit", "stco_type"])
+        return "OK"
 
     if NEW["area_type"] is None:
         violations = []
@@ -290,15 +305,36 @@ COMMENT ON FUNCTION pcheck_exposure_model() IS
 CREATE OR REPLACE FUNCTION pcheck_exposure_data()
   RETURNS TRIGGER
 AS $$
+    NEW = TD["new"] # new data resulting from insert or update
+
     def fmt(err):
         return "%s (%s)" % (err, TD["table_name"])
 
-    NEW = TD["new"] # new data resulting from insert or update
+    def check_nor(keys):
+        """Raise exception if any one of the items is defined."""
+        defined = []
+        for key in keys:
+            if NEW[key] is not None:
+                defined.append(key)
+        if defined:
+            raise Exception(fmt("We are in counting mode: neither of these "
+                                "must be set %s" % defined))
 
     # get the associated exposure model record
     q = ("SELECT * FROM oqmif.exposure_model WHERE id = %s" %
          NEW["exposure_model_id"])
     [emdl] = plpy.execute(q)
+
+    if emdl["unit_type"] == "count":
+        if NEW["number_of_units"] is not None:
+            check_nor(["area", "stco", "reco"])
+            if NEW["coco"] is None and emdl["coco_type"] is not None:
+                raise Exception(fmt("contents cost is mandatory for "
+                                    "<coco_type=%s>" % emdl["coco_type"]))
+            return "OK"
+        else:
+            raise Exception(fmt("number of units is mandatory for models "
+                                "with unit type <count>"))
 
     if NEW["stco"] is None and emdl["category"] != "population":
         raise Exception(fmt("structural cost is mandatory for category <%s>" %
@@ -343,6 +379,7 @@ $$ LANGUAGE plpythonu;
 
 COMMENT ON FUNCTION pcheck_exposure_data() IS
 'Make sure the inserted or modified exposure data is consistent.';
+
 
 -- Damage Distribution, Per Asset
 CREATE OR REPLACE FUNCTION riskr.pcheck_dmg_state_dmg_dist_per_asset_data()
@@ -455,6 +492,7 @@ AS $$
         raise Exception(fmt("no limit states supplied"))
 
     imls = NEW["imls"]
+    no_damage_limit = NEW["no_damage_limit"]
     imt = NEW["imt"]
     if NEW["format"] == "discrete":
         assert NEW.get("max_iml") is None, "Maximum IML not allowed for discrete fragility model"
@@ -462,9 +500,15 @@ AS $$
         assert imls and len(imls) > 0, "no IMLs for discrete fragility model"
         assert imt, "no IMT for discrete fragility model"
         assert imt in imts, "invalid IMT (%s)" % imt
+        if no_damage_limit is not None:
+            assert no_damage_limit < imls[0], "No Damage Limit must be less than IML values"
+            assert no_damage_limit >= 0, "No Damage Limit must be a positive value"
+        
     else:
         assert imls is None, "IMLs defined for continuous fragility model"
         assert not imt, "IMT defined for continuous fragility model"
+        assert no_damage_limit is None, ("No Damage Limit defined for "
+            "continuous fragility model")
 
     return "OK"
 $$ LANGUAGE plpythonu;
@@ -541,6 +585,44 @@ COMMENT ON FUNCTION pcheck_ffd() IS
 'Make sure the inserted discrete fragility function record is consistent.';
 
 
+CREATE OR REPLACE FUNCTION pcheck_oq_job_profile()
+  RETURNS TRIGGER
+AS $$
+    # By default we will merely consent to the insert/update operation.
+    result = "OK"
+
+    NEW = TD["new"] # new data resulting from insert or update
+
+    if NEW["calc_mode"] != "uhs":
+        imt = NEW["imt"]
+        assert imt in ("pga", "sa", "pgv", "pgd", "ia", "rsd", "mmi"), (
+            "Invalid intensity measure type: '%s'" % imt)
+
+        if imt == "sa":
+            assert NEW["period"] is not None, (
+                "Period must be set for intensity measure type 'sa'")
+        else:
+            assert NEW["period"] is None, (
+                "Period must not be set for intensity measure type '%s'" % imt)
+    else:
+        # This is a uhs job.
+        if NEW["imt"] != "sa" or NEW["period"] is not None:
+            # The trigger will return a modified row.
+            result = "MODIFY"
+
+        if NEW["imt"] != "sa":
+            NEW["imt"] = "sa"
+        if NEW["period"] is not None:
+            NEW["period"] = None
+
+    return result
+$$ LANGUAGE plpythonu;
+
+
+COMMENT ON FUNCTION pcheck_oq_job_profile() IS
+'Make sure the inserted/updated job profile record is consistent.';
+
+
 CREATE TRIGGER riskr_dmg_dist_total_data_before_insert_update_trig
 BEFORE INSERT OR UPDATE ON riskr.dmg_dist_total_data
 FOR EACH ROW EXECUTE PROCEDURE
@@ -567,11 +649,11 @@ CREATE TRIGGER hzrdi_complex_fault_before_insert_update_trig
 BEFORE INSERT OR UPDATE ON hzrdi.complex_fault
 FOR EACH ROW EXECUTE PROCEDURE check_only_one_mfd_set();
 
-CREATE TRIGGER oqmif_exposure_model_before_insert_update_trig
+CREATE TRIGGER oqmif_exposure_model_before_insert_trig
 BEFORE INSERT ON oqmif.exposure_model
 FOR EACH ROW EXECUTE PROCEDURE pcheck_exposure_model();
 
-CREATE TRIGGER oqmif_exposure_data_before_insert_update_trig
+CREATE TRIGGER oqmif_exposure_data_before_insert_trig
 BEFORE INSERT ON oqmif.exposure_data
 FOR EACH ROW EXECUTE PROCEDURE pcheck_exposure_data();
 
@@ -586,6 +668,10 @@ FOR EACH ROW EXECUTE PROCEDURE pcheck_ffc();
 CREATE TRIGGER riski_ffd_before_insert_update_trig
 BEFORE INSERT ON riski.ffd
 FOR EACH ROW EXECUTE PROCEDURE pcheck_ffd();
+
+CREATE TRIGGER uiapi_oq_job_profile_before_insert_update_trig
+BEFORE INSERT OR UPDATE ON uiapi.oq_job_profile
+FOR EACH ROW EXECUTE PROCEDURE pcheck_oq_job_profile();
 
 CREATE TRIGGER eqcat_magnitude_before_insert_update_trig
 BEFORE INSERT OR UPDATE ON eqcat.magnitude

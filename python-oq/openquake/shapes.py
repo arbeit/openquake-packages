@@ -24,13 +24,14 @@ import math
 import numpy
 
 from itertools import izip
-from numpy import zeros
 from numpy import empty
 from numpy import allclose
 from numpy import sin, cos, arctan2, sqrt, radians
 
 from shapely import geometry
 from scipy.interpolate import interp1d
+
+from nhlib import geo as nhlib_geo
 
 from openquake import java
 from openquake.utils import round_float
@@ -40,18 +41,14 @@ LOGGER = logs.LOG
 
 logs.set_logger_level(LOGGER, logs.LEVELS.get('debug'))
 
-LineString = geometry.LineString  # pylint: disable=C0103
-Point = geometry.Point            # pylint: disable=C0103
-
 
 class Region(object):
-    """A container of polygons, used for bounds checking"""
+    """A container of polygons, used for bounds checking."""
 
     def __init__(self, polygon):
         self._grid = None
-        # TODO(JMC): Make this a multipolygon instead?
-        self.polygon = polygon
         self.cell_size = 0.1
+        self.polygon = polygon
 
     @classmethod
     def from_coordinates(cls, coordinates):
@@ -67,9 +64,9 @@ class Region(object):
 
         # Constrain the precision for the coordinates:
         coordinates = [(round_float(pt[0]), round_float(pt[1]))
-                       for pt in coordinates]
-        polygon = geometry.Polygon(coordinates)
-        return cls(polygon)
+                for pt in coordinates]
+
+        return cls(geometry.Polygon(coordinates))
 
     @classmethod
     def from_simple(cls, top_left, bottom_right):
@@ -82,16 +79,14 @@ class Region(object):
 
         :returns: :py:class:`openquake.shapes.Region` instance
         """
-        points = [top_left,
-                  (top_left[0], bottom_right[1]),
-                  bottom_right,
-                  (bottom_right[0], top_left[1])]
+        points = [top_left, (top_left[0], bottom_right[1]),
+                bottom_right, (bottom_right[0], top_left[1])]
 
         return cls.from_coordinates(points)
 
     @property
     def bounds(self):
-        """Returns a bounding box containing the whole region"""
+        """Return a bounding box containing the whole region."""
         return self.polygon.bounds
 
     @property
@@ -140,32 +135,20 @@ class Region(object):
 
     @property
     def grid(self):
-        """Returns a proxy interface that maps lat/lon
+        """
+        Return a proxy interface that maps lat/lon
         to col/row based on a specific cellsize. Proxy is
-        also iterable."""
-        if not self._grid:
-            if not self.cell_size:
-                raise Exception(
-                    "Can't generate grid without cell_size being set")
-            self._grid = Grid(self, self.cell_size)
-        return self._grid
+        also iterable.
+        """
 
-    @property
-    def sites(self):
-        """ Returns a list of sites created from iterating over self """
-        sites = []
-
-        for site in self:
-            sites.append(site)
-
-        return sites
-
-    def __iter__(self):
         if not self.cell_size:
             raise Exception(
                 "Can't generate grid without cell_size being set")
-        for gridpoint in self.grid:
-            yield gridpoint.site
+
+        if not self._grid:
+            self._grid = Grid(self, self.cell_size)
+
+        return self._grid
 
 
 class RegionConstraint(Region):
@@ -218,123 +201,153 @@ class GridPoint(object):
         return self.__repr__()
 
 
-class BoundsException(Exception):
-    """Point is outside of region"""
-    pass
-
-
 class Grid(object):
-    """Grid is a proxy interface to Region, which translates
-    lat/lon to col/row"""
+    """
+    A proxy interface to Region.
+
+    It translates geographical points identified
+    by longitude and latitude to the corresponding grid points
+    according to the grid spacing given.
+    """
 
     def __init__(self, region, cell_size):
-        self.region = region
         self.cell_size = cell_size
-        self.lower_left_corner = self.region.lower_left_corner
+
+        # center of the lower left cell of this grid
+        self.llc = region.lower_left_corner
+
         self.columns = self._longitude_to_column(
-                    self.region.upper_right_corner.longitude) + 1
+                region.upper_right_corner.longitude) + 1
+
         self.rows = self._latitude_to_row(
-                    self.region.upper_right_corner.latitude) + 1
+                region.upper_right_corner.latitude) + 1
 
-    def check_site(self, site):
-        """Confirm that the site is contained by the region"""
-        check = False
+        self.polygon = self._build_polygon()
 
-        try:
-            check = self.check_point(site.point)
-        except BoundsException:
-            LOGGER.debug("Site %s %s isn't on region" %
-                         (site.longitude, site.latitude))
+    def _build_polygon(self):
+        """
+        Create the polygon underlying this grid.
+        """
 
-        return check
+        # since we are always considering the center of the
+        # cells, we must include half of the cell size
+        # to the borders
+        half_cell_size = self.cell_size / 2.0
 
-    def check_point(self, point):
-        """ Confirm that the point is within the polygon
-        underlying the gridded region"""
-        if (self.region.polygon.contains(point)):
+        min_lon = self.llc.longitude - half_cell_size
+        max_lon = (self.llc.longitude + (self.columns * self.cell_size)
+                + half_cell_size)
+
+        min_lat = self.llc.latitude - half_cell_size
+        max_lat = (self.llc.latitude + (self.rows * self.cell_size)
+                + half_cell_size)
+
+        coords = [(min_lon, max_lat), (max_lon, max_lat),
+                  (max_lon, min_lat), (min_lon, min_lat)]
+
+        return geometry.Polygon([(round_float(pt[0]),
+                round_float(pt[1])) for pt in coords])
+
+    def site_inside(self, site):
+        """
+        Confirm that the point is within the polygon
+        underlying the gridded region.
+        """
+
+        if self.polygon.contains(site.point):
             return True
-        if self.region.polygon.touches(point):
-            return True
-        raise BoundsException("Point is not on the Grid")
 
-    def check_gridpoint(self, gridpoint):
-        """Confirm that the point is contained by the region"""
-        point = Point(round_float(self._column_to_longitude(gridpoint.column)),
-                      round_float(self._row_to_latitude(gridpoint.row)))
-        return self.check_point(point)
+        if self.polygon.touches(site.point):
+            return True
+
+        return False
 
     def _latitude_to_row(self, latitude):
-        """Calculate row from latitude value"""
-        latitude_offset = math.fabs(latitude - self.lower_left_corner.latitude)
+        """
+        Return the corresponding grid row for the given
+        latitude, according to grid spacing.
+        """
+
+        latitude_offset = math.fabs(
+            latitude - self.llc.latitude)
+
         return int(round(latitude_offset / self.cell_size))
 
     def _row_to_latitude(self, row):
-        """Determine latitude from given grid row"""
-        return self.lower_left_corner.latitude + ((row) * self.cell_size)
+        """
+        Return the corresponding latitude for the given
+        grid row, according to grid spacing.
+        """
+
+        return self.llc.latitude + (row * self.cell_size)
 
     def _longitude_to_column(self, longitude):
-        """Calculate column from longitude value"""
-        longitude_offset = longitude - self.lower_left_corner.longitude
+        """
+        Return the corresponding grid column for the given
+        longitude, according to grid spacing.
+        """
+
+        longitude_offset = longitude - self.llc.longitude
         return int(round(longitude_offset / self.cell_size))
 
     def _column_to_longitude(self, column):
-        """Determine longitude from given grid column"""
-        return self.lower_left_corner.longitude + ((column) * self.cell_size)
+        """
+        Return the corresponding longitude for the given
+        grid column, according to grid spacing.
+        """
+
+        return self.llc.longitude + (column * self.cell_size)
+
+    def site_at(self, point):
+        """
+        Return the site corresponding to the center of the
+        cell identified by the given grid point.
+        """
+
+        return Site(self._column_to_longitude(point.column),
+                self._row_to_latitude(point.row))
 
     def point_at(self, site):
-        """Translates a site into a matrix bidimensional point."""
-        self.check_site(site)
+        """
+        Return the grid point where the given site falls in.
+        """
+
+        if not self.site_inside(site):
+            raise ValueError("Site <%s> is outside region." % site)
+
         row = self._latitude_to_row(site.latitude)
         column = self._longitude_to_column(site.longitude)
-        return GridPoint(self, column, row)
 
-    def site_at(self, gridpoint):
-        """Construct a site at the given grid point"""
-        return Site(self._column_to_longitude(gridpoint.column),
-                             self._row_to_latitude(gridpoint.row))
+        return GridPoint(self, column, row)
 
     def __iter__(self):
         for row in range(0, self.rows):
             for col in range(0, self.columns):
-                try:
-                    point = GridPoint(self, col, row)
-                    self.check_gridpoint(point)
-                    yield point
-                except BoundsException:
-                    LOGGER.debug(
-                            "Point (col %s row %s) at %s %s isn't on grid"
-                            % (col, row, point.site.longitude,
-                                point.site.latitude))
+                point = GridPoint(self, col, row)
+                yield point
+
+    def centers(self):
+        """
+        Return the set of sites defining the center of
+        the cells contained in this grid.
+        """
+
+        return [point.site for point in self]
 
 
-def c_mul(val_a, val_b):
-    """Ugly method of hashing string to integer
-    TODO(jmc): Get rid of points as dict keys!"""
-    return eval(hex((long(val_a) * val_b) & 0xFFFFFFFFL)[:-1])
-
-
-class Site(object):
+class Site(nhlib_geo.Point):
     """Site is a dictionary-keyable point"""
 
-    def __init__(self, longitude, latitude):
-        longitude = round_float(longitude)
-        latitude = round_float(latitude)
-        self.point = geometry.Point(longitude, latitude)
+    def __init__(self, longitude, latitude, depth=0.0):
+        nhlib_geo.Point.__init__(
+            self, round_float(longitude), round_float(latitude), depth=depth)
+
+        self.point = geometry.Point(self.longitude, self.latitude)
 
     @property
     def coords(self):
         """Return a tuple with the coordinates of this point"""
         return (self.longitude, self.latitude)
-
-    @property
-    def longitude(self):
-        """Point x value is longitude"""
-        return self.point.x
-
-    @property
-    def latitude(self):
-        """Point y value is latitude"""
-        return self.point.y
 
     def __eq__(self, other):
         """
@@ -343,8 +356,9 @@ class Site(object):
         :param other: another Site
         :type other: :py:class:`openquake.shapes.Site`
         """
-        return self.longitude == other.longitude \
-            and self.latitude == other.latitude
+        return (self.longitude == other.longitude
+                and self.latitude == other.latitude
+                and self.depth == other.depth)
 
     def __ne__(self, other):
         return not self == other
@@ -353,92 +367,24 @@ class Site(object):
         """Verbose wrapper around =="""
         return self == other
 
+    def hash(self):
+        """Needed e.g. for comparing dictionaries whose keys are sites."""
+        return self.__hash__()
+
     def __hash__(self):
         return hash(
-            hashlib.md5(repr((self.longitude, self.latitude))).hexdigest())
+            hashlib.md5(
+                repr((self.longitude, self.latitude, self.depth))).hexdigest())
 
     def to_java(self):
         """Converts to a Java Site object"""
         jpype = java.jvm()
         loc_class = jpype.JClass("org.opensha.commons.geo.Location")
         site_class = jpype.JClass("org.opensha.commons.data.Site")
-        # TODO(JMC): Support named sites?
         return site_class(loc_class(self.latitude, self.longitude))
 
     def __cmp__(self, other):
         return self.hash() == other.hash()
-
-    def __repr__(self):
-        return "Site(%s, %s)" % (self.longitude, self.latitude)
-
-    def __str__(self):
-        return self.__repr__()
-
-
-class Field(object):
-    """Uses a 2 dimensional numpy array to store a field of values."""
-
-    def __init__(self, field=None, rows=1, cols=1):
-        if field is not None:
-            self.field = field
-        else:
-            self.field = zeros((rows, cols))
-
-    def get(self, row, col):
-        """ Return the value at self.field[row][col]
-            :param row
-            :param col
-        """
-        try:
-            return self.field[row][col]
-        except IndexError:
-            print "Field with shape [%s] doesn't have value at [%s][%s]" % (
-                self.field.shape, row, col)
-
-    @classmethod
-    def from_json(cls, json_str, grid=None):
-        """Construct a field from a serialized version in
-        json format."""
-        assert grid
-        as_dict = json.JSONDecoder().decode(json_str)
-        return cls.from_dict(as_dict, grid=grid)
-
-    @classmethod
-    def from_dict(cls, values, transform=math.exp, grid=None):
-        """Construct a field from a dictionary.
-        """
-        assert grid
-        assert grid.cell_size
-        field = zeros((grid.rows, grid.columns))
-
-        for _key, field_site in values.items():
-            point = grid.point_at(
-                Site(field_site['lon'], field_site['lat']))
-            field[point.row][point.column] = transform(
-                    float(field_site['mag']))
-
-        return cls(field)
-
-
-class FieldSet(object):
-    """ An iterator for a set of fields """
-
-    def __init__(self, as_dict, grid):
-        assert grid
-        self.grid = grid
-        self.fields = as_dict.values()[0]  # NOTE: There's a junk wrapper
-
-    @classmethod
-    def from_json(cls, json_str, grid=None):
-        """ Construct a field set from a serialized version in json format """
-        assert grid
-        as_dict = json.JSONDecoder().decode(json_str)
-        return cls(as_dict, grid=grid)
-
-    def __iter__(self):
-        """Pop off the fields sequentially"""
-        for field in self.fields.values():
-            yield Field.from_dict(field, grid=self.grid)
 
 
 def range_clip(val, val_range):
@@ -645,7 +591,7 @@ class VulnerabilityFunction(object):
     as Y values.
     """
 
-    def __init__(self, imls, loss_ratios, covs):
+    def __init__(self, imls, loss_ratios, covs, distribution):
         """
         :param imls: Intensity Measure Levels for the vulnerability function.
             All values must be >= 0.0.
@@ -655,10 +601,14 @@ class VulnerabilityFunction(object):
         :type loss_ratios: list of floats, equal in length to imls
         :param covs: Coefficients of Variation. All values must be >= 0.0.
         :type covs: list of floats, equal in length to imls
+        :param distribution: The probabilistic distribution related to this
+            function.
+        :type distribution: string
         """
         self._imls = imls
         self._loss_ratios = loss_ratios
         self._covs = covs
+        self._distribution = distribution
 
         # Check for proper IML ordering:
         assert self._imls == sorted(set(self._imls)), \
@@ -690,7 +640,15 @@ class VulnerabilityFunction(object):
             return False
         return allclose(self.imls, other.imls) \
             and allclose(self.loss_ratios, other.loss_ratios) \
-            and allclose(self.covs, other.covs)
+            and allclose(self.covs, other.covs) and \
+            self.distribution == other.distribution
+
+    @property
+    def distribution(self):
+        """
+        The probabilistic distribution related to this function.
+        """
+        return self._distribution
 
     @property
     def imls(self):
@@ -779,10 +737,11 @@ class VulnerabilityFunction(object):
             imls = [0.005, 0.007]
             loss_ratios = [0.1, 0.3]
             covs = [0.2, 0.4]
+            distribution = 'BT'
 
         the output will be a JSON string structured like so::
-            {'0.005': [0.1, 0.2],
-             '0.007': [0.3, 0.4]}
+            ('BT', {'0.005': [0.1, 0.2],
+             '0.007': [0.3, 0.4]})
         """
         as_dict = {}
 
@@ -790,12 +749,17 @@ class VulnerabilityFunction(object):
                 self.covs):
             as_dict[str(iml)] = [loss_ratio, cov]
 
-        return json.JSONEncoder().encode(as_dict)
+        return json.JSONEncoder().encode((self.distribution, as_dict))
 
     @classmethod
-    def from_dict(cls, vuln_func_dict):
+    def from_tuple(cls, vuln_func):
         """
-        Construct a VulnerabiltyFunction from a dictionary.
+        Construct a VulnerabiltyFunction from a tuple.
+
+        The first element of the tuple is the probabilistic
+        distribution related to this function.
+
+        The second element is a dictionary of values.
 
         The dictionary keys can be unordered and of
         whatever type can be converted to float with float().
@@ -808,12 +772,16 @@ class VulnerabilityFunction(object):
                  '0.007': [0.3, 0.4],
                  0.0098: [0.5, 0.6]}
 
-        :type vuln_func_dict: dict
+        :type vuln_func: tuple
 
         :returns: :py:class:`openquake.shapes.VulnerabilityFunction` instance
         """
+
+        distribution = vuln_func[0]
+        values = vuln_func[1]
+
         # flatten out the dict and convert keys to floats:
-        data = [(float(iml), lr_cov) for iml, lr_cov in vuln_func_dict.items()]
+        data = [(float(iml), lr_cov) for iml, lr_cov in values.items()]
         # sort the data (by iml) in ascending order:
         data = sorted(data, key=lambda x: x[0])
 
@@ -826,7 +794,7 @@ class VulnerabilityFunction(object):
             loss_ratios.append(lr)
             covs.append(cov)
 
-        return cls(imls, loss_ratios, covs)
+        return cls(imls, loss_ratios, covs, distribution)
 
     @classmethod
     def from_json(cls, json_str):
@@ -836,11 +804,11 @@ class VulnerabilityFunction(object):
         :returns: :py:class:`openquake.shapes.VulnerabilityFunction` instance
         """
         as_dict = json.JSONDecoder().decode(json_str)
-        return cls.from_dict(as_dict)
+        return cls.from_tuple(as_dict)
 
 
 EMPTY_CURVE = Curve(())
-EMPTY_VULN_FUNCTION = VulnerabilityFunction([], [], [])
+EMPTY_VULN_FUNCTION = VulnerabilityFunction([], [], [], "LN")
 
 
 def multipoint_ewkt_from_coords(coords):

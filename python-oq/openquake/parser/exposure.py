@@ -27,7 +27,7 @@ from lxml import etree
 from openquake import producer
 from openquake import shapes
 from openquake import xml
-from openquake.nrml import nrml_schema_file
+from openquake.nrml.utils import nrml_schema_file
 from openquake.xml import NRML, GML
 
 # do not use namespace for now
@@ -145,7 +145,8 @@ class ExposureModelFile(producer.FileProducer):
                 # type and unit for area, contents cost, retrofitting cost
                 # and structural cost.
                 attrs = ("areaType", "areaUnit", "cocoType", "cocoUnit",
-                         "recoType", "recoUnit", "stcoType", "stcoUnit")
+                         "recoType", "recoUnit", "stcoType", "stcoUnit",
+                         "unitType")
                 for attr_name in attrs:
                     attr_value = element.get(attr_name)
                     if attr_value is not None:

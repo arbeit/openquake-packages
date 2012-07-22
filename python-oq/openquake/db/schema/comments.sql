@@ -103,6 +103,13 @@ COMMENT ON COLUMN hzrdi.mfd_tgr.min_val IS 'Minimum magnitude value.';
 COMMENT ON COLUMN hzrdi.mfd_tgr.max_val IS 'Maximum magnitude value.';
 
 
+COMMENT ON TABLE hzrdi.parsed_source IS 'Stores parsed hazard input model sources in serialized python object tree format';
+COMMENT ON COLUMN hzrdi.parsed_source.blob IS 'The BLOB that holds the serialized python object tree.';
+COMMENT ON COLUMN hzrdi.parsed_source.geom IS 'A generic 2-dimensional geometry column that will hold the various source geometries.';
+COMMENT ON COLUMN hzrdi.parsed_source.input_id IS 'The foreign key to the associated input model file';
+COMMENT ON COLUMN hzrdi.parsed_source.source_type IS 'The source''s seismic input type: can be one of: area, point, complex or simple.';
+
+
 COMMENT ON TABLE hzrdi.r_depth_distr IS 'Rupture depth distribution.';
 COMMENT ON COLUMN hzrdi.r_depth_distr.magnitude_type IS 'Magnitude type i.e. one of:
     - body wave magnitude (Mb)
@@ -238,12 +245,21 @@ COMMENT ON COLUMN oqmif.exposure_model.reco_unit IS 'unit of measure for the ret
 COMMENT ON COLUMN oqmif.exposure_model.stco_type IS 'structural cost type, one of: aggregated, per_area or per_asset';
 COMMENT ON COLUMN oqmif.exposure_model.stco_unit IS 'unit of measure for the structural type';
 COMMENT ON COLUMN oqmif.exposure_model.taxonomy_source IS 'the taxonomy system used to classify the assets';
+COMMENT ON COLUMN oqmif.exposure_model.unit_type IS 'The possible values are count, economic_value or both.
+
+In case of "count" we will only require the "number_of_units" to be set and do not enforce the existing INSERT/UPDATE constraints on the exposure database tables. If the "economic_value" is set these constraints *will* be enforced as usual.';
 
 
 COMMENT ON TABLE oqmif.occupancy IS 'Occupancy for a given exposure data set';
 COMMENT ON COLUMN oqmif.occupancy.exposure_data_id IS 'Foreign key to the exposure data set to which the occupancy data applies.';
-COMMENT ON COLUMN oqmif.occupancy.description IS 'describes the occupancy data e.g. day, night etc.';
+COMMENT ON COLUMN oqmif.occupancy.category IS 'occupancy data category, may be one of: average, day, night, transit';
 COMMENT ON COLUMN oqmif.occupancy.occupants IS 'number of occupants';
+
+
+COMMENT ON TABLE oqmif.population IS 'Occupancy for a given exposure data set';
+COMMENT ON COLUMN oqmif.population.exposure_data_id IS 'Foreign key to the exposure data set to which the population data applies.';
+COMMENT ON COLUMN oqmif.population.category IS 'population data category, may be one of: day, night, transit';
+COMMENT ON COLUMN oqmif.population.occupants IS 'number of occupants';
 
 
 -- riski schema tables ------------------------------------------
@@ -392,6 +408,7 @@ COMMENT ON COLUMN uiapi.job_stats.realizations IS 'The number of logic tree samp
 
 COMMENT ON TABLE uiapi.oq_job_profile IS 'Holds the parameters needed to invoke the OpenQuake engine.';
 COMMENT ON COLUMN uiapi.oq_job_profile.calc_mode IS 'One of: classical, event_based, scenario, disaggregation, uhs, classical_bcr or event_based_bcr.';
+COMMENT ON COLUMN uiapi.oq_job_profile.default_pop_cat IS 'In the absence of an average population datum for exposure the user may want to specify that a day/night/transit population value should be used instead.';
 COMMENT ON COLUMN uiapi.oq_job_profile.histories IS 'Number of seismicity histories';
 COMMENT ON COLUMN uiapi.oq_job_profile.force_inputs IS 'If true: parse model inputs and write them to the database no matter what';
 COMMENT ON COLUMN uiapi.oq_job_profile.imls IS 'Intensity measure levels';
@@ -426,6 +443,10 @@ COMMENT ON COLUMN uiapi.output.output_type IS 'Output type, one of:
     - bcr_distribution';
 COMMENT ON COLUMN uiapi.output.shapefile_path IS 'The full path of the shapefile generated for a hazard or loss map (optional).';
 
+COMMENT ON TABLE uiapi.src2ltsrc IS '
+Associate an "lt_source" type input (a logic tree source) with "source"
+type inputs (hazard sources referenced by the logic tree source).
+This is needed for worker-side logic tree processing.';
 
 COMMENT ON TABLE uiapi.upload IS 'A batch of OpenQuake input files uploaded by the user';
 COMMENT ON COLUMN uiapi.upload.job_pid IS 'The process id (PID) of the NRML loader process';
