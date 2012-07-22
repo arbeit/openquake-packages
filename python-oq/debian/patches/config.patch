@@ -17,3 +17,6 @@
  # for details.
 -cache_connections = true
 +cache_connections = false
+ 
+ [amqp]
+ host = localhost
