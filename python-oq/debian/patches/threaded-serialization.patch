@@ -1,0 +1,40 @@
+--- a/openquake/export/psha.py
++++ b/openquake/export/psha.py
+@@ -18,6 +18,7 @@
+ 
+ 
+ import os
++import threading
+ 
+ from openquake.db import models
+ 
+@@ -170,7 +171,9 @@
+                                             output__output_type="hazard_curve")
+ 
+     for hc in hcs:
+-        curve2nrml(job_ctxt, hc)
++        thread = threading.Thread(target=curve2nrml, args=(job_ctxt, hc),
++                                  name=str(hc.output))
++        thread.start()
+     LOG.debug("< curves2nrml")
+ 
+ 
+@@ -217,12 +220,16 @@
+     LOG.debug("> maps2nrml")
+     for poe in poes:
+         _, path, hm_meta = hms_meta(job_ctxt, "mean", (poe,))
+-        map2nrml(job_ctxt, path, hm_meta)
++        thread = threading.Thread(
++            target=map2nrml, args=(job_ctxt, path, hm_meta), name=path)
++        thread.start()
+ 
+     for quantile in quantiles:
+         for poe in poes:
+             _, path, hm_meta = hms_meta(job_ctxt, "quantile", (poe, quantile))
+-            map2nrml(job_ctxt, path, hm_meta)
++            thread = threading.Thread(
++                target=map2nrml, args=(job_ctxt, path, hm_meta), name=path)
++            thread.start()
+     LOG.debug("< maps2nrml")
+ 
+ 
