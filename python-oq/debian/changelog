@@ -1,3 +1,9 @@
+python-oq (0.8.1-5) precise; urgency=low
+
+  * rm threaded serialization patch (since it increases overall run time)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 25 Jul 2012 17:01:32 +0200
+
 python-oq (0.8.1-4) precise; urgency=low
 
   * Try threaded serialization in order to fix performance regression
