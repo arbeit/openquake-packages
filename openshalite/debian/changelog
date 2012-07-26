@@ -1,3 +1,9 @@
+openshalite (1.2-14) precise; urgency=low
+
+  * override the oneiric package in main ppa
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 26 Jul 2012 10:58:24 +0200
+
 openshalite (1.2-13) precise; urgency=low
 
   * fixes bug in toro et al 2002 for periods equal to 3 and 4 s
