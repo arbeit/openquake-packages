@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name = "openquake",
-    version = "0.7.0",
+    version = "0.8.2",
     author = "The OpenQuake team",
     author_email = "info@openquake.org",
     description = ("Computes hazard, risk and socio-economic impact of "
@@ -24,7 +24,5 @@ setup(
     packages = find_packages(),
     include_package_data=True,
     scripts = [
-        "bin/openquake", "bin/oq_create_db", "bin/oq_cache_gc",
-        "bin/oq_restart_workers", "bin/oq_monitor", "bin/oq_log_sink",
-        "bin/oq_check_monitors"],
+        "openquake/bin/oq_create_db", "openquake/bin/oq_restart_workers"]
 )
