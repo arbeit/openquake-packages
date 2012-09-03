@@ -9,7 +9,7 @@ def read(fname):
 setup(
     entry_points = {
         'console_scripts': [
-            'openquake = openquake.bin.openquake:main_func',
+            'openquake = openquake.bin.openquake:main',
             'oq_cache_gc = my_package.some_module:main_func',
             'bar = other_module:some_func']},
     name = "openquake",
