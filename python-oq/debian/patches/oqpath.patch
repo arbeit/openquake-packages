@@ -10,8 +10,8 @@
  from openquake import kvs
  from openquake import logs
  
---- a/openquake/bin/openquake.py
-+++ b/openquake/bin/openquake.py
+--- a/openquake/bin/oqscript.py
++++ b/openquake/bin/oqscript.py
 @@ -52,7 +52,6 @@
  
  import argparse
