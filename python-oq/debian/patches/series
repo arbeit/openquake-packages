@@ -1,3 +1,4 @@
+openquake_supervisor.patch
 cache_gc.patch
 oq-script.patch
 oq-restart.patch

@@ -31,8 +31,8 @@
  
  from openquake import __version__
  from openquake.export import core as export
---- a/openquake/bin/openquake_supervisor
-+++ b/openquake/bin/openquake_supervisor
+--- a/openquake/bin/openquake_supervisor.py
++++ b/openquake/bin/openquake_supervisor.py
 @@ -25,9 +25,6 @@
  import os
  import sys
