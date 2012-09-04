@@ -1,3 +1,9 @@
+python-oq (0.8.2-1) precise; urgency=low
+
+  * Upstream release (LP: #1045214)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 04 Sep 2012 08:52:53 +0200
+
 python-oq (0.8.1-5) precise; urgency=low
 
   * rm threaded serialization patch (since it increases overall run time)
