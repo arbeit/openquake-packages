@@ -1,11 +1,11 @@
---- a/bin/create_oq_schema
-+++ b/bin/create_oq_schema
+--- a/openquake/bin/create_oq_schema
++++ b/openquake/bin/create_oq_schema
 @@ -26,7 +26,7 @@
  fi
  
  # Openquake version
 -oq_version="0.5.0"
-+oq_version="0.8.1"
++oq_version="0.8.2"
  
  # Stop at the first error in a batch to give a chance to see the error message
  psql_batch_options='--set ON_ERROR_STOP=1'
