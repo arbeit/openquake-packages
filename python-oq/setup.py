@@ -14,7 +14,7 @@ setup(
             'oq_monitor = openquake.bin.openquake_supervisor:main',
             'oq_check_monitors = openquake.supervising.supersupervisor:main',
             'oq_log_sink = openquake.bin.openquake_messages_collector:main',
-            'bar = other_module:some_func']},
+            ]},
     name = "openquake",
     version = "0.8.2",
     author = "The OpenQuake team",
