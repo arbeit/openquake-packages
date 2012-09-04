@@ -1,5 +1,5 @@
---- a/bin/openquake_messages_collector.py
-+++ b/bin/openquake_messages_collector.py
+--- a/openquake/bin/openquake_messages_collector.py
++++ b/openquake/bin/openquake_messages_collector.py
 @@ -8,21 +8,17 @@
  in logging.cfg
  """
