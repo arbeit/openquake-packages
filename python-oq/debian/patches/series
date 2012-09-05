@@ -1,4 +1,6 @@
-region-discretization-bug-1027041.patch
+openquake_supervisor.patch
+cache_gc.patch
+oq-script.patch
 oq-restart.patch
 config.patch
 oqpath.patch
