@@ -1,3 +1,9 @@
+python-oq (0.8.2-3) precise; urgency=low
+
+  * Insured loss probabilistic event based calculator (LP: #1045318)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Wed, 05 Sep 2012 09:22:36 +0200
+
 python-oq (0.8.2-2) precise; urgency=low
 
   * remove namespace/module ambiguity
