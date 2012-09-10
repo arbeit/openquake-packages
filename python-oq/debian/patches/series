@@ -1,3 +1,4 @@
+insured-loss.patch
 openquake_supervisor.patch
 cache_gc.patch
 oq-script.patch
