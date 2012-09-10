@@ -21,6 +21,9 @@ import nrml
 
 from lxml import etree
 
+SM_TREE_PATH = 'sourceModelTreePath'
+GSIM_TREE_PATH = 'gsimTreePath'
+
 
 class HazardCurveXMLWriter(object):
     """
@@ -131,9 +134,9 @@ class HazardCurveXMLWriter(object):
             if self.quantile_value is not None:
                 hazard_curves.set('quantileValue', str(self.quantile_value))
             if self.smlt_path is not None:
-                hazard_curves.set('sourceModelTreePath', self.smlt_path)
+                hazard_curves.set(SM_TREE_PATH, self.smlt_path)
             if self.gsimlt_path is not None:
-                hazard_curves.set('gsimTreePath', self.gsimlt_path)
+                hazard_curves.set(GSIM_TREE_PATH, self.gsimlt_path)
             if self.sa_period is not None:
                 hazard_curves.set('saPeriod', str(self.sa_period))
             if self.sa_damping is not None:
@@ -153,3 +156,250 @@ class HazardCurveXMLWriter(object):
             fh.write(etree.tostring(
                 root, pretty_print=True, xml_declaration=True,
                 encoding='UTF-8'))
+
+
+class EventBasedGMFXMLWriter(object):
+    """
+    :param str path:
+        File path (including filename) for XML results to be saved to.
+    :param str sm_lt_path:
+        Source model logic tree branch identifier of the logic tree realization
+        which produced this collection of ground motion fields.
+    :param gsim_lt_path:
+        GSIM logic tree branch identifier of the logic tree realization which
+        produced this collection of ground motion fields.
+    """
+
+    def __init__(self, path, sm_lt_path, gsim_lt_path):
+        self.path = path
+        self.sm_lt_path = sm_lt_path
+        self.gsim_lt_path = gsim_lt_path
+
+    def serialize(self, data):
+        """
+        Serialize a collection of ground motion fields to XML.
+
+        :param data:
+            An iterable of "GMF set" objects.
+            Each "GMF set" object should:
+
+            * have an `investigation_time` attribute
+            * be iterable, yielding a sequence of "GMF" objects
+
+            Each "GMF" object should:
+
+            * have an `imt` attribute
+            * have an `sa_period` attribute (only if `imt` is 'SA')
+            * have an `sa_damping` attribute (only if `imt` is 'SA')
+            * be iterable, yielding a sequence of "GMF node" objects
+
+            Each "GMF node" object should have:
+
+            * an `iml` attribute (to indicate the ground motion value
+            * `lon` and `lat` attributes (to indicate the geographical location
+              of the ground motion field
+        """
+        with open(self.path, 'w') as fh:
+            root = etree.Element('nrml', nsmap=nrml.SERIALIZE_NS_MAP)
+
+            if self.sm_lt_path is not None and self.gsim_lt_path is not None:
+                # A normal GMF collection
+                gmf_container = etree.SubElement(root, 'gmfCollection')
+                gmf_container.set(SM_TREE_PATH, self.sm_lt_path)
+                gmf_container.set(GSIM_TREE_PATH, self.gsim_lt_path)
+            else:
+                # A collection of GMFs for a complete logic tree
+                # In this case, we should only have a single <gmfSet>,
+                # containing all ground motion fields.
+                # NOTE: In this case, there is no need for a <gmfCollection>
+                # element; instead, we just write the single <gmfSet>
+                # underneath the root <nrml> element.
+                gmf_container = root
+
+            for gmf_set in data:
+                gmf_set_elem = etree.SubElement(gmf_container, 'gmfSet')
+                gmf_set_elem.set(
+                    'investigationTime', str(gmf_set.investigation_time))
+
+                for gmf in gmf_set:
+                    gmf_elem = etree.SubElement(gmf_set_elem, 'gmf')
+                    gmf_elem.set('IMT', gmf.imt)
+                    if gmf.imt == 'SA':
+                        gmf_elem.set('saPeriod', str(gmf.sa_period))
+                        gmf_elem.set('saDamping', str(gmf.sa_damping))
+
+                    for gmf_node in gmf:
+                        node_elem = etree.SubElement(gmf_elem, 'node')
+                        node_elem.set('iml', str(gmf_node.iml))
+                        node_elem.set('lon', str(gmf_node.location.x))
+                        node_elem.set('lat', str(gmf_node.location.y))
+
+            fh.write(etree.tostring(
+                root, pretty_print=True, xml_declaration=True,
+                encoding='UTF-8'))
+
+
+class SESXMLWriter(object):
+    """
+    :param str path:
+        File path (including filename) for XML results to be saved to.
+    :param str sm_lt_path:
+        Source model logic tree branch identifier of the logic tree realization
+        which produced this collection of stochastic event sets.
+    :param gsim_lt_path:
+        GSIM logic tree branch identifier of the logic tree realization which
+        produced this collection of stochastic event sets.
+    """
+
+    def __init__(self, path, sm_lt_path, gsim_lt_path):
+        self.path = path
+        self.sm_lt_path = sm_lt_path
+        self.gsim_lt_path = gsim_lt_path
+
+    def serialize(self, data):
+        """
+        Serialize a collection of stochastic event sets to XML.
+
+        :param data:
+            An iterable of "SES" ("Stochastic Event Set") objects.
+            Each "SES" object should:
+
+            * have an `investigation_time` attribute
+            * be iterable, yielding a sequence of "rupture" objects
+
+            Each "rupture" should have the following attributes:
+            * `magnitude`
+            * `strike`
+            * `dip`
+            * `rake`
+            * `tectonic_region_type`
+            * `is_from_fault_source` (a `bool`)
+            * `lons`
+            * `lats`
+            * `depths`
+
+            If `is_from_fault_source` is `True`, the rupture originated from a
+            simple or complex fault sources. In this case, `lons`, `lats`, and
+            `depths` should all be 2D arrays (of uniform shape). These
+            coordinate triples represent nodes of the rupture mesh.
+
+            If `is_from_fault_source` is `False`, the rupture originated from a
+            point or area source. In this case, the rupture is represented by a
+            quadrilateral planar surface. This planar surface is defined by 3D
+            vertices. In this case, the rupture should have the following
+            attributes:
+
+            * `top_left_corner`
+            * `top_right_corner`
+            * `bottom_right_corner`
+            * `bottom_left_corner`
+
+            Each of these should be a triple of `lon`, `lat`, `depth`.
+        """
+        with open(self.path, 'w') as fh:
+            root = etree.Element('nrml', nsmap=nrml.SERIALIZE_NS_MAP)
+
+            if self.sm_lt_path is not None and self.gsim_lt_path is not None:
+                # A normal stochastic event set collection
+                ses_container = etree.SubElement(
+                    root, 'stochasticEventSetCollection')
+
+                ses_container.set(SM_TREE_PATH, self.sm_lt_path)
+                ses_container.set(GSIM_TREE_PATH, self.gsim_lt_path)
+            else:
+                # A stochastic event set collection for the complete logic tree
+                # In this case, we should only have a single stochastic event
+                # set.
+                # NOTE: In this case, there is no need for a
+                # `stochasticEventSetCollection` tag.
+                # Write the _single_ stochastic event set directly under the
+                # root element.
+                ses_container = root
+                # NOTE: The code below is written to expect 1 or more SESs in
+                # `data`. Again, there will only be one in this case.
+
+            for ses in data:
+                ses_elem = etree.SubElement(
+                    ses_container, 'stochasticEventSet')
+                ses_elem.set('investigationTime', str(ses.investigation_time))
+
+                for rupture in ses:
+                    rup_elem = etree.SubElement(ses_elem, 'rupture')
+                    rup_elem.set('magnitude', str(rupture.magnitude))
+                    rup_elem.set('strike', str(rupture.strike))
+                    rup_elem.set('dip', str(rupture.dip))
+                    rup_elem.set('rake', str(rupture.rake))
+                    rup_elem.set(
+                        'tectonicRegion', str(rupture.tectonic_region_type))
+
+                    if rupture.is_from_fault_source:
+                        # rupture is from a simple or complex fault source
+                        # the rupture geometry is represented by a mesh of 3D
+                        # points
+                        self._create_rupture_mesh(rupture, rup_elem)
+                    else:
+                        # rupture is from a point or area source
+                        # the rupture geometry is represented by four 3D corner
+                        # points
+                        self._create_planar_surface(rupture, rup_elem)
+
+            fh.write(etree.tostring(
+                root, pretty_print=True, xml_declaration=True,
+                encoding='UTF-8'))
+
+    @staticmethod
+    def _create_rupture_mesh(rupture, rup_elem):
+        """
+        :param rupture:
+            See documentation for :meth:`serialize` for more info.
+        :param rup_elem:
+            A `rupture` :class:`lxml.etree._Element`.
+        """
+        mesh_elem = etree.SubElement(rup_elem, 'mesh')
+
+        # we assume the mesh components (lons, lats, depths)
+        # are of uniform shape
+        for i, row in enumerate(rupture.lons):
+            for j, col in enumerate(row):
+                node_elem = etree.SubElement(mesh_elem, 'node')
+                node_elem.set('row', str(i))
+                node_elem.set('col', str(j))
+                node_elem.set('lon', str(rupture.lons[i][j]))
+                node_elem.set('lat', str(rupture.lats[i][j]))
+                node_elem.set(
+                    'depth', str(rupture.depths[i][j]))
+
+        try:
+            # if we never entered the loop above, it's possible
+            # that i and j will be undefined
+            mesh_elem.set('rows', str(i + 1))
+            mesh_elem.set('cols', str(j + 1))
+        except NameError:
+            raise ValueError('Invalid rupture mesh')
+
+    @staticmethod
+    def _create_planar_surface(rupture, rup_elem):
+        """
+        :param rupture:
+            See documentation for :meth:`serialize` for more info.
+        :param rup_elem:
+            A `rupture` :class:`lxml.etree._Element`.
+        """
+        ps_elem = etree.SubElement(
+            rup_elem, 'planarSurface')
+
+        # create the corner point elements, in the order of:
+        # * top left
+        # * top right
+        # * bottom right
+        # * bottom left
+        for el_name, corner in (
+            ('topLeft', rupture.top_left_corner),
+            ('topRight', rupture.top_right_corner),
+            ('bottomRight', rupture.bottom_right_corner),
+            ('bottomLeft', rupture.bottom_left_corner)):
+
+            corner_elem = etree.SubElement(ps_elem, el_name)
+            corner_elem.set('lon', str(corner[0]))
+            corner_elem.set('lat', str(corner[1]))
+            corner_elem.set('depths', str(corner[2]))
