@@ -9,6 +9,6 @@ Homepage: http://github.com/gem/nhlib
 #Vcs-Browser: http://git.debian.org/?p=collab-maint/python-dateutil.git;a=summary
 
 Package: python-nhlib
-Architecture: all
+Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, python-numpy, python-scipy, python-shapely
 Description: nhlib is a library for performing seismic hazard analysis
