@@ -1,0 +1,48 @@
+Index: nhlib/nhlib/bin/check_gsim.py
+===================================================================
+--- nhlib.orig/nhlib/bin/check_gsim.py	2012-09-11 11:24:21.280366918 +0200
++++ nhlib/nhlib/bin/check_gsim.py	2012-09-11 11:24:53.744792375 +0200
+@@ -261,7 +261,7 @@
+     return sctx, rctx, dctx, stddev_types, expected_results, result_type
+ 
+ 
+-if __name__ == '__main__':
++def nain():
+     import argparse
+ 
+     def gsim_by_import_path(import_path):
+@@ -324,3 +324,7 @@
+         print >> sys.stderr, stats
+     if errors:
+         exit(127)
++
++
++if __name__ == '__main__':
++    main()
+Index: nhlib/setup.py
+===================================================================
+--- nhlib.orig/setup.py	2012-09-11 11:24:22.140378187 +0200
++++ nhlib/setup.py	2012-09-11 11:24:53.772792689 +0200
+@@ -48,6 +48,10 @@
+ 
+ 
+ setup(
++    entry_points = {
++        'console_scripts': [
++            'check_gsim = nhlib.bin.check_gsim:main',
++            ]},
+     name='nhlib',
+     version=version,
+     description="nhlib is a library for performing seismic hazard analysis",
+@@ -61,9 +65,8 @@
+     ],
+     ext_modules=[geodetic_speedups, geoutils_speedups],
+     include_dirs=include_dirs,
+-    scripts=['tests/gsim/check_gsim.py'],
+-    maintainer='Anton Gritsay',
+-    maintainer_email='anton@openquake.org',
++    maintainer='OpenQuake Team',
++    maintainer_email='devops@openquake.org',
+     classifiers=(
+         'Development Status :: 3 - Alpha',
+         'Intended Audience :: Education',
