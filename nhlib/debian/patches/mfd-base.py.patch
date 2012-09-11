@@ -1,0 +1,13 @@
+Index: nhlib/nhlib/mfd/base.py
+===================================================================
+--- nhlib.orig/nhlib/mfd/base.py	2012-09-11 11:24:21.852374416 +0200
++++ nhlib/nhlib/mfd/base.py	2012-09-11 11:37:52.915016672 +0200
+@@ -40,8 +40,6 @@
+ 
+         Modifications can be applied one on top of another. The logic
+         of stacking modifications is up to a specific MFD implementation.
+-        Any number of modifications can be reverted with a single call
+-        to :meth:`reset`.
+ 
+         :param modification:
+             String name representing the type of modification.
