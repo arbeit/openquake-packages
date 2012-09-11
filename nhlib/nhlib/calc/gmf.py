@@ -24,7 +24,7 @@ from nhlib.calc import filters
 
 
 def ground_motion_fields(rupture, sites, imts, gsim, truncation_level,
-                         realizations,
+                         realizations, correlation_model=None,
                          rupture_site_filter=filters.rupture_site_noop_filter):
     """
     Given an earthquake rupture, the ground motion field calculator computes
@@ -51,6 +51,11 @@ def ground_motion_fields(rupture, sites, imts, gsim, truncation_level,
         distribution, or ``None``.
     :param realizations:
         Integer number of GMF realizations to compute.
+    :param correlation_model:
+        Instance of correlation model object. See :mod:`nhlib.correlation`.
+        Can be ``None``, in which case non-correlated ground motion fields
+        are calculated. Correlation model is not used if ``truncation_level``
+        is zero.
     :param rupture_site_filter:
         Optional rupture-site filter function. See :mod:`nhlib.calc.filters`.
 
@@ -73,9 +78,11 @@ def ground_motion_fields(rupture, sites, imts, gsim, truncation_level,
     result = {}
 
     if truncation_level == 0:
+        assert correlation_model is None
         for imt in imts:
             mean, _stddevs = gsim.get_mean_and_stddevs(sctx, rctx, dctx, imt,
                                                        stddev_types=[])
+            mean = gsim.to_imt_unit_values(mean)
             mean.shape += (1, )
             mean = mean.repeat(realizations, axis=1)
             result[imt] = sites.expand(mean, total_sites, placeholder=0)
@@ -92,13 +99,19 @@ def ground_motion_fields(rupture, sites, imts, gsim, truncation_level,
         mean, [stddev_inter, stddev_intra] = gsim.get_mean_and_stddevs(
             sctx, rctx, dctx, imt, [StdDev.INTER_EVENT, StdDev.INTRA_EVENT]
         )
-        stddev_intra.shape += (1, )
-        stddev_inter.shape += (1, )
-        mean.shape += (1, )
-        intra_residual = stddev_intra * distribution.rvs(size=realizations)
-        inter_residual = stddev_inter * distribution.rvs(size=(len(sites),
+        stddev_intra = stddev_intra.reshape(stddev_intra.shape + (1, ))
+        stddev_inter = stddev_inter.reshape(stddev_inter.shape + (1, ))
+        mean = mean.reshape(mean.shape + (1, ))
+
+        intra_residual = stddev_intra * distribution.rvs(size=(len(sites),
                                                                realizations))
-        gmf = mean + intra_residual + inter_residual
+        if correlation_model is not None:
+            intra_residual = correlation_model.apply_correlation(
+                sites, imt, intra_residual
+            )
+
+        inter_residual = stddev_inter * distribution.rvs(size=realizations)
+        gmf = gsim.to_imt_unit_values(mean + intra_residual + inter_residual)
         result[imt] = sites.expand(gmf, total_sites, placeholder=0)
 
     return result
