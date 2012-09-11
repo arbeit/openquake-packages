@@ -1,3 +1,9 @@
+python-nhlib (0.9-1) precise; urgency=low
+
+  * Upstream release (LP: #1045213)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 11 Sep 2012 08:26:10 +0200
+
 python-nhlib (0.8-1) precise; urgency=low
 
   * Upstream release
