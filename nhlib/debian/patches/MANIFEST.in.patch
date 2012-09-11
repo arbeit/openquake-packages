@@ -1,7 +1,10 @@
---- a/MANIFEST.in
-+++ b/MANIFEST.in
+Index: nhlib/MANIFEST.in
+===================================================================
+--- nhlib.orig/MANIFEST.in	2012-09-11 11:26:52.000000000 +0200
++++ nhlib/MANIFEST.in	2012-09-11 11:30:08.548919334 +0200
 @@ -1,5 +1,4 @@
- include LICENSE README
+-include LICENSE README
++include LICENSE README.rst
  recursive-include nhlib *.py
 -recursive-include tests *.py *.csv
  include doc/Makefile doc/conf.py
