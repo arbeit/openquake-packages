@@ -1,7 +1,7 @@
 Index: noq/openquake/LICENSE
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/openquake/LICENSE	2012-09-15 17:56:00.364534323 +0200
++++ noq/openquake/LICENSE	2012-09-15 18:04:47.968550850 +0200
 @@ -0,0 +1,661 @@
 +                    GNU AFFERO GENERAL PUBLIC LICENSE
 +                       Version 3, 19 November 2007
@@ -667,7 +667,7 @@ Index: noq/openquake/LICENSE
 Index: noq/openquake/README
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/openquake/README	2012-09-15 18:01:31.760544703 +0200
++++ noq/openquake/README	2012-09-15 18:04:47.984550851 +0200
 @@ -0,0 +1,7 @@
 +OpenQuake calculators based on the nhlib (new hazard library)
 +
@@ -679,7 +679,7 @@ Index: noq/openquake/README
 Index: noq/openquake/celeryconfig.py
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/openquake/celeryconfig.py	2012-09-15 17:56:00.396534324 +0200
++++ noq/openquake/celeryconfig.py	2012-09-15 18:04:48.000550851 +0200
 @@ -0,0 +1,55 @@
 +# -*- coding: utf-8 -*-
 +# vim: tabstop=4 shiftwidth=4 softtabstop=4
@@ -739,7 +739,7 @@ Index: noq/openquake/celeryconfig.py
 Index: noq/MANIFEST.in
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/MANIFEST.in	2012-09-15 17:56:00.408534324 +0200
++++ noq/MANIFEST.in	2012-09-15 18:04:48.016550851 +0200
 @@ -0,0 +1,5 @@
 +include openquake/LICENSE openquake/README
 +recursive-include openquake *.sql
@@ -749,7 +749,7 @@ Index: noq/MANIFEST.in
 Index: noq/setup.py
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/setup.py	2012-09-15 17:56:00.424534324 +0200
++++ noq/setup.py	2012-09-15 18:04:48.028550852 +0200
 @@ -0,0 +1,36 @@
 +import os
 +from setuptools import setup, find_packages
@@ -787,3 +787,16 @@ Index: noq/setup.py
 +    scripts = [
 +        "openquake/bin/oq_create_db", "openquake/bin/oq_restart_workers"]
 +)
+Index: noq/openquake/__init__.py
+===================================================================
+--- noq.orig/openquake/__init__.py	2012-09-13 14:34:13.256062996 +0200
++++ noq/openquake/__init__.py	2012-09-15 18:05:51.532552842 +0200
+@@ -55,7 +55,7 @@
+ # released OpenQuake code.
+ __version__ = (
+     0,  # major
+-    7,  # minor
++    1,  # minor
+     0,  # sprint number
+     0)  # release date (seconds since the "Epoch"), do *not* set in master!
+ 
