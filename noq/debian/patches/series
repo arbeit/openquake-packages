@@ -1,1 +1,2 @@
 packaging-artefacts.patch
+rm-obsolete-nrml-dir.patch
