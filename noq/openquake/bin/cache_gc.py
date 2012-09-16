@@ -30,6 +30,9 @@ data.
 import getopt
 import sys
 
+import oqpath
+oqpath.set_oq_path()
+
 from openquake import kvs
 from openquake import logs
 

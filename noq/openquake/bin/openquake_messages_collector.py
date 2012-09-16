@@ -13,12 +13,16 @@ import os
 import logging
 import logging.config
 
+import oqpath
+oqpath.set_oq_path()
+
 import openquake
 from openquake import signalling
 
 
 def main():
-    logging.config.fileConfig("/etc/openquake/logging.cfg")
+    logging.config.fileConfig(os.path.join(openquake.OPENQUAKE_ROOT,
+                                           'logging.cfg'))
 
     # any job
     collector = signalling.Collector('*', logging.getLogger('collector'))
