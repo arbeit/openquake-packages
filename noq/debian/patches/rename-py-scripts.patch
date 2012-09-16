@@ -362,7 +362,7 @@
 -        arg_parser.print_usage()
 --- /dev/null
 +++ b/openquake/bin/openquake.py
-@@ -0,0 +1,359 @@
+@@ -0,0 +1,363 @@
 +#!/usr/bin/env python
 +# -*- coding: utf-8 -*-
 +# vim: tabstop=4 shiftwidth=4 softtabstop=4
@@ -689,7 +689,7 @@
 +        print 'No output found for OUTPUT_ID %s' % output_id
 +
 +
-+if __name__ == '__main__':
++def main():
 +    arg_parser = set_up_arg_parser()
 +
 +    args = arg_parser.parse_args()
@@ -722,6 +722,10 @@
 +        do_export(output_id, target_dir)
 +    else:
 +        arg_parser.print_usage()
++
++
++if __name__ == '__main__':
++    main()
 --- a/openquake/bin/openquake_supersupervisor
 +++ /dev/null
 @@ -1,18 +0,0 @@
@@ -807,7 +811,7 @@
 -    main()
 --- /dev/null
 +++ b/openquake/bin/openquake_supervisor.py
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,41 @@
 +#! /usr/bin/env python
 +
 +# -*- coding: utf-8 -*-
@@ -831,8 +835,11 @@
 +"""
 +The OpenQuake job supervisor process, spawned by each OpenQuake job.
 +"""
++
++
 +import os
 +import sys
++
 +
 +def main():  # pylint: disable=C0111
 +    os.environ['DJANGO_SETTINGS_MODULE'] = 'openquake.settings'
@@ -846,3 +853,40 @@
 +
 +if __name__ == '__main__':
 +    main()
+--- a/openquake/bin/cache_gc.py
++++ b/openquake/bin/cache_gc.py
+@@ -41,11 +41,8 @@
+ S2L = dict(h='help', j='job', l='list')
+ 
+ 
+-def main(cl_args):
+-    """
+-    :param cl_args: command line arguments
+-    :type cl_cargs: list of strings
+-    """
++def main():
++    cl_args = sys.argv[1:]
+     try:
+         opts, _ = getopt.getopt(cl_args, SHORT_ARGS, LONG_ARGS)
+     except getopt.GetoptError, e:
+@@ -150,4 +147,4 @@
+ 
+ 
+ if __name__ == '__main__':
+-    main(sys.argv[1:])
++    main()
+--- a/openquake/bin/openquake_messages_collector.py
++++ b/openquake/bin/openquake_messages_collector.py
+@@ -8,12 +8,9 @@
+ in logging.cfg
+ """
+ 
+-import os
+-
+ import logging
+ import logging.config
+ 
+-import openquake
+ from openquake import signalling
+ 
+ 
