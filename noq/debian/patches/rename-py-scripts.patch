@@ -361,7 +361,7 @@
 -    else:
 -        arg_parser.print_usage()
 --- /dev/null
-+++ b/openquake/bin/openquake.py
++++ b/openquake/bin/oqscript.py
 @@ -0,0 +1,363 @@
 +#!/usr/bin/env python
 +# -*- coding: utf-8 -*-
