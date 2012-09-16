@@ -1,0 +1,5 @@
+python-noq (0.1-1) precise; urgency=low
+
+  * Alpha release of the nhlib-based OpenQuake calculator (LP: #1045212)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Sun, 16 Sep 2012 19:18:14 +0200
