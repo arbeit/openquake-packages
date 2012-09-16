@@ -1,0 +1,97 @@
+Index: noq/openquake/__init__.py
+===================================================================
+--- noq.orig/openquake/__init__.py	2012-09-16 11:13:00.471555909 +0200
++++ noq/openquake/__init__.py	2012-09-16 11:16:59.147563386 +0200
+@@ -48,8 +48,6 @@
+ along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
+ """
+ 
+-import os
+-
+ # Please note: the release date should always have a value of 0 (zero) in the
+ # master branch. It will only be set to a meaningful value in *packaged* and
+ # released OpenQuake code.
+@@ -58,6 +56,3 @@
+     1,  # minor
+     0,  # sprint number
+     0)  # release date (seconds since the "Epoch"), do *not* set in master!
+-
+-# The path to the OpenQuake root directory
+-OPENQUAKE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+Index: noq/openquake/bin/cache_gc.py
+===================================================================
+--- noq.orig/openquake/bin/cache_gc.py	2012-09-13 14:34:13.204063006 +0200
++++ noq/openquake/bin/cache_gc.py	2012-09-16 11:17:14.611563870 +0200
+@@ -30,9 +30,6 @@
+ import getopt
+ import sys
+ 
+-import oqpath
+-oqpath.set_oq_path()
+-
+ from openquake import kvs
+ from openquake import logs
+ 
+Index: noq/openquake/bin/openquake
+===================================================================
+--- noq.orig/openquake/bin/openquake	2012-09-13 14:34:13.204063006 +0200
++++ noq/openquake/bin/openquake	2012-09-16 11:17:56.399565180 +0200
+@@ -52,7 +52,6 @@
+ 
+ import argparse
+ import getpass
+-import logging
+ import os
+ import sys
+ 
+@@ -65,9 +64,6 @@
+ except ImportError:
+     sys.path.append('/usr/openquake')
+ 
+-import oqpath
+-oqpath.set_oq_path()
+-
+ from openquake import __version__
+ from openquake.db import models
+ from openquake.export import core as export
+Index: noq/openquake/bin/openquake_messages_collector.py
+===================================================================
+--- noq.orig/openquake/bin/openquake_messages_collector.py	2012-09-13 14:34:13.208063009 +0200
++++ noq/openquake/bin/openquake_messages_collector.py	2012-09-16 11:19:01.607567222 +0200
+@@ -13,16 +13,12 @@
+ import logging
+ import logging.config
+ 
+-import oqpath
+-oqpath.set_oq_path()
+-
+ import openquake
+ from openquake import signalling
+ 
+ 
+ def main():
+-    logging.config.fileConfig(os.path.join(openquake.OPENQUAKE_ROOT,
+-                                           'logging.cfg'))
++    logging.config.fileConfig("/etc/openquake/logging.cfg")
+ 
+     # any job
+     collector = signalling.Collector('*', logging.getLogger('collector'))
+Index: noq/openquake/bin/openquake_supervisor
+===================================================================
+--- noq.orig/openquake/bin/openquake_supervisor	2012-09-13 14:34:13.208063009 +0200
++++ noq/openquake/bin/openquake_supervisor	2012-09-16 11:19:18.519567753 +0200
+@@ -21,14 +21,9 @@
+ """
+ The OpenQuake job supervisor process, spawned by each OpenQuake job.
+ """
+-import logging
+ import os
+ import sys
+ 
+-import oqpath
+-oqpath.set_oq_path()
+-
+-
+ def main():  # pylint: disable=C0111
+     os.environ['DJANGO_SETTINGS_MODULE'] = 'openquake.settings'
+ 
