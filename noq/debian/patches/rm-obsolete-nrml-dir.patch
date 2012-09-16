@@ -1,7 +1,5 @@
-Index: noq/openquake/calculators/hazard/__init__.py
-===================================================================
---- noq.orig/openquake/calculators/hazard/__init__.py	2012-09-15 17:18:38.328101648 +0200
-+++ noq/openquake/calculators/hazard/__init__.py	2012-09-15 18:09:37.908559932 +0200
+--- a/openquake/calculators/hazard/__init__.py
++++ b/openquake/calculators/hazard/__init__.py
 @@ -16,27 +16,12 @@
  """This package contains Hazard calculator classes and utilities."""
  
@@ -30,10 +28,8 @@ Index: noq/openquake/calculators/hazard/__init__.py
  CALCULATORS_NEXT = {
      'classical': ClassicalHazardCalculator,
      'event_based': NewEventBasedHazardCalculator,
-Index: noq/openquake/calculators/hazard/general.py
-===================================================================
---- noq.orig/openquake/calculators/hazard/general.py	2012-09-15 17:18:37.960285635 +0200
-+++ noq/openquake/calculators/hazard/general.py	2012-09-15 18:09:37.956559934 +0200
+--- a/openquake/calculators/hazard/general.py
++++ b/openquake/calculators/hazard/general.py
 @@ -36,7 +36,6 @@
  from shapely import geometry
  
@@ -329,10 +325,8 @@ Index: noq/openquake/calculators/hazard/general.py
  def exchange_and_conn_args():
      """
      Helper method to setup an exchange for task communication and the args
-Index: noq/openquake/celeryconfig.py
-===================================================================
---- noq.orig/openquake/celeryconfig.py	2012-09-15 18:09:04.848558897 +0200
-+++ noq/openquake/celeryconfig.py	2012-09-15 18:09:37.872559932 +0200
+--- a/openquake/celeryconfig.py
++++ b/openquake/celeryconfig.py
 @@ -45,11 +45,7 @@
  
  
@@ -347,10 +341,8 @@ Index: noq/openquake/celeryconfig.py
 +    )
  
  os.environ["DJANGO_SETTINGS_MODULE"] = "openquake.settings"
-Index: noq/openquake/export/hazard.py
-===================================================================
---- noq.orig/openquake/export/hazard.py	2012-09-15 17:18:38.595967655 +0200
-+++ noq/openquake/export/hazard.py	2012-09-15 18:09:37.996559936 +0200
+--- a/openquake/export/hazard.py
++++ b/openquake/export/hazard.py
 @@ -25,7 +25,6 @@
  from openquake import logs
  from openquake.db import models

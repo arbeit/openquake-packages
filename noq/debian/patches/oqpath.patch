@@ -1,7 +1,5 @@
-Index: noq/openquake/__init__.py
-===================================================================
---- noq.orig/openquake/__init__.py	2012-09-16 11:13:00.471555909 +0200
-+++ noq/openquake/__init__.py	2012-09-16 11:16:59.147563386 +0200
+--- a/openquake/__init__.py
++++ b/openquake/__init__.py
 @@ -48,8 +48,6 @@
  along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
  """
@@ -18,10 +16,8 @@ Index: noq/openquake/__init__.py
 -
 -# The path to the OpenQuake root directory
 -OPENQUAKE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-Index: noq/openquake/bin/cache_gc.py
-===================================================================
---- noq.orig/openquake/bin/cache_gc.py	2012-09-13 14:34:13.204063006 +0200
-+++ noq/openquake/bin/cache_gc.py	2012-09-16 11:17:14.611563870 +0200
+--- a/openquake/bin/cache_gc.py
++++ b/openquake/bin/cache_gc.py
 @@ -30,9 +30,6 @@
  import getopt
  import sys
@@ -32,10 +28,8 @@ Index: noq/openquake/bin/cache_gc.py
  from openquake import kvs
  from openquake import logs
  
-Index: noq/openquake/bin/openquake
-===================================================================
---- noq.orig/openquake/bin/openquake	2012-09-13 14:34:13.204063006 +0200
-+++ noq/openquake/bin/openquake	2012-09-16 11:17:56.399565180 +0200
+--- a/openquake/bin/openquake
++++ b/openquake/bin/openquake
 @@ -52,7 +52,6 @@
  
  import argparse
@@ -54,10 +48,8 @@ Index: noq/openquake/bin/openquake
  from openquake import __version__
  from openquake.db import models
  from openquake.export import core as export
-Index: noq/openquake/bin/openquake_messages_collector.py
-===================================================================
---- noq.orig/openquake/bin/openquake_messages_collector.py	2012-09-13 14:34:13.208063009 +0200
-+++ noq/openquake/bin/openquake_messages_collector.py	2012-09-16 11:19:01.607567222 +0200
+--- a/openquake/bin/openquake_messages_collector.py
++++ b/openquake/bin/openquake_messages_collector.py
 @@ -13,16 +13,12 @@
  import logging
  import logging.config
@@ -76,10 +68,8 @@ Index: noq/openquake/bin/openquake_messages_collector.py
  
      # any job
      collector = signalling.Collector('*', logging.getLogger('collector'))
-Index: noq/openquake/bin/openquake_supervisor
-===================================================================
---- noq.orig/openquake/bin/openquake_supervisor	2012-09-13 14:34:13.208063009 +0200
-+++ noq/openquake/bin/openquake_supervisor	2012-09-16 11:19:18.519567753 +0200
+--- a/openquake/bin/openquake_supervisor
++++ b/openquake/bin/openquake_supervisor
 @@ -21,14 +21,9 @@
  """
  The OpenQuake job supervisor process, spawned by each OpenQuake job.

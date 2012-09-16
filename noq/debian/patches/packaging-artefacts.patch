@@ -1,7 +1,5 @@
-Index: noq/openquake/LICENSE
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/openquake/LICENSE	2012-09-16 18:47:30.667290809 +0200
+--- /dev/null
++++ b/openquake/LICENSE
 @@ -0,0 +1,661 @@
 +                    GNU AFFERO GENERAL PUBLIC LICENSE
 +                       Version 3, 19 November 2007
@@ -664,10 +662,8 @@ Index: noq/openquake/LICENSE
 +if any, to sign a "copyright disclaimer" for the program, if necessary.
 +For more information on this, and how to apply and follow the GNU AGPL, see
 +<http://www.gnu.org/licenses/>.
-Index: noq/openquake/README
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/openquake/README	2012-09-16 18:47:30.667290809 +0200
+--- /dev/null
++++ b/openquake/README
 @@ -0,0 +1,7 @@
 +OpenQuake calculators based on the nhlib (new hazard library)
 +
@@ -676,10 +672,8 @@ Index: noq/openquake/README
 +
 +    - classical hazard calculator
 +    - event-based hazard calculator
-Index: noq/openquake/celeryconfig.py
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/openquake/celeryconfig.py	2012-09-16 18:47:30.667290809 +0200
+--- /dev/null
++++ b/openquake/celeryconfig.py
 @@ -0,0 +1,55 @@
 +# -*- coding: utf-8 -*-
 +# vim: tabstop=4 shiftwidth=4 softtabstop=4
@@ -736,18 +730,14 @@ Index: noq/openquake/celeryconfig.py
 +    "tests.utils.tasks")
 +
 +os.environ["DJANGO_SETTINGS_MODULE"] = "openquake.settings"
-Index: noq/MANIFEST.in
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/MANIFEST.in	2012-09-16 18:48:22.479292430 +0200
+--- /dev/null
++++ b/MANIFEST.in
 @@ -0,0 +1,3 @@
 +include openquake/LICENSE openquake/README
 +recursive-include openquake *.sql
 +recursive-include openquake *.cfg
-Index: noq/setup.py
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/setup.py	2012-09-16 18:47:30.667290809 +0200
+--- /dev/null
++++ b/setup.py
 @@ -0,0 +1,36 @@
 +import os
 +from setuptools import setup, find_packages
@@ -760,20 +750,20 @@ Index: noq/setup.py
 +setup(
 +    entry_points = {
 +        'console_scripts': [
-+            'openquake = openquake.bin.oqscript:main',
++            'noq = openquake.bin.oqscript:main',
 +            'oq_cache_gc = openquake.bin.cache_gc:main',
 +            'oq_monitor = openquake.bin.openquake_supervisor:main',
 +            'oq_check_monitors = openquake.supervising.supersupervisor:main',
 +            'oq_log_sink = openquake.bin.openquake_messages_collector:main',
 +            ]},
-+    name = "openquake",
-+    version = "0.8.2",
++    name = "noq",
++    version = "0.1",
 +    author = "The OpenQuake team",
 +    author_email = "info@openquake.org",
-+    description = ("Computes hazard, risk and socio-economic impact of "
-+                   "earthquakes."),
++    description = ("Computes seismic hazard, based on the hazard library "
++                   "developed by the GEM foundation (nhlib)"),
 +    license = "AGPL3",
-+    keywords = "earthquake seismic hazard risk",
++    keywords = "earthquake seismic hazard",
 +    url = "http://openquake.org/",
 +    long_description=read('openquake/README'),
 +    classifiers=[
@@ -785,10 +775,8 @@ Index: noq/setup.py
 +    scripts = [
 +        "openquake/bin/oq_create_db", "openquake/bin/oq_restart_workers"]
 +)
-Index: noq/openquake/__init__.py
-===================================================================
---- noq.orig/openquake/__init__.py	2012-09-16 18:47:27.207290702 +0200
-+++ noq/openquake/__init__.py	2012-09-16 18:47:30.667290809 +0200
+--- a/openquake/__init__.py
++++ b/openquake/__init__.py
 @@ -55,7 +55,7 @@
  # released OpenQuake code.
  __version__ = (
