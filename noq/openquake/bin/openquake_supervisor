@@ -21,13 +21,8 @@
 """
 The OpenQuake job supervisor process, spawned by each OpenQuake job.
 """
-import logging
 import os
 import sys
-
-import oqpath
-oqpath.set_oq_path()
-
 
 def main():  # pylint: disable=C0111
     os.environ['DJANGO_SETTINGS_MODULE'] = 'openquake.settings'

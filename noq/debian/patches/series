@@ -1,3 +1,4 @@
 packaging-artefacts.patch
 rm-obsolete-nrml-dir.patch
 oqpath.patch
+abort-on-config.patch
