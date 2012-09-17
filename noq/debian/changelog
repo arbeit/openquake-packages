@@ -1,3 +1,15 @@
+python-noq (0.1-3) precise; urgency=low
+
+  * add missing logging.cfg file
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 17 Sep 2012 09:19:11 +0200
+
+python-noq (0.1-2) precise; urgency=low
+
+  * add missing openquake.cfg file and tweak the postinst script
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 17 Sep 2012 07:29:13 +0200
+
 python-noq (0.1-1) precise; urgency=low
 
   * Alpha release of the nhlib-based OpenQuake calculator (LP: #1045212)
