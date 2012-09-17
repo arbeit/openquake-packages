@@ -1,3 +1,9 @@
+python-noq (0.1-5) precise; urgency=low
+
+  * add missing site models for the demos
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 17 Sep 2012 11:55:00 +0200
+
 python-noq (0.1-4) precise; urgency=low
 
   * make sure the demos are bundled as part of the package
