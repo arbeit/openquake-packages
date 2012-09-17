@@ -1,5 +1,7 @@
---- a/openquake/bin/openquake
-+++ /dev/null
+Index: noq/openquake/bin/openquake
+===================================================================
+--- noq.orig/openquake/bin/openquake	2012-09-17 12:21:39.215613383 +0200
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
 @@ -1,359 +0,0 @@
 -#!/usr/bin/env python
 -# -*- coding: utf-8 -*-
@@ -360,8 +362,10 @@
 -        do_export(output_id, target_dir)
 -    else:
 -        arg_parser.print_usage()
---- /dev/null
-+++ b/openquake/bin/oqscript.py
+Index: noq/openquake/bin/oqscript.py
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ noq/openquake/bin/oqscript.py	2012-09-17 12:21:39.483613388 +0200
 @@ -0,0 +1,363 @@
 +#!/usr/bin/env python
 +# -*- coding: utf-8 -*-
@@ -726,50 +730,10 @@
 +
 +if __name__ == '__main__':
 +    main()
---- a/openquake/bin/openquake_supersupervisor
-+++ /dev/null
-@@ -1,18 +0,0 @@
--#!/bin/sh
--
--# Copyright (c) 2010-2012, GEM Foundation.
--#
--# OpenQuake is free software: you can redistribute it and/or modify it
--# under the terms of the GNU Affero General Public License as published
--# by the Free Software Foundation, either version 3 of the License, or
--# (at your option) any later version.
--#
--# OpenQuake is distributed in the hope that it will be useful,
--# but WITHOUT ANY WARRANTY; without even the implied warranty of
--# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--# GNU General Public License for more details.
--#
--# You should have received a copy of the GNU Affero General Public License
--# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
--
--python -m openquake.supervising.supersupervisor
---- /dev/null
-+++ b/openquake/bin/openquake_supersupervisor.py
-@@ -0,0 +1,18 @@
-+#!/bin/sh
-+
-+# Copyright (c) 2010-2012, GEM Foundation.
-+#
-+# OpenQuake is free software: you can redistribute it and/or modify it
-+# under the terms of the GNU Affero General Public License as published
-+# by the Free Software Foundation, either version 3 of the License, or
-+# (at your option) any later version.
-+#
-+# OpenQuake is distributed in the hope that it will be useful,
-+# but WITHOUT ANY WARRANTY; without even the implied warranty of
-+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+# GNU General Public License for more details.
-+#
-+# You should have received a copy of the GNU Affero General Public License
-+# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
-+
-+python -m openquake.supervising.supersupervisor
---- a/openquake/bin/openquake_supervisor
-+++ /dev/null
+Index: noq/openquake/bin/openquake_supervisor
+===================================================================
+--- noq.orig/openquake/bin/openquake_supervisor	2012-09-17 12:21:38.879613369 +0200
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
 @@ -1,38 +0,0 @@
 -#! /usr/bin/env python
 -
@@ -809,8 +773,10 @@
 -
 -if __name__ == '__main__':
 -    main()
---- /dev/null
-+++ b/openquake/bin/openquake_supervisor.py
+Index: noq/openquake/bin/openquake_supervisor.py
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ noq/openquake/bin/openquake_supervisor.py	2012-09-17 12:21:39.523613390 +0200
 @@ -0,0 +1,41 @@
 +#! /usr/bin/env python
 +
@@ -853,8 +819,10 @@
 +
 +if __name__ == '__main__':
 +    main()
---- a/openquake/bin/cache_gc.py
-+++ b/openquake/bin/cache_gc.py
+Index: noq/openquake/bin/cache_gc.py
+===================================================================
+--- noq.orig/openquake/bin/cache_gc.py	2012-09-17 12:21:38.811613367 +0200
++++ noq/openquake/bin/cache_gc.py	2012-09-17 12:21:39.547613390 +0200
 @@ -41,11 +41,8 @@
  S2L = dict(h='help', j='job', l='list')
  
@@ -875,8 +843,10 @@
  if __name__ == '__main__':
 -    main(sys.argv[1:])
 +    main()
---- a/openquake/bin/openquake_messages_collector.py
-+++ b/openquake/bin/openquake_messages_collector.py
+Index: noq/openquake/bin/openquake_messages_collector.py
+===================================================================
+--- noq.orig/openquake/bin/openquake_messages_collector.py	2012-09-17 12:21:38.851613369 +0200
++++ noq/openquake/bin/openquake_messages_collector.py	2012-09-17 12:21:39.587613392 +0200
 @@ -8,12 +8,9 @@
  in logging.cfg
  """
