@@ -1,3 +1,9 @@
+python-oq (0.8.2-4) precise; urgency=low
+
+  * fix JAVA_HOME value so it works in ubuntu 12.04 LTS (LP: #1051941)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 17 Sep 2012 14:52:12 +0200
+
 python-oq (0.8.2-3) precise; urgency=low
 
   * Insured loss probabilistic event based calculator (LP: #1045318)
