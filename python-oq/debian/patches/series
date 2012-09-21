@@ -1,3 +1,4 @@
+vs30_type.patch
 insured-loss.patch
 openquake_supervisor.patch
 cache_gc.patch

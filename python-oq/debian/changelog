@@ -1,3 +1,9 @@
+python-oq (0.8.2-5) precise; urgency=low
+
+  * Make sure the vs30_type param is capitalized (LP: #1050792)
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 21 Sep 2012 12:01:34 +0200
+
 python-oq (0.8.2-4) precise; urgency=low
 
   * fix JAVA_HOME value so it works in ubuntu 12.04 LTS (LP: #1051941)
