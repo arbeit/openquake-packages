@@ -42,6 +42,8 @@ EXPOSURE_KEY_TOKEN = 'ASSET'
 GMF_KEY_TOKEN = 'GMF'
 LOSS_RATIO_CURVE_KEY_TOKEN = 'LOSS_RATIO_CURVE'
 LOSS_CURVE_KEY_TOKEN = 'LOSS_CURVE'
+INSURED_LOSS_CURVE_KEY_TOKEN = 'INSURED_LOSS_CURVE'
+INSURED_LOSS_RATIO_CURVE_KEY_TOKEN = 'INSURED_LOSS_RATIO_CURVE'
 VULNERABILITY_CURVE_KEY_TOKEN = 'VULNERABILITY_CURVE'
 BCR_BLOCK_KEY_TOKEN = 'BCR_BLOCK'
 
@@ -155,6 +157,18 @@ def loss_curve_key(job_id, row, col, asset_id, retrofitted=False):
     """ Return a loss curve key """
     return _generate_key(job_id, LOSS_CURVE_KEY_TOKEN, asset_id, row, col,
                          "retrofitted" if retrofitted else "normal")
+
+
+def insured_loss_curve_key(job_id, row, col, asset_id):
+    """ Return a insured loss curve key """
+    return _generate_key(job_id, INSURED_LOSS_CURVE_KEY_TOKEN, asset_id, row,
+        col)
+
+
+def insured_loss_ratio_curve_key(job_id, row, col, asset_id):
+    """ Return a insured loss ratio curve key """
+    return _generate_key(job_id, INSURED_LOSS_RATIO_CURVE_KEY_TOKEN,
+        asset_id, row, col)
 
 
 def loss_key(job_id, row, col, asset_id, poe):
