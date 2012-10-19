@@ -1,3 +1,9 @@
+python-oq (0.8.3-1) precise; urgency=low
+
+  * upstream release
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Fri, 19 Oct 2012 19:53:00 +0200
+
 python-oq (0.8.2-5) precise; urgency=low
 
   * Make sure the vs30_type param is capitalized (LP: #1050792)
