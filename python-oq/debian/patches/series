@@ -1,9 +1,3 @@
-vs30_type.patch
-insured-loss.patch
-openquake_supervisor.patch
-cache_gc.patch
-oq-script.patch
-oq-restart.patch
 config.patch
 oqpath.patch
 logsink-cfg.patch
