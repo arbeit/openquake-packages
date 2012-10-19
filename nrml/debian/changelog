@@ -1,3 +1,9 @@
+python-nrml (0.4.3-1) precise; urgency=low
+
+  * Upstream release
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Thu, 18 Oct 2012 23:14:54 +0200
+
 python-nrml (0.4.2-1) precise; urgency=low
 
   * Fix orig tar ball
