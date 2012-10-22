@@ -1,0 +1,13 @@
+Index: python-oq/openquake/bin/oq-restart
+===================================================================
+--- python-oq.orig/openquake/bin/oq-restart	2012-10-19 23:41:50.074764705 +0200
++++ python-oq/openquake/bin/oq-restart	2012-10-22 15:30:07.025001630 +0200
+@@ -37,7 +37,7 @@
+ EOF
+ 
+ export MPLCONFIGDIR=/tmp
+-export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-amd64/jre
++export JAVA_HOME=/usr/lib/jvm/default-java/jre
+ export DJANGO_SETTINGS_MODULE="openquake.settings"
+ 
+ cd /usr/openquake
