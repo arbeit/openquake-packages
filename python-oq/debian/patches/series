@@ -1,3 +1,4 @@
+monitor.py.patch
 java-home-fix.patch
 missing-files.patch
 config.patch
