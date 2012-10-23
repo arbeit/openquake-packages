@@ -1,3 +1,9 @@
+python-oq (0.8.3-3) precise; urgency=low
+
+  * Add missing monitor.py source
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Tue, 23 Oct 2012 10:16:18 +0200
+
 python-oq (0.8.3-2) precise; urgency=low
 
   * Use arch-independent JAVA_HOME env. variable values (LP: #1069804)
