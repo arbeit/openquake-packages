@@ -1,3 +1,4 @@
+nuke-unneeded-binaries.patch
 nuke-obsolete-demos.patch
 nuke-nrml.patch
 demos_site_model.patch
