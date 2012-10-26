@@ -1,5 +1,5 @@
---- a/openquake/bin/openquake
-+++ b/openquake/bin/openquake
+--- a/bin/openquake
++++ b/bin/openquake
 @@ -344,32 +344,8 @@
          run_hazard(args.run_hazard, args.log_level, args.log_file,
                     args.force_inputs, args.exports)
