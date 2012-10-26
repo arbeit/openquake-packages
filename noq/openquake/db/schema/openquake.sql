@@ -269,9 +269,11 @@ CREATE TABLE uiapi.job_stats (
         DEFAULT timezone('UTC'::text, now()) NOT NULL,
     stop_time timestamp without time zone,
     -- The number of total sites in the calculation
-    num_sites INTEGER NOT NULL,
-    -- The number of logic tree samples (for hazard jobs of all types except scenario)
-    realizations INTEGER
+    num_sites INTEGER,
+    -- The number of tasks in a job
+    num_tasks INTEGER,
+    -- The number of logic tree samples
+    num_realizations INTEGER
 ) TABLESPACE uiapi_ts;
 
 
@@ -279,10 +281,12 @@ CREATE TABLE uiapi.job_stats (
 CREATE TABLE uiapi.job_phase_stats (
     id SERIAL PRIMARY KEY,
     oq_job_id INTEGER NOT NULL,
+    -- calculation type (hazard|risk)
+    ctype VARCHAR NOT NULL,
     job_status VARCHAR NOT NULL,
     start_time timestamp without time zone
         DEFAULT timezone('UTC'::text, now()) NOT NULL,
-    UNIQUE (oq_job_id, job_status)
+    UNIQUE (oq_job_id, ctype, job_status)
 ) TABLESPACE uiapi_ts;
 
 
@@ -301,6 +305,9 @@ CREATE TABLE uiapi.hazard_calculation (
     -- general parameters:
     -- (see also `region` and `sites` geometries defined below)
     description VARCHAR NOT NULL DEFAULT '',
+    -- what time period w/o any progress is acceptable for calculations?
+    -- The timeout is stored in seconds and is 1 hour by default.
+    no_progress_timeout INTEGER NOT NULL DEFAULT 3600,
     calculation_mode VARCHAR NOT NULL CONSTRAINT haz_calc_mode
         CHECK(calculation_mode IN ('classical', 'event_based')),
     region_grid_spacing float,
@@ -337,7 +344,8 @@ CREATE TABLE uiapi.hazard_calculation (
     -- event-based:
     complete_logic_tree_ses BOOLEAN,
     complete_logic_tree_gmf BOOLEAN,
-    ground_motion_fields BOOLEAN
+    ground_motion_fields BOOLEAN,
+    hazard_curves_from_gmfs BOOLEAN
 ) TABLESPACE uiapi_ts;
 SELECT AddGeometryColumn('uiapi', 'hazard_calculation', 'region', 4326, 'POLYGON', 2);
 SELECT AddGeometryColumn('uiapi', 'hazard_calculation', 'sites', 4326, 'MULTIPOINT', 2);
@@ -347,6 +355,18 @@ CREATE TABLE uiapi.input2hcalc (
     id SERIAL PRIMARY KEY,
     input_id INTEGER NOT NULL,
     hazard_calculation_id INTEGER NOT NULL
+) TABLESPACE uiapi_ts;
+
+
+CREATE TABLE uiapi.cnode_stats (
+    id SERIAL PRIMARY KEY,
+    oq_job_id INTEGER NOT NULL,
+    node VARCHAR NOT NULL,
+    current_status VARCHAR NOT NULL CONSTRAINT current_status_value
+        CHECK(current_status IN ('up', 'down')),
+    current_ts timestamp without time zone NOT NULL,
+    previous_ts timestamp without time zone,
+    failures INTEGER NOT NULL DEFAULT 0
 ) TABLESPACE uiapi_ts;
 
 
@@ -1095,7 +1115,10 @@ CREATE TABLE hzrdr.ses_rupture (
     is_from_fault_source BOOLEAN NOT NULL,
     lons BYTEA NOT NULL,
     lats BYTEA NOT NULL,
-    depths BYTEA NOT NULL
+    depths BYTEA NOT NULL,
+    result_grp_ordinal INTEGER NOT NULL,
+    -- The sequence number of the rupture within a given task/result group
+    rupture_ordinal INTEGER NOT NULL
 ) TABLESPACE hzrdr_ts;
 
 
@@ -1130,6 +1153,7 @@ CREATE TABLE hzrdr.gmf_set (
     complete_logic_tree_gmf BOOLEAN NOT NULL DEFAULT FALSE
 ) TABLESPACE hzrdr_ts;
 
+-- TODO: better doc about how this table is structured and used
 CREATE TABLE hzrdr.gmf (
     id SERIAL PRIMARY KEY,
     gmf_set_id INTEGER NOT NULL,  -- FK to gmf_set.id
@@ -1142,20 +1166,15 @@ CREATE TABLE hzrdr.gmf (
     sa_damping float CONSTRAINT gmf_sa_damping
         CHECK(
             ((imt = 'SA') AND (sa_damping IS NOT NULL))
-            OR ((imt != 'SA') AND (sa_damping IS NULL)))
+            OR ((imt != 'SA') AND (sa_damping IS NULL))),
+    gmvs float[],
+    result_grp_ordinal INTEGER NOT NULL
 ) TABLESPACE hzrdr_ts;
-
-CREATE TABLE hzrdr.gmf_node (
-    id SERIAL PRIMARY KEY,
-    gmf_id INTEGER NOT NULL,  -- FK to gmf.id
-    iml float NOT NULL
-) TABLESPACE hzrdr_ts;
-SELECT AddGeometryColumn('hzrdr', 'gmf_node', 'location', 4326, 'POINT', 2);
-ALTER TABLE hzrdr.gmf_node ALTER COLUMN location SET NOT NULL;
+SELECT AddGeometryColumn('hzrdr', 'gmf', 'location', 4326, 'POINT', 2);
 
 
 -- GMF data.
--- TODO: DEPRECATED; use gmf_collection, gmf_set, gmf, and gmf_node
+-- TODO: DEPRECATED; use gmf_collection, gmf_set, and gmf
 CREATE TABLE hzrdr.gmf_data (
     id SERIAL PRIMARY KEY,
     output_id INTEGER NOT NULL,
@@ -1681,6 +1700,12 @@ FOREIGN KEY (owner_id) REFERENCES admin.oq_user(id) ON DELETE RESTRICT;
 ALTER TABLE uiapi.job_stats ADD CONSTRAINT  uiapi_job_stats_oq_job_fk
 FOREIGN KEY (oq_job_id) REFERENCES uiapi.oq_job(id) ON DELETE CASCADE;
 
+ALTER TABLE uiapi.job_phase_stats ADD CONSTRAINT  uiapi_job_phase_stats_oq_job_fk
+FOREIGN KEY (oq_job_id) REFERENCES uiapi.oq_job(id) ON DELETE CASCADE;
+
+ALTER TABLE uiapi.cnode_stats ADD CONSTRAINT  uiapi_cnode_stats_oq_job_fk
+FOREIGN KEY (oq_job_id) REFERENCES uiapi.oq_job(id) ON DELETE CASCADE;
+
 ALTER TABLE uiapi.input2job ADD CONSTRAINT  uiapi_input2job_input_fk
 FOREIGN KEY (input_id) REFERENCES uiapi.input(id) ON DELETE CASCADE;
 
@@ -1792,12 +1817,6 @@ ON DELETE CASCADE;
 ALTER TABLE hzrdr.gmf
 ADD CONSTRAINT hzrdr_gmf_gmf_set_fk
 FOREIGN KEY (gmf_set_id) REFERENCES hzrdr.gmf_set(id)
-ON DELETE CASCADE;
-
--- gmf_node -> gmf FK
-ALTER TABLE hzrdr.gmf_node
-ADD CONSTRAINT hzrdr_gmf_node_gmf_fk
-FOREIGN KEY (gmf_id) REFERENCES hzrdr.gmf(id)
 ON DELETE CASCADE;
 
 

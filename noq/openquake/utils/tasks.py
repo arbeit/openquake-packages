@@ -28,6 +28,7 @@ from celery.task import task
 
 from openquake import logs
 from openquake.db import models
+from openquake.utils import config
 
 
 def distribute(task_func, (name, data), tf_args=None, ath=None, ath_args=None,
@@ -186,20 +187,28 @@ def oqtask(task_func):
         code surrounded by a try-except. If any error occurs, log it as a
         critical failure.
         """
-        # job_id is always assumed to be the first arugment passed to a task
+        # job_id is always assumed to be the first argument passed to
+        # the task, or a keyword argument
         # this is the only required argument
-        job_id = args[0]
+        job_id = kwargs.get('job_id') or args[0]
+
         # Set up logging via amqp.
         try:
             # check if the job is still running
             job = models.OqJob.objects.get(id=job_id)
-            if not job.status == 'executing' and not job.is_running:
+
+            # Setup task logging, via AMQP ...
+            logs.init_logs_amqp_send(level=job.log_level, job_id=job_id)
+
+            logs.LOG.debug('job.is_running == %s' % job.is_running)
+            logs.LOG.debug('job.status == %s' % job.status)
+            # Tasks can be used in either the `execute` or `post-process` phase
+            if not (job.is_running
+                    and job.status in ('executing', 'post_processing')):
                 # the job is not running
                 raise JobCompletedError(job_id)
             # The job is running.
-            # Setup task logging, via AMQP ...
-            logs.init_logs_amqp_send(level=job.log_level, job_id=job_id)
-            # ... and continue with task execution.
+            # ... now continue with task execution.
             task_func(*args, **kwargs)
         # TODO: should we do something different with the JobCompletedError?
         except Exception, err:
@@ -207,4 +216,5 @@ def oqtask(task_func):
             logs.LOG.exception(err)
             raise
 
-    return task(wrapped, ignore_result=True)
+    celery_queue = config.get('amqp', 'celery_queue')
+    return task(wrapped, ignore_result=True, queue=celery_queue)

@@ -39,7 +39,6 @@ GRANT ALL ON SEQUENCE hzrdr.gmf_data_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE hzrdr.gmf_collection_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE hzrdr.gmf_set_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE hzrdr.gmf_id_seq to GROUP openquake;
-GRANT ALL ON SEQUENCE hzrdr.gmf_node_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE hzrdr.hazard_curve_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE hzrdr.hazard_curve_data_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE hzrdr.hazard_map_data_id_seq to GROUP openquake;
@@ -83,6 +82,7 @@ GRANT ALL ON SEQUENCE uiapi.model_content_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE uiapi.oq_job_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE uiapi.job_phase_stats_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE uiapi.job_stats_id_seq to GROUP openquake;
+GRANT ALL ON SEQUENCE uiapi.cnode_stats_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE uiapi.hazard_calculation_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE uiapi.oq_job_profile_id_seq to GROUP openquake;
 GRANT ALL ON SEQUENCE uiapi.input2hcalc_id_seq to GROUP openquake;
@@ -156,10 +156,6 @@ GRANT SELECT,INSERT,DELETE ON hzrdr.gmf_set TO oq_reslt_writer;
 -- hzrdr.gmf
 GRANT SELECT ON hzrdr.gmf TO GROUP openquake;
 GRANT SELECT,INSERT,DELETE ON hzrdr.gmf TO oq_reslt_writer;
-
--- hzrdr.gmf_node
-GRANT SELECT ON hzrdr.gmf_node TO GROUP openquake;
-GRANT SELECT,INSERT,DELETE ON hzrdr.gmf_node TO oq_reslt_writer;
 
 -- hzrdr.hazard_map
 GRANT SELECT ON hzrdr.hazard_map TO GROUP openquake;
@@ -336,6 +332,11 @@ GRANT SELECT,INSERT,DELETE ON uiapi.hazard_calculation TO oq_job_init;
 -- uiapi.input2haz_calc
 GRANT SELECT ON uiapi.input2hcalc TO GROUP openquake;
 GRANT SELECT,INSERT,DELETE ON uiapi.input2hcalc TO oq_job_init;
+
+-- uiapi.cnode_stats
+-- what nodes became available/unavailable at what time?
+GRANT SELECT ON uiapi.cnode_stats TO GROUP openquake;
+GRANT SELECT,INSERT,UPDATE ON uiapi.cnode_stats to oq_job_superv;
 
 -- uiapi.oq_job_profile
 GRANT SELECT ON uiapi.oq_job_profile TO GROUP openquake;

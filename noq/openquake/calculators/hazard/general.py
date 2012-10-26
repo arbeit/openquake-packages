@@ -18,6 +18,7 @@
 
 """Common code for the hazard calculators."""
 
+import math
 import os
 import random
 import re
@@ -57,9 +58,6 @@ from openquake.utils import stats
 QUANTILE_PARAM_NAME = "QUANTILE_LEVELS"
 POES_PARAM_NAME = "POES"
 
-#: Default Spectral Acceleration damping. At the moment, this is not
-#: configurable.
-DEFAULT_SA_DAMPING = 5.0
 
 # NOTE: this refers to how the values are stored in KVS. In the config
 # file, values are stored untransformed (i.e., the list of IMLs is
@@ -689,7 +687,7 @@ def imt_to_nhlib(imt):
     if 'SA' in imt:
         match = re.match(r'^SA\(([^)]+?)\)$', imt)
         period = float(match.group(1))
-        return nhlib.imt.SA(period, DEFAULT_SA_DAMPING)
+        return nhlib.imt.SA(period, models.DEFAULT_SA_DAMPING)
     else:
         imt_class = getattr(nhlib.imt, imt)
         return imt_class()
@@ -1127,3 +1125,34 @@ class BaseHazardCalculatorNext(base.CalculatorNext):
         logs.LOG.debug('< done with exports')
 
         return exported_files
+
+    def record_init_stats(self):
+        """
+        Record some basic job stats, including the number of sites,
+        realizations (end branches), and total number of tasks for the job.
+
+        This should be run between the `pre-execute` and `execute` phases, once
+        the job has been fully initialized.
+        """
+        # Record num sites, num realizations, and num tasks.
+        hc = self.job.hazard_calculation
+        num_sites = len(hc.points_to_compute())
+        realizations = models.LtRealization.objects.filter(
+            hazard_calculation=hc.id)
+        num_rlzs = realizations.count()
+
+        # Compute the number of tasks.
+        block_size = int(config.get('hazard', 'block_size'))
+        num_tasks = 0
+        for lt_rlz in realizations:
+            # Each realization has the potential to choose a random source
+            # model, and thus there may be a variable number of tasks for each
+            # realization (depending on the number of the sources in the model
+            # which was chosen for the realization).
+            num_sources = models.SourceProgress.objects.filter(
+                lt_realization=lt_rlz).count()
+            num_tasks += math.ceil(float(num_sources) / block_size)
+
+        models.JobStats.objects.filter(oq_job=self.job.id).update(
+            num_sites=num_sites, num_tasks=num_tasks,
+            num_realizations=num_rlzs)

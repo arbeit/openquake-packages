@@ -128,16 +128,16 @@ class BaseOQModelForm(ModelForm):
         all_valid = super_valid
 
         # HazardCalculation
-        hjp = self.instance
+        hc = self.instance
 
         # First, check the calculation mode:
-        valid, errs = calculation_mode_is_valid(hjp, self.calc_mode)
+        valid, errs = calculation_mode_is_valid(hc, self.calc_mode)
         all_valid &= valid
         self._add_error('calculation_mode', errs)
 
         # Exclude special fields that require contextual validation.
         for field in sorted(set(self.fields) - set(self.special_fields)):
-            valid, errs = eval('%s_is_valid' % field)(hjp)
+            valid, errs = eval('%s_is_valid' % field)(hc)
             all_valid &= valid
 
             self._add_error(field, errs)
@@ -145,21 +145,21 @@ class BaseOQModelForm(ModelForm):
         # Now do checks which require more context.
 
         # Cannot specify region AND sites
-        if (hjp.region is not None
-            and hjp.sites is not None):
+        if (hc.region is not None
+            and hc.sites is not None):
             all_valid = False
             err = 'Cannot specify `region` and `sites`. Choose one.'
             self._add_error('region', err)
         # At least one must be specified (region OR sites)
-        elif not (hjp.region is not None or hjp.sites is not None):
+        elif not (hc.region is not None or hc.sites is not None):
             all_valid = False
             err = 'Must specify either `region` or `sites`.'
             self._add_error('region', err)
             self._add_error('sites', err)
         # Only region is specified
-        elif hjp.region is not None:
-            if hjp.region_grid_spacing is not None:
-                valid, errs = region_grid_spacing_is_valid(hjp)
+        elif hc.region is not None:
+            if hc.region_grid_spacing is not None:
+                valid, errs = region_grid_spacing_is_valid(hc)
                 all_valid &= valid
 
                 self._add_error('region_grid_spacing', errs)
@@ -169,12 +169,12 @@ class BaseOQModelForm(ModelForm):
                 self._add_error('region', err)
 
             # validate the region
-            valid, errs = region_is_valid(hjp)
+            valid, errs = region_is_valid(hc)
             all_valid &= valid
             self._add_error('region', errs)
         # Only sites was specified
         else:
-            valid, errs = sites_is_valid(hjp)
+            valid, errs = sites_is_valid(hc)
             all_valid &= valid
             self._add_error('sites', errs)
 
@@ -187,16 +187,16 @@ class BaseOQModelForm(ModelForm):
                 'reference_depth_to_2pt5km_per_sec',
                 'reference_depth_to_1pt0km_per_sec',
             ):
-                valid, errs = eval('%s_is_valid' % field)(hjp)
+                valid, errs = eval('%s_is_valid' % field)(hc)
                 all_valid &= valid
                 self._add_error(field, errs)
 
         if self.exports:
             # The user has requested that exports be performed after the
             # calculation i.e. an 'export_dir' parameter must be present.
-            if not hjp.export_dir:
+            if not hc.export_dir:
                 all_valid = False
-                err = ('--export specified on the command line but the '
+                err = ('--exports specified on the command line but the '
                        '"export_dir" parameter is missing in the .ini file')
                 self._add_error('export_dir', err)
 
@@ -211,6 +211,7 @@ class ClassicalHazardCalculationForm(BaseOQModelForm):
         model = models.HazardCalculation
         fields = (
             'description',
+            'no_progress_timeout',
             'region',
             'region_grid_spacing',
             'sites',
@@ -242,6 +243,7 @@ class EventBasedHazardCalculationForm(BaseOQModelForm):
         model = models.HazardCalculation
         fields = (
             'description',
+            'no_progress_timeout',
             'region',
             'region_grid_spacing',
             'sites',
@@ -258,14 +260,71 @@ class EventBasedHazardCalculationForm(BaseOQModelForm):
             'truncation_level',
             'maximum_distance',
             'intensity_measure_types',
+            'intensity_measure_types_and_levels',
             'ses_per_logic_tree_path',
             'ground_motion_correlation_model',
             'ground_motion_correlation_params',
             'complete_logic_tree_ses',
             'complete_logic_tree_gmf',
             'ground_motion_fields',
+            'hazard_curves_from_gmfs',
+            'mean_hazard_curves',
+            'quantile_hazard_curves',
+            'poes_hazard_maps',
             'export_dir',
         )
+
+    def is_valid(self):
+        super_valid = super(EventBasedHazardCalculationForm, self).is_valid()
+        all_valid = super_valid
+
+        hc = self.instance
+
+        # contextual validation
+
+        # It doesn't make sense to capture/export the `complete_logic_tree_gmf`
+        # when we're doing end-branch enumeration:
+        if (hc.number_of_logic_tree_samples == 0
+            and hc.complete_logic_tree_gmf is True):
+
+            msg = '`%s` is not available with end branch enumeration'
+            msg %= 'complete_logic_tree_gmf'
+            self._add_error('complete_logic_tree_gmf', msg)
+            all_valid = False
+
+        # For the case where the user has requested to post-process GMFs into
+        # hazard curves:
+        if hc.hazard_curves_from_gmfs is True:
+            # 1) We need to make sure `intensity_measure_types_and_levels` is
+            #    defined (and valid)
+            if hc.intensity_measure_types_and_levels is None:
+                # Not defined
+                msg = '`%s` requires `%s`'
+                msg %= ('hazard_curve_from_gmfs',
+                        'intensity_measure_types_and_levels')
+
+                self._add_error('intensity_measure_types_and_levels', msg)
+                all_valid = False
+            else:
+                # Defined, but is it valid?
+                valid, errs = intensity_measure_types_and_levels_is_valid(hc)
+                all_valid &= valid
+                self._add_error('hazard_curves_from_gmfs', errs)
+
+                # 2) The IMT keys in `intensity_measure_types_and_levels` need
+                #    to be a subset of `intensity_measure_types`.
+                imts = set(hc.intensity_measure_types_and_levels.keys())
+                all_imts = set(hc.intensity_measure_types)
+
+                if not imts.issubset(all_imts):
+                    msg = 'Unknown IMT(s) [%s] in `%s`'
+                    msg %= (', '.join(sorted(imts - all_imts)),
+                            'intensity_measure_types')
+
+                    self._add_error('intensity_measure_types_and_levels', msg)
+                    all_valid = False
+
+        return all_valid
 
 #: Maps calculation_mode to the appropriate validator class
 VALIDATOR_MAP = {
@@ -317,6 +376,12 @@ def region_is_valid(mdl):
 def region_grid_spacing_is_valid(mdl):
     if not mdl.region_grid_spacing > 0:
         return False, ['Region grid spacing must be > 0']
+    return True, []
+
+
+def no_progress_timeout_is_valid(mdl):
+    if not mdl.no_progress_timeout > 0:
+        return False, ['"No progress" time-out must be > 0']
     return True, []
 
 
@@ -449,6 +514,10 @@ def intensity_measure_types_and_levels_is_valid(mdl):
     valid = True
     errors = []
 
+    if mdl.calculation_mode == 'event_based' and im is None:
+        # For event-based hazard calculations, this parameter is optional
+        return valid, errors
+
     for im_type, imls in im.iteritems():
         # validate IMT:
         valid_imt, imt_errors = _validate_imt(im_type)
@@ -563,6 +632,12 @@ def complete_logic_tree_gmf_is_valid(_mdl):
 
 
 def ground_motion_fields_is_valid(_mdl):
+    # This parameter is a simple True or False;
+    # field normalization should cover all of validation necessary.
+    return True, []
+
+
+def hazard_curves_from_gmfs_is_valid(_mdl):
     # This parameter is a simple True or False;
     # field normalization should cover all of validation necessary.
     return True, []

@@ -17,8 +17,6 @@
 Core functionality for the classical PSHA hazard calculator.
 """
 
-import re
-
 import nhlib
 import nhlib.calc
 import nhlib.imt
@@ -30,10 +28,13 @@ from openquake import logs
 from openquake import writer
 from openquake.calculators.hazard import general as haz_general
 from openquake.db import models
-from openquake.export import hazard as hexp
 from openquake.input import logictree
 from openquake.utils import stats
 from openquake.utils import tasks as utils_tasks
+
+from openquake.db.aggregate_result_writer import (MeanCurveWriter,
+                                                  QuantileCurveWriter)
+from openquake.calculators.hazard.classical import post_processing
 
 
 # Silencing 'Too many local variables'
@@ -159,7 +160,14 @@ def hazard_curves(job_id, src_ids, lt_rlz_id):
         # Update realiation progress,
         # mark realization as complete if it is done
         # First, refresh the logic tree realization record:
-        lt_rlz = models.LtRealization.objects.get(id=lt_rlz.id)
+        ltr_query = """
+        SELECT * FROM hzrdr.lt_realization
+        WHERE id = %s
+        FOR UPDATE
+        """
+
+        [lt_rlz] = models.LtRealization.objects.raw(
+            ltr_query, [lt_rlz.id])
 
         lt_rlz.completed_sources += len(src_ids)
         if lt_rlz.completed_sources == lt_rlz.total_sources:
@@ -281,6 +289,8 @@ class ClassicalHazardCalculator(haz_general.BaseHazardCalculatorNext):
             rlz_callbacks=[self.initialize_hazard_curve_progress])
         self.initialize_pr_data()
 
+        self.record_init_stats()
+
     def post_execute(self):
         """
         Create the final output records for hazard curves. This is done by
@@ -301,15 +311,7 @@ class ClassicalHazardCalculator(haz_general.BaseHazardCalculatorNext):
             # create a new `HazardCurve` 'container' record for each
             # realization for each intensity measure type
             for imt, imls in im.items():
-                sa_period = None
-                sa_damping = None
-                if 'SA' in imt:
-                    match = re.match(r'^SA\(([^)]+?)\)$', imt)
-                    sa_period = float(match.group(1))
-                    sa_damping = haz_general.DEFAULT_SA_DAMPING
-                    hc_im_type = 'SA'  # don't include the period
-                else:
-                    hc_im_type = imt
+                hc_im_type, sa_period, sa_damping = models.parse_imt(imt)
 
                 hco = models.Output(
                     owner=hc.owner,
@@ -360,6 +362,27 @@ class ClassicalHazardCalculator(haz_general.BaseHazardCalculatorNext):
             lt_realization__hazard_calculation=hc.id).delete()
         models.SiteData.objects.filter(hazard_calculation=hc.id).delete()
         logs.LOG.debug('< done cleaning up temporary DB data')
+
+    def post_process(self):
+        logs.LOG.debug('> starting post processing')
+
+        hc = self.job.hazard_calculation
+        # If `mean_hazard_curves` is True and/or `quantile_hazard_curves`
+        # has some value (not an empty list), do post processing.
+        # Otherwise, just skip it altogether.
+        if hc.mean_hazard_curves or hc.quantile_hazard_curves:
+            tasks = post_processing.setup_tasks(
+                self.job, self.job.hazard_calculation,
+                curve_finder=models.HazardCurveData.objects,
+                writers=dict(mean_curves=MeanCurveWriter,
+                             quantile_curves=QuantileCurveWriter))
+
+            utils_tasks.distribute(
+                    post_processing.do_post_process,
+                    ("post_processing_task", tasks),
+                    tf_args=dict(job_id=self.job.id))
+
+        logs.LOG.debug('< done with post processing')
 
 
 def update_result_matrix(current, new):
