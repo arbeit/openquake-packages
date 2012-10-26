@@ -5,6 +5,5 @@ nuke-nrml.patch
 logging.cfg.patch
 openquake.cfg.patch
 packaging-artefacts.patch
-rm-obsolete-nrml-dir.patch
 oqpath.patch
 rename-py-scripts.patch
