@@ -4,5 +4,7 @@ nuke-obsolete-demos.patch
 nuke-nrml.patch
 logging.cfg.patch
 openquake.cfg.patch
+mv-binaries-1.patch
+mv-binaries-2.patch
 packaging-artefacts.patch
 oqpath.patch
