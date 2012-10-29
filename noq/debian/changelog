@@ -1,3 +1,9 @@
+python-noq (0.2-4) precise; urgency=low
+
+  *  fix malformed patch
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 29 Oct 2012 15:14:15 +0100
+
 python-noq (0.2-3) precise; urgency=low
 
   * oq_restart_workers should not update the status of failed jobs any more.
