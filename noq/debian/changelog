@@ -1,3 +1,10 @@
+python-noq (0.2-3) precise; urgency=low
+
+  * oq_restart_workers should not update the status of failed jobs any more.
+    The supervisor is taking care of that.
+
+ -- Muharem Hrnjadovic <mh@foldr3.com>  Mon, 29 Oct 2012 13:29:51 +0100
+
 python-noq (0.2-2) precise; urgency=low
 
   * Remove references to the obsolete nrml tree
