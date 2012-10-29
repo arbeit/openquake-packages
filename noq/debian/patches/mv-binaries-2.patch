@@ -180,10 +180,10 @@ Index: noq/openquake/bin/cache_gc.py
 +
 +if __name__ == '__main__':
 +    main(sys.argv[1:])
-Index: noq/openquake/bin/create_oq_schema
+Index: noq/openquake/bin/oq_create_db
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/openquake/bin/create_oq_schema	2012-10-26 14:44:28.088121502 +0200
++++ noq/openquake/bin/oq_create_db	2012-10-26 14:44:28.088121502 +0200
 @@ -0,0 +1,262 @@
 +#!/bin/bash
 +
