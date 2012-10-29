@@ -28,8 +28,8 @@
  from openquake import kvs
  from openquake import logs
  
---- a/openquake/bin/openquake
-+++ b/openquake/bin/openquake
+--- a/openquake/bin/oqscript.py
++++ b/openquake/bin/oqscript.py
 @@ -52,7 +52,6 @@
  
  import argparse
@@ -48,28 +48,8 @@
  from openquake import __version__
  from openquake.db import models
  from openquake.export import core as export
---- a/openquake/bin/openquake_messages_collector.py
-+++ b/openquake/bin/openquake_messages_collector.py
-@@ -13,16 +13,12 @@
- import logging
- import logging.config
- 
--import oqpath
--oqpath.set_oq_path()
--
- import openquake
- from openquake import signalling
- 
- 
- def main():
--    logging.config.fileConfig(os.path.join(openquake.OPENQUAKE_ROOT,
--                                           'logging.cfg'))
-+    logging.config.fileConfig("/etc/openquake/logging.cfg")
- 
-     # any job
-     collector = signalling.Collector('*', logging.getLogger('collector'))
---- a/openquake/bin/openquake_supervisor
-+++ b/openquake/bin/openquake_supervisor
+--- a/openquake/bin/openquake_supervisor.py
++++ b/openquake/bin/openquake_supervisor.py
 @@ -21,14 +21,9 @@
  """
  The OpenQuake job supervisor process, spawned by each OpenQuake job.
