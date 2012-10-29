@@ -8,4 +8,4 @@ mv-binaries-1.patch
 mv-binaries-2.patch
 packaging-artefacts.patch
 oqpath.patch
-rm-obsolete-nrml-dir.patch
+rm-obsolete-nrml-references.patch
