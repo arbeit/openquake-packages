@@ -1,7 +1,7 @@
 Index: noq/openquake/logging.cfg
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/openquake/logging.cfg	2012-09-17 09:18:56.137917147 +0200
++++ noq/openquake/logging.cfg	2012-10-29 09:11:45.926811645 +0100
 @@ -0,0 +1,26 @@
 +[loggers]
 +keys=root,collector

@@ -6,4 +6,3 @@ logging.cfg.patch
 openquake.cfg.patch
 packaging-artefacts.patch
 oqpath.patch
-rename-py-scripts.patch
