@@ -495,10 +495,10 @@ Index: noq/openquake/bin/openquake_supervisor.py
 +
 +if __name__ == '__main__':
 +    main()
-Index: noq/openquake/bin/oq-restart
+Index: noq/openquake/bin/oq_restart_workers
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ noq/openquake/bin/oq-restart	2012-10-29 09:40:39.791409425 +0100
++++ noq/openquake/bin/oq_restart_workers	2012-10-29 09:40:39.791409425 +0100
 @@ -0,0 +1,58 @@
 +#!/bin/bash
 +
